@@ -43,7 +43,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${dmSans.variable} font-sans antialiased flex min-h-screen flex-col`}
       >
         <SiteHeader />
-        <main className="flex-1">{children}</main>
+        <main className="relative z-0 flex-1">{children}</main>
         <SiteFooter />
       </body>
     </html>

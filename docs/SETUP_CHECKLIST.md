@@ -2,9 +2,11 @@
 
 Use this as the single place to track what’s set up and what’s left. More UI and feature tasks will be added later; this doc stays the source for **environment and service setup** only.
 
+**Running without Supabase:** The app runs with no env set. The token system (2 free portraits) uses cookies. Upload and generate return 503 until Supabase is configured; the create flow shows a friendly message. Connect Supabase and run migrations when you’re ready for full upload/generation.
+
 ---
 
-## 1. Supabase (required for app to work)
+## 1. Supabase (required for upload and generation)
 
 **Status:** [ ] Done
 
@@ -12,7 +14,7 @@ Use this as the single place to track what’s set up and what’s left. More UI
 - **Detail:** [SUPABASE_SETUP.md](SUPABASE_SETUP.md)
 - **Env:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
-Without this: upload, generate, and storage features will not work.
+Without this: upload and generate return 503 (token/credits and rest of site work with cookie fallback).
 
 ---
 

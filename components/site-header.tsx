@@ -1,21 +1,42 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
 import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 const FOCUSABLE = 'a[href], button:not([disabled])'
 
 export function SiteHeader() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [categoriesOpen, setCategoriesOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const categoriesRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    closeDrawer()
+    router.push('/')
+    router.refresh()
+  }
 
   useEffect(() => {
     if (drawerOpen) {
@@ -68,149 +89,129 @@ export function SiteHeader() {
 
   const closeDrawer = () => setDrawerOpen(false)
 
-  useEffect(() => {
-    if (!categoriesOpen) return
-    const onOutside = (e: MouseEvent) => {
-      if (categoriesRef.current && !categoriesRef.current.contains(e.target as Node)) {
-        setCategoriesOpen(false)
-      }
-    }
-    document.addEventListener('click', onOutside)
-    return () => document.removeEventListener('click', onOutside)
-  }, [categoriesOpen])
-
-  const categorySubLinks = SUBJECT_TYPE_IDS.map((id) => (
-    <Link
-      key={id}
-      href={CATEGORY_ROUTES[id].path}
-      className="block w-full rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground text-left"
-      onClick={() => setCategoriesOpen(false)}
-    >
-      {CATEGORY_ROUTES[id].title}
-    </Link>
-  ))
-
-  const navLinks = (
-    <>
-      <div className="relative" ref={categoriesRef}>
-        <Button
-          type="button"
-          variant="ghost"
-          size="default"
-          className="rounded-full"
-          onClick={() => setCategoriesOpen((o) => !o)}
-          aria-expanded={categoriesOpen}
-          aria-haspopup="true"
-          aria-label="Portrait categories"
-        >
-          All categories
-        </Button>
-        {categoriesOpen && (
-          <div
-            className="absolute left-0 top-full mt-1 min-w-[200px] rounded-lg border border-border bg-background py-2 shadow-lg z-50"
-            role="menu"
-          >
-            {categorySubLinks}
-          </div>
-        )}
-      </div>
-      <Link href="/pet-portraits" className={getButtonClassName('default', 'default', 'rounded-full')}>
-        Pet portraits
-      </Link>
-      <Link href="/order-lookup" className={getButtonClassName('ghost', 'default', 'rounded-full')}>
-        Order lookup
-      </Link>
-    </>
-  )
-
-  return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-4xl mx-auto items-center justify-between px-4">
-        <Link
-          href="/"
-          className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors"
-        >
-          petportrait.shop
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-2" aria-label="Main">
-          {navLinks}
-        </nav>
-
-        {/* Mobile: custom drawer */}
-        <Button
-          ref={menuButtonRef}
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
-          aria-expanded={drawerOpen}
-        >
-          <Menu className="size-5" />
-        </Button>
-      </div>
-
-      {/* Drawer overlay + panel */}
-      {drawerOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-50 bg-black/50 md:hidden"
-            aria-hidden
-            onClick={closeDrawer}
-          />
-          <div
-            ref={panelRef}
-            className={cn(
-              'fixed inset-y-0 right-0 z-50 w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-lg md:hidden',
-              'animate-in slide-in-from-right duration-300'
-            )}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Mobile menu"
-          >
-            <Link
-              href="/"
-              className="font-heading text-lg font-semibold text-foreground"
+  const drawerContent =
+    drawerOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[100] bg-black/50"
+              aria-hidden
               onClick={closeDrawer}
+            />
+            <div
+              ref={panelRef}
+              className={cn(
+                'fixed inset-y-0 right-0 z-[100] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-lg',
+                'animate-in slide-in-from-right duration-300'
+              )}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu"
             >
-              petportrait.shop
-            </Link>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-2">
-                Portraits
-              </span>
-              {SUBJECT_TYPE_IDS.map((id) => (
+              <Link
+                href="/"
+                className="font-heading text-lg font-semibold text-foreground"
+                onClick={closeDrawer}
+              >
+                petportrait.shop
+              </Link>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-2">
+                  Portraits
+                </span>
+                {SUBJECT_TYPE_IDS.map((id) => (
+                  <Link
+                    key={id}
+                    href={CATEGORY_ROUTES[id].path}
+                    className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                    onClick={closeDrawer}
+                  >
+                    {CATEGORY_ROUTES[id].title}
+                  </Link>
+                ))}
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-4">
+                  Other
+                </span>
                 <Link
-                  key={id}
-                  href={CATEGORY_ROUTES[id].path}
+                  href="/"
+                  className={cn(getButtonClassName('ghost', 'lg'), 'rounded-full justify-start')}
+                  onClick={closeDrawer}
+                >
+                  All categories (home)
+                </Link>
+                <Link
+                  href="/order-lookup"
                   className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
                   onClick={closeDrawer}
                 >
-                  {CATEGORY_ROUTES[id].title}
+                  Order lookup
                 </Link>
-              ))}
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-4">
-                Other
-              </span>
-              <Link
-                href="/"
-                className={cn(getButtonClassName('ghost', 'lg'), 'rounded-full justify-start')}
-                onClick={closeDrawer}
-              >
-                All categories (home)
-              </Link>
-              <Link
-                href="/order-lookup"
-                className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
-                onClick={closeDrawer}
-              >
-                Order lookup
-              </Link>
+                <Link
+                  href="/pricing"
+                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                  onClick={closeDrawer}
+                >
+                  Pricing
+                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      href="/account"
+                      className={cn(getButtonClassName('default', 'lg'), 'rounded-full justify-start')}
+                      onClick={closeDrawer}
+                    >
+                      My Portraits
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      className="rounded-full justify-start w-full"
+                      onClick={handleSignOut}
+                    >
+                      Log out
+                    </Button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className={cn(getButtonClassName('ghost', 'lg'), 'rounded-full justify-start')}
+                    onClick={closeDrawer}
+                  >
+                    Log in
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
-        </>
-      )}
-    </header>
+          </>,
+          document.body
+        )
+      : null
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-4xl mx-auto items-center justify-between px-4">
+          <Link
+            href="/"
+            className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors"
+          >
+            petportrait.shop
+          </Link>
+
+          {/* Menu: all nav options are inside the drawer. Icon can be replaced later. */}
+          <Button
+            ref={menuButtonRef}
+            variant="ghost"
+            size="icon"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={drawerOpen}
+          >
+            <Menu className="size-5" />
+          </Button>
+        </div>
+      </header>
+      {drawerContent}
+    </>
   )
 }

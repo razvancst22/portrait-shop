@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClientIfConfigured } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
@@ -33,10 +33,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const supabase = createClientIfConfigured()
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and keys to enable uploads.' },
+        { status: 503 }
+      )
+    }
+
     const ext = file.name.split('.').pop() || 'jpg'
     const path = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
 
-    const supabase = createClient()
     const { data, error } = await supabase.storage
       .from(BUCKET_UPLOADS)
       .upload(path, await file.arrayBuffer(), {

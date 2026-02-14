@@ -6,12 +6,12 @@ Single checklist for: home component structure, login, inspired token/credit sys
 
 ## 1. Component structure (home page)
 
-- [ ] **1.1** Create `components/home/` folder.
-- [ ] **1.2** Add `components/home/hero-section.tsx` – headline + subhead; export `HeroSection`.
-- [ ] **1.3** Add `components/home/category-grid.tsx` – category cards using `CATEGORY_ROUTES` / `SUBJECT_TYPE_IDS`; export `CategoryGrid`.
-- [ ] **1.4** Add `components/home/trust-line.tsx` – “No credit card for preview…” line; export `TrustLine`.
-- [ ] **1.5** Add `components/home/rolling-gallery-placeholder.tsx` – minimal section, `data-section="rolling-gallery"`, TODO for reactbits; export `RollingGalleryPlaceholder`.
-- [ ] **1.6** Refactor `app/page.tsx` – import and compose `HeroSection`, `RollingGalleryPlaceholder`, `CategoryGrid`, `TrustLine`; remove inline JSX; keep metadata.
+- [x] **1.1** Create `components/home/` folder.
+- [x] **1.2** Add `components/home/hero-section.tsx` – headline + subhead; export `HeroSection`.
+- [x] **1.3** Add `components/home/category-grid.tsx` – category cards using `CATEGORY_ROUTES` / `SUBJECT_TYPE_IDS`; export `CategoryGrid`.
+- [x] **1.4** Add `components/home/trust-line.tsx` – “No credit card for preview…” line; export `TrustLine`.
+- [x] **1.5** Add `components/home/rolling-gallery-placeholder.tsx` – minimal section, `data-section="rolling-gallery"`, TODO for reactbits; export `RollingGalleryPlaceholder`.
+- [x] **1.6** Refactor `app/page.tsx` – import and compose `HeroSection`, `RollingGalleryPlaceholder`, `CategoryGrid`, `TrustLine`; remove inline JSX; keep metadata.
 - [ ] **1.7** (Optional) Move `site-header.tsx` and `site-footer.tsx` into `components/layout/` and update `app/layout.tsx` imports.
 
 ---
@@ -33,13 +33,13 @@ Single checklist for: home component structure, login, inspired token/credit sys
 
 **Principle:** Every visitor can generate **2 portraits without logging in**. Login is optional and used mainly for those who want to **buy more**; after login, prompt to buy.
 
-- [ ] **3.1** Define model: 1 token = 1 portrait (one generation); no tokens for retries or edits.
-- [ ] **3.2** **Guest (no login):** Every user who enters the site has **2 tokens** available immediately. Track guest balance (e.g. session cookie, or anonymous id in cookie/localStorage + backend store). Grant 2 tokens on first visit; deduct 1 per generation. No sign-in required to use these 2.
+- [x] **3.1** Define model: 1 token = 1 portrait (one generation); no tokens for retries or edits.
+- [x] **3.2** **Guest (no login):** Every user who enters the site has **2 tokens** available immediately. Track guest balance (guest_id cookie + `guest_token_usage` table in Supabase). Grant 2 tokens on first visit; deduct 1 per generation. No sign-in required to use these 2.
 - [ ] **3.3** **Logged-in user:** Store credit balance in DB (e.g. `profiles.credits` or `user_credits` table in Supabase). Purchased credits and any “free tier” for account users live here. When guest later logs in, decide policy: merge guest tokens into account or start from account balance only (e.g. “link” guest creations to account on login).
-- [ ] **3.4** API: endpoint to get current balance – for **guest** return balance from session/anon store (max 2, minus already used); for **logged-in** return DB balance. Same endpoint can accept optional session/cookie to identify guest.
-- [ ] **3.5** Deduct 1 token when user starts a generation (create flow / generate API). Reject if balance &lt; 1 with clear message (“You’ve used your 2 free portraits. Sign in and buy more to continue.” or similar).
-- [ ] **3.6** UI: show “X tokens remaining” in header (or near create flow) for **both** guests and logged-in users. For guests at 0, show “Sign in to get more” + “Buy credits” (link to pricing).
-- [ ] **3.7** “Buy credits” / “Get more credits” – link to pricing page (task 4). After login, prompt to buy (section 2.8).
+- [x] **3.4** API: GET /api/credits – for **guest** return balance from cookie + `guest_token_usage` (2 − tokens_used); set guest_id cookie if new. (Logged-in: TODO.)
+- [x] **3.5** Deduct 1 token when user starts a generation (POST /api/generate). Reject if balance &lt; 1 with 403 and message “You’ve used your 2 free portraits. Sign in to get more, or buy credits.”
+- [x] **3.6** UI: show “X free portraits remaining” on styles step in create flow; on 403 show error + “Buy credits” and “Sign in” links.
+- [x] **3.7** “Buy credits” links to /pricing (placeholder page added). After login, prompt to buy (section 2.8) – when login exists.
 
 ---
 

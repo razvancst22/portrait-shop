@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/primitives/button'
 import { Card, CardContent } from '@/components/primitives/card'
@@ -11,6 +12,7 @@ import { Input } from '@/components/primitives/input'
 import { cn } from '@/lib/utils'
 import type { SubjectTypeId } from '@/lib/prompts/artStyles'
 import { CREATE_FLOW_COPY } from '@/lib/create-flow-config'
+import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
 
 type StyleItem = {
   id: string
@@ -43,10 +45,17 @@ export function CreateFlow({ category }: CreateFlowProps) {
   const [nameValue, setNameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null)
+  const [insufficientCredits, setInsufficientCredits] = useState(false)
+  const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const validateAndSetFile = useCallback((f: File | null) => {
     if (!f) return
+    if (tokenBalance === 0) {
+      setShowOutOfCreditsModal(true)
+      return
+    }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
       setError('Please use JPEG, PNG or WebP.')
       return
@@ -62,7 +71,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
       return URL.createObjectURL(f)
     })
     setStep('preview')
-  }, [])
+  }, [tokenBalance])
 
   const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     validateAndSetFile(e.target.files?.[0] ?? null)
@@ -97,11 +106,18 @@ export function CreateFlow({ category }: CreateFlowProps) {
     setLoadingStyles(true)
     setError(null)
     try {
-      const res = await fetch(`/api/styles?category=${category}`)
-      if (!res.ok) throw new Error('Failed to load styles')
-      const data = await res.json()
+      const [stylesRes, creditsRes] = await Promise.all([
+        fetch(`/api/styles?category=${category}`),
+        fetch('/api/credits', { credentials: 'include' }),
+      ])
+      if (!stylesRes.ok) throw new Error('Failed to load styles')
+      const data = await stylesRes.json()
       setStyles(data)
       if (data.length) setSelectedStyle(data[0].id)
+      if (creditsRes.ok) {
+        const credits = await creditsRes.json()
+        setTokenBalance(credits.balance ?? null)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load styles')
     } finally {
@@ -111,13 +127,31 @@ export function CreateFlow({ category }: CreateFlowProps) {
 
   const goToChooseStyle = useCallback(() => {
     setError(null)
+    setInsufficientCredits(false)
     setStep('styles')
     loadStyles()
   }, [loadStyles])
 
+  const fetchCredits = useCallback(async () => {
+    try {
+      const res = await fetch('/api/credits', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setTokenBalance(data.balance ?? null)
+      }
+    } catch {
+      setTokenBalance(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (step === 'upload') fetchCredits()
+  }, [step, fetchCredits])
+
   const startGeneration = useCallback(async () => {
     if (!file || !selectedStyle) return
     setError(null)
+    setInsufficientCredits(false)
     setStep('generating')
     setProgress(0)
     setGenStatus('generating')
@@ -127,7 +161,10 @@ export function CreateFlow({ category }: CreateFlowProps) {
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
       if (!uploadRes.ok) {
         const err = await uploadRes.json().catch(() => ({}))
-        throw new Error(err.error || `Upload failed: ${uploadRes.status}`)
+        const message = uploadRes.status === 503
+          ? (err.error || 'Upload is not configured yet. Set up Supabase to enable uploads.')
+          : (err.error || `Upload failed: ${uploadRes.status}`)
+        throw new Error(message)
       }
       const { imageUrl } = await uploadRes.json()
       const genRes = await fetch('/api/generate', {
@@ -138,18 +175,30 @@ export function CreateFlow({ category }: CreateFlowProps) {
           artStyle: selectedStyle,
           subjectType: category,
         }),
+        credentials: 'include',
       })
       if (!genRes.ok) {
         const err = await genRes.json().catch(() => ({}))
-        throw new Error(err.error || `Generation failed: ${genRes.status}`)
+        if (genRes.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
+          setInsufficientCredits(true)
+          setError(err.error ?? "You've used your 2 free portraits. Sign in to get more, or buy credits.")
+        } else if (genRes.status === 503 && err.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError(err.error ?? 'Generation is not configured yet. Set up Supabase to enable generation.')
+        } else {
+          setError(err.error || `Generation failed: ${genRes.status}`)
+        }
+        setStep('styles')
+        if (genRes.status === 403) fetchCredits()
+        return
       }
       const { generationId: id } = await genRes.json()
       setGenerationId(id)
+      fetchCredits()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setStep('styles')
     }
-  }, [file, selectedStyle, category])
+  }, [file, selectedStyle, category, fetchCredits])
 
   useEffect(() => {
     if (step !== 'generating' || !generationId) return
@@ -194,8 +243,15 @@ export function CreateFlow({ category }: CreateFlowProps) {
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-3 animate-fade-in-up">
             {copy.headline}
           </h1>
-          <p className="text-muted-foreground mb-8 text-lg animate-fade-in animate-fade-in-delay-1">
+          <p className="text-muted-foreground mb-2 text-lg animate-fade-in animate-fade-in-delay-1">
             {copy.subhead}
+          </p>
+          <p className="text-sm text-muted-foreground mb-8 animate-fade-in">
+            {tokenBalance !== null ? (
+              <><strong className="text-foreground">{tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''}</strong> remaining · No sign-in required</>
+            ) : (
+              <>Free portraits · No sign-in required</>
+            )}
           </p>
           <input
             type="file"
@@ -205,7 +261,21 @@ export function CreateFlow({ category }: CreateFlowProps) {
             id="upload-photo"
           />
           <label
-            htmlFor="upload-photo"
+            htmlFor={tokenBalance === 0 ? undefined : 'upload-photo'}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (tokenBalance === 0 && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                setShowOutOfCreditsModal(true)
+              }
+            }}
+            onClick={(e) => {
+              if (tokenBalance === 0) {
+                e.preventDefault()
+                setShowOutOfCreditsModal(true)
+              }
+            }}
             onDrop={onDrop}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
@@ -225,6 +295,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
           {error && (
             <p className="mt-4 text-sm text-destructive animate-fade-in" role="alert">{error}</p>
           )}
+          <OutOfCreditsModal open={showOutOfCreditsModal} onClose={() => setShowOutOfCreditsModal(false)} />
         </main>
       </div>
     )
@@ -263,7 +334,15 @@ export function CreateFlow({ category }: CreateFlowProps) {
             ← Back
           </Button>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Choose a style</h1>
-          <p className="text-muted-foreground mb-6">Select one – we'll generate your portrait in that style.</p>
+          <p className="text-muted-foreground mb-2">Select one – we'll generate your portrait in that style.</p>
+          {tokenBalance !== null && (
+            <p className="text-sm text-muted-foreground mb-6">
+              {tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''} remaining.
+              {tokenBalance === 0 && (
+                <> <Link href="/pricing" className="text-primary underline">Buy credits</Link> or sign in for more.</>
+              )}
+            </p>
+          )}
 
           {loadingStyles && styles.length === 0 ? (
             <div className="flex min-h-[40vh] items-center justify-center">
@@ -330,7 +409,18 @@ export function CreateFlow({ category }: CreateFlowProps) {
                   </Card>
                 ))}
               </div>
-              {error && <p className="mb-4 text-sm text-destructive" role="alert">{error}</p>}
+              {error && (
+                <div className="mb-4" role="alert">
+                  <p className="text-sm text-destructive">{error}</p>
+                  {insufficientCredits && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      <Link href="/pricing" className="text-primary font-medium underline">Buy credits</Link>
+                      {' · '}
+                      <Link href="/login" className="text-primary font-medium underline">Sign in</Link>
+                    </p>
+                  )}
+                </div>
+              )}
               <Button onClick={startGeneration} disabled={!selectedStyle} className="w-full rounded-full" size="lg">
                 {copy.ctaButton}
               </Button>

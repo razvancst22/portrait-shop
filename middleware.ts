@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { updateSession } from '@/lib/supabase/middleware'
 
 const RATE_LIMIT_PATHS = ['/api/upload', '/api/generate', '/api/checkout', '/api/order-lookup']
 
@@ -12,7 +13,7 @@ function getClientIp(request: NextRequest): string {
   return 'unknown'
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const method = request.method
 
@@ -32,7 +33,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.next()
+  const response = await updateSession(request)
 
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')

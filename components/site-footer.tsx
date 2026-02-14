@@ -15,6 +15,12 @@ export function SiteFooter() {
           <Link href="/order-lookup" className="hover:text-foreground transition-colors">
             Order lookup
           </Link>
+          <Link href="/pricing" className="hover:text-foreground transition-colors">
+            Pricing
+          </Link>
+          <Link href="/login" className="hover:text-foreground transition-colors">
+            Log in
+          </Link>
           <Link href="/terms" className="hover:text-foreground transition-colors">
             Terms
           </Link>

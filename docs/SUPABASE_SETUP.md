@@ -36,6 +36,16 @@ Create two **private** buckets in the Dashboard → **Storage**:
 
 Use the exact names above; the app references them in `lib/constants.ts`. Access is via the service role (server-side) or signed URLs for downloads.
 
+## 4. Authentication (optional)
+
+To use **Log in** / **Sign up** on the site:
+
+1. In Supabase Dashboard → **Authentication** → **Providers**, ensure **Email** is enabled (email/password and optional "Confirm email").
+2. If you enable "Confirm email", users must click the link in the confirmation email; the app uses `/auth/callback` as the redirect after confirmation.
+3. No extra env vars: the app uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for auth.
+
+---
+
 ## Optional: Supabase CLI
 
 If you use the Supabase CLI and have linked the project:

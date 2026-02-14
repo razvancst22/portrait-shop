@@ -67,7 +67,13 @@ Alternative (minimal change): keep `site-header.tsx` and `site-footer.tsx` at `c
 - **Content:** Single line: "No credit card for preview. Same image in high resolution when you purchase—no re-generation, no surprises."
 - **Export:** `export function TrustLine() { ... }`
 
-### 4.4 `components/home/rolling-gallery-placeholder.tsx`
+### 4.4 `components/home/upload-section.tsx`
+
+- **Purpose:** Upload option on the main page. **Must remain on the home page** – do not remove.
+- **Content:** Prominent CTA card linking to `/pet-portraits` (create flow): “Upload your photo” + short line about 2 free portraits.
+- **Export:** `export function UploadSection() { ... }`
+
+### 4.5 `components/home/rolling-gallery-placeholder.tsx`
 
 - **Purpose:** Reserve the spot for the rolling gallery; replace with reactbits later.
 - **Content:** Minimal: a `<section>` with a stable id or data-attribute (e.g. `data-section="rolling-gallery"`), optional placeholder text like "Gallery" or empty. No complex logic, no real gallery implementation.
