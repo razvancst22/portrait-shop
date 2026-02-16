@@ -94,14 +94,14 @@ export function SiteHeader() {
       ? createPortal(
           <>
             <div
-              className="fixed inset-0 z-[100] bg-black/50"
+              className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-[2px]"
               aria-hidden
               onClick={closeDrawer}
             />
             <div
               ref={panelRef}
               className={cn(
-                'fixed inset-y-0 right-0 z-[100] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-lg',
+                'fixed inset-y-0 right-0 z-[100] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-xl',
                 'animate-in slide-in-from-right duration-300'
               )}
               role="dialog"
@@ -207,7 +207,7 @@ export function SiteHeader() {
         <div className="container flex h-14 max-w-4xl mx-auto items-center justify-between px-4">
           <Link
             href="/"
-            className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors"
+            className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors duration-200"
           >
             petportrait.shop
           </Link>
@@ -216,7 +216,7 @@ export function SiteHeader() {
           <Button
             ref={menuButtonRef}
             variant="ghost"
-            size="icon"
+            className="min-h-[44px] min-w-[44px] rounded-full"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
             aria-expanded={drawerOpen}

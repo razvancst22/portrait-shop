@@ -51,7 +51,7 @@ function CheckoutRedirect() {
   if (!generationId || status === 'missing') {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="max-w-md text-center">
+        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
           <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Missing portrait</h1>
           <p className="text-muted-foreground mb-6">
             Please start from your portrait preview or cart to purchase.
@@ -67,7 +67,7 @@ function CheckoutRedirect() {
   if (status === 'stripe_not_configured') {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="max-w-md text-center">
+        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
           <h1 className="font-heading text-xl font-semibold text-foreground mb-2">
             Payments not configured yet
           </h1>
@@ -90,7 +90,7 @@ function CheckoutRedirect() {
   if (status === 'error') {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="max-w-md text-center">
+        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
           <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Checkout failed</h1>
           <p className="text-muted-foreground mb-6" role="alert">
             {errorMessage}
@@ -105,7 +105,7 @@ function CheckoutRedirect() {
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center px-4">
-      <div className="max-w-md text-center">
+      <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-primary mx-auto mb-4" />
         <h1 className="font-heading text-xl font-semibold text-foreground mb-2">
           Redirecting to Stripe…

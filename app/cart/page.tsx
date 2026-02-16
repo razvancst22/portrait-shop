@@ -62,18 +62,20 @@ export default function CartPage() {
         ) : cartItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
             <p className="text-muted-foreground mb-4">Your cart is empty.</p>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-8">
               Create a portrait and come back to purchase the high-resolution download.
             </p>
-            <Link href="/my-portraits">
-              <Button variant="outline" className="rounded-full">
-                View my portraits
-              </Button>
-            </Link>
-            <span className="mx-2 text-muted-foreground">or</span>
-            <Link href="/create">
-              <Button className="rounded-full">Create portrait</Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/my-portraits">
+                <Button variant="outline" className="rounded-full w-full sm:w-auto">
+                  View my portraits
+                </Button>
+              </Link>
+              <span className="text-muted-foreground text-sm">or</span>
+              <Link href="/">
+                <Button className="rounded-full w-full sm:w-auto">Create portrait</Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <>
@@ -81,18 +83,17 @@ export default function CartPage() {
               {cartItems.map((gen) => (
                 <li
                   key={gen.id}
-                  className="rounded-xl border border-border bg-card overflow-hidden flex flex-col sm:flex-row gap-4 p-0 sm:p-0"
+                  className="rounded-xl border border-border bg-card overflow-hidden flex flex-col sm:flex-row gap-4 p-0 sm:p-0 min-w-0"
                 >
                   <Link
                     href={`/preview/${gen.id}`}
-                    className="relative block w-full sm:w-24 h-40 sm:h-24 shrink-0 bg-muted"
-                    style={{ aspectRatio: '4/5' }}
+                    className="relative block w-full sm:w-24 aspect-[4/5] shrink-0 bg-muted overflow-hidden min-h-0"
                   >
                     {gen.preview_image_url ? (
                       <img
                         src={gen.preview_image_url}
                         alt=""
-                        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                        className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
                         draggable={false}
                         onContextMenu={(e) => e.preventDefault()}
                         onDragStart={(e) => e.preventDefault()}

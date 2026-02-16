@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Star, Download, RefreshCw, X } from 'lucide-react'
-import { Button } from '@/components/primitives/button'
+import { Button, getButtonClassName } from '@/components/primitives/button'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
@@ -86,12 +86,12 @@ export function AccountDashboard() {
           <button
             type="button"
             onClick={dismissWelcome}
-            className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-background/50 hover:text-foreground"
+            className="absolute right-4 top-4 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:bg-background/50 hover:text-foreground"
             aria-label="Dismiss"
           >
             <X className="size-5" />
           </button>
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row items-start gap-4 pr-12 sm:pr-12">
             <span className="text-3xl opacity-80" aria-hidden>✨</span>
             <div>
               <h2 className="font-heading text-xl font-semibold text-foreground">
@@ -117,7 +117,7 @@ export function AccountDashboard() {
             type="checkbox"
             checked={hideVariants}
             onChange={(e) => setHideVariants(e.target.checked)}
-            className="rounded border-input"
+            className="rounded border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           <span className="text-sm text-muted-foreground">Hide variants</span>
         </label>
@@ -176,10 +176,7 @@ export function AccountDashboard() {
       ) : displayGenerations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
           <p className="text-muted-foreground mb-4">No portraits yet.</p>
-          <Link
-            href="/pet-portraits"
-            className="inline-block rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
+          <Link href="/pet-portraits" className={getButtonClassName('default', 'lg', 'rounded-full')}>
             Create your first portrait
           </Link>
         </div>
@@ -188,18 +185,17 @@ export function AccountDashboard() {
           {displayGenerations.map((gen) => (
             <article
               key={gen.id}
-              className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+              className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
             >
               <Link
                 href={`/preview/${gen.id}`}
-                className="relative block w-full overflow-hidden bg-muted rounded-t-xl"
-                style={{ aspectRatio: '4/5' }}
+                className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl"
               >
                 {gen.preview_image_url && gen.status === 'completed' ? (
                   <img
                     src={gen.preview_image_url}
                     alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                    className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
                     draggable={false}
                     onContextMenu={(e) => e.preventDefault()}
                     onDragStart={(e) => e.preventDefault()}

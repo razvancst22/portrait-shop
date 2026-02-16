@@ -237,22 +237,18 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }, [step, generationId, router, nameValue])
 
   if (step === 'upload') {
+    const uploadAreaClass = cn(
+      'flex flex-col items-center justify-center min-h-[280px] w-full rounded-2xl border-2 border-dashed p-8 transition-all duration-200 w-full animate-fade-in animate-fade-in-delay-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      isDragOver
+        ? 'border-primary bg-primary/10'
+        : 'border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/15 hover:shadow-lg hover:-translate-y-0.5'
+    )
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16 md:py-24">
-        <main className="max-w-xl text-center w-full">
+        <main className="max-w-3xl text-center w-full">
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-3 animate-fade-in-up">
             {copy.headline}
           </h1>
-          <p className="text-muted-foreground mb-2 text-lg animate-fade-in animate-fade-in-delay-1">
-            {copy.subhead}
-          </p>
-          <p className="text-sm text-muted-foreground mb-8 animate-fade-in">
-            {tokenBalance !== null ? (
-              <><strong className="text-foreground">{tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''}</strong> remaining · No sign-in required</>
-            ) : (
-              <>Free portraits · No sign-in required</>
-            )}
-          </p>
           <input
             type="file"
             accept={ACCEPT}
@@ -279,16 +275,24 @@ export function CreateFlow({ category }: CreateFlowProps) {
             onDrop={onDrop}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            className={cn(
-              'flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors w-full animate-fade-in animate-fade-in-delay-2',
-              isDragOver ? 'border-primary bg-primary/10' : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
-            )}
+            className={uploadAreaClass}
           >
-            <span className="text-5xl mb-4 opacity-60">📷</span>
-            <span className="font-medium text-foreground">
+            <span className="text-4xl mb-3" aria-hidden>
+              📷
+            </span>
+            <span className="font-semibold text-foreground text-lg">
               {isDragOver ? copy.uploadDropLabel : copy.uploadLabel}
             </span>
-            <span className="mt-2 text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground mt-1">
+              {tokenBalance !== null ? (
+                <>
+                  <strong className="text-foreground">{tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''}</strong> remaining · No sign-in required
+                </>
+              ) : (
+                'Free portraits · No sign-in required'
+              )}
+            </span>
+            <span className="text-sm text-muted-foreground mt-1">
               Click or drag here · JPEG, PNG or WebP, max {MAX_MB}MB
             </span>
           </label>
@@ -310,8 +314,8 @@ export function CreateFlow({ category }: CreateFlowProps) {
           </Button>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">{copy.previewTitle}</h1>
           <p className="text-muted-foreground mb-6">{copy.previewSubhead}</p>
-          <div className="relative aspect-[4/5] max-w-sm mx-auto rounded-xl overflow-hidden bg-muted mb-6">
-            <Image src={previewUrl} alt={copy.previewAlt} fill className="object-cover" unoptimized />
+          <div className="relative aspect-[4/5] w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-muted mb-6">
+            <Image src={previewUrl} alt={copy.previewAlt} fill className="object-cover object-center size-full" unoptimized />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button onClick={goToChooseStyle} className="rounded-full" size="lg">
@@ -381,13 +385,13 @@ export function CreateFlow({ category }: CreateFlowProps) {
                     onClick={() => setSelectedStyle(style.id)}
                     onKeyDown={(e) => e.key === 'Enter' && setSelectedStyle(style.id)}
                     className={cn(
-                      'cursor-pointer transition-all hover:border-primary/50 p-0 overflow-hidden gap-0 animate-fade-in-up',
-                      selectedStyle === style.id && 'ring-2 ring-primary border-primary'
+                      'cursor-pointer transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-primary/[0.03] p-0 overflow-hidden gap-0 animate-fade-in-up',
+                      selectedStyle === style.id && 'ring-2 ring-primary border-primary shadow-md'
                     )}
                     style={{ animationDelay: `${i * 0.05}s` }}
                   >
                     <CardContent className="p-0">
-                      <div className="aspect-[4/5] relative overflow-hidden bg-muted">
+                      <div className="aspect-[4/5] relative w-full overflow-hidden bg-muted">
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
                           Example
                         </div>
@@ -395,7 +399,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
                           src={style.exampleImageUrl}
                           alt={style.name}
                           fill
-                          className="object-cover"
+                          className="object-cover object-center size-full"
                           sizes="(max-width: 640px) 100vw, 50vw"
                           unoptimized
                           onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -434,7 +438,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
   if (step === 'generating') {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-8 bg-generating">
-        <div className="w-full max-w-md text-center space-y-8 animate-fade-in">
+        <div className="w-full max-w-md text-center space-y-8 animate-fade-in animate-fade-in-delay-1">
           <h1 className="font-heading text-xl font-semibold text-foreground">{copy.generatingTitle}</h1>
           <div className="w-full space-y-2">
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">

@@ -5,6 +5,8 @@
 /** Portrait categories (subject types) for routes and API. */
 export const PORTRAIT_CATEGORIES = {
   pet: 'pet',
+  dog: 'dog',
+  cat: 'cat',
   family: 'family',
   children: 'children',
   couple: 'couple',
@@ -13,7 +15,7 @@ export const PORTRAIT_CATEGORIES = {
 
 export type SubjectTypeId = keyof typeof PORTRAIT_CATEGORIES
 
-export const SUBJECT_TYPE_IDS: SubjectTypeId[] = ['pet', 'family', 'children', 'couple', 'self']
+export const SUBJECT_TYPE_IDS: SubjectTypeId[] = ['pet', 'dog', 'cat', 'family', 'children', 'couple', 'self']
 
 export function isAllowedSubjectType(value: string): value is SubjectTypeId {
   return SUBJECT_TYPE_IDS.includes(value as SubjectTypeId)
@@ -22,6 +24,8 @@ export function isAllowedSubjectType(value: string): value is SubjectTypeId {
 /** SEO-friendly route and display name per category. */
 export const CATEGORY_ROUTES: Record<SubjectTypeId, { path: string; title: string; shortTitle: string }> = {
   pet: { path: '/pet-portraits', title: 'Pet Portraits', shortTitle: 'Pet' },
+  dog: { path: '/dog-portraits', title: 'Dog Portraits', shortTitle: 'Dog' },
+  cat: { path: '/cat-portraits', title: 'Cat Portraits', shortTitle: 'Cat' },
   family: { path: '/family-portraits', title: 'Family Portraits', shortTitle: 'Family' },
   children: { path: '/children-portraits', title: 'Children Portraits', shortTitle: 'Children' },
   couple: { path: '/couple-portraits', title: 'Couple Portraits', shortTitle: 'Couple' },
@@ -125,8 +129,8 @@ export function buildPrompt(
 ): string {
   const style = ART_STYLE_PROMPTS[artStyle]
 
-  if (subjectType === 'pet') {
-    const petLabel = petType ? PET_TYPES[petType] : 'pet'
+  if (subjectType === 'pet' || subjectType === 'dog' || subjectType === 'cat') {
+    const petLabel = subjectType === 'pet' && petType ? PET_TYPES[petType] : subjectType
     const petPrompt = style.petModifier.replace('[PET_TYPE]', petLabel)
     return `${petPrompt}, ${style.basePrompt}`
   }

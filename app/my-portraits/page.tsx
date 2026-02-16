@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/primitives/button'
+import { Skeleton } from '@/components/primitives/skeleton'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
@@ -76,7 +77,7 @@ export default function MyPortraitsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 className="font-heading text-lg font-semibold text-foreground">Artwork</h2>
           <Link
-            href="/create"
+            href="/pet-portraits"
             className="text-sm font-medium text-primary hover:underline"
           >
             Create new portrait →
@@ -86,13 +87,13 @@ export default function MyPortraitsPage() {
         {loadingGenerations ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl border border-border bg-muted/30 aspect-[4/5] animate-pulse" />
+              <Skeleton key={i} className="rounded-xl aspect-[4/5]" />
             ))}
           </div>
         ) : generations.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
             <p className="text-muted-foreground mb-4">No portraits yet.</p>
-            <Link href="/create">
+            <Link href="/pet-portraits">
               <Button className="rounded-full">Create your first portrait</Button>
             </Link>
           </div>
@@ -101,18 +102,17 @@ export default function MyPortraitsPage() {
             {generations.map((gen) => (
               <article
                 key={gen.id}
-                className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+                className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
               >
                 <Link
                   href={`/preview/${gen.id}`}
-                  className="relative block w-full overflow-hidden bg-muted rounded-t-xl"
-                  style={{ aspectRatio: '4/5' }}
+                  className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl"
                 >
                   {gen.preview_image_url && gen.status === 'completed' ? (
                     <img
                       src={gen.preview_image_url}
                       alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                      className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
                       draggable={false}
                       onContextMenu={(e) => e.preventDefault()}
                       onDragStart={(e) => e.preventDefault()}
@@ -134,7 +134,7 @@ export default function MyPortraitsPage() {
                       Get full resolution – ${DIGITAL_BUNDLE_PRICE_USD}
                     </Link>
                   ) : gen.status === 'failed' ? (
-                    <Link href="/create" className="text-xs font-medium text-primary hover:underline">
+                    <Link href="/pet-portraits" className="text-xs font-medium text-primary hover:underline">
                       Try again
                     </Link>
                   ) : null}

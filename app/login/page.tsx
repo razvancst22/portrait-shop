@@ -16,7 +16,9 @@ export default function LoginPage() {
         <p className="text-muted-foreground mb-8">
           Sign in to buy more credits and see your portraits.
         </p>
-        <AuthForm />
+        <div className="text-left">
+          <AuthForm />
+        </div>
       </main>
     </div>
   )

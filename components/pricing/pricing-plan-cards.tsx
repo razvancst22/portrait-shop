@@ -19,7 +19,7 @@ export function PricingPlanCards() {
   return (
     <div className="max-w-5xl mx-auto grid gap-6 md:grid-cols-3">
       {/* Card 1: Portrait Pack */}
-      <Card className="flex flex-col h-full overflow-hidden">
+      <Card className="flex flex-col h-full overflow-hidden transition-all duration-200 hover:shadow-md hover:border-primary/30">
         <CardHeader className="text-center pb-2">
           <CardTitle className="font-heading text-xl md:text-2xl">Portrait Pack</CardTitle>
         </CardHeader>
@@ -52,7 +52,7 @@ export function PricingPlanCards() {
       </Card>
 
       {/* Card 2: Creator Pack */}
-      <Card className="flex flex-col h-full overflow-hidden ring-2 ring-primary">
+      <Card className="flex flex-col h-full overflow-hidden ring-2 ring-primary transition-all duration-200 hover:shadow-lg hover:ring-primary/90">
         <CardHeader className="text-center pb-2">
           <CardTitle className="font-heading text-xl md:text-2xl">Creator Pack</CardTitle>
         </CardHeader>
@@ -85,7 +85,7 @@ export function PricingPlanCards() {
       </Card>
 
       {/* Card 3: Art Print Pack */}
-      <Card className="flex flex-col h-full overflow-hidden">
+      <Card className="flex flex-col h-full overflow-hidden transition-all duration-200 hover:shadow-md hover:border-primary/30">
         <CardHeader className="text-center pb-2">
           <CardTitle className="font-heading text-xl md:text-2xl">Art Print Pack</CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ export function PricingPlanCards() {
                 const option = ART_PRINT_OPTIONS.find((o) => o.dimensions === e.target.value)
                 if (option) setArtPrintOption(option)
               }}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               {ART_PRINT_OPTIONS.map((opt) => (
                 <option key={opt.dimensions} value={opt.dimensions}>

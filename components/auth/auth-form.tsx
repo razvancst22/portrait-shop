@@ -92,7 +92,7 @@ export function AuthForm() {
       {message && (
         <p
           className={`text-sm ${
-            message.type === 'error' ? 'text-destructive' : 'text-green-600 dark:text-green-400'
+            message.type === 'error' ? 'text-destructive' : 'text-primary'
           }`}
           role="alert"
         >

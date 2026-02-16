@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Button, getButtonClassName } from '@/components/primitives/button'
+import { PageContainer } from '@/components/layout/page-container'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -73,7 +74,7 @@ export default async function DownloadPage({
   if (!data) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="max-w-md text-center">
+        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
           <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Invalid or expired link</h1>
           <p className="text-muted-foreground mb-6">
             This download link is invalid or has expired. You can request a new link using your
@@ -93,9 +94,8 @@ export default async function DownloadPage({
   }
 
   return (
-    <div className="py-8 px-4">
-      <div className="container max-w-lg mx-auto">
-        <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Your portrait bundle</h1>
+    <PageContainer maxWidth="md" padding="md">
+      <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Your portrait bundle</h1>
         <p className="text-muted-foreground mb-6">
           Order <strong className="text-foreground">{data.orderNumber}</strong>. Download links expire in 1 hour.
         </p>
@@ -106,7 +106,7 @@ export default async function DownloadPage({
                 href={d.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-foreground hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <span>{d.label}</span>
                 <span className="text-sm text-muted-foreground">Download</span>
@@ -125,7 +125,6 @@ export default async function DownloadPage({
             Back to home
           </Link>
         </p>
-      </div>
-    </div>
+    </PageContainer>
   )
 }

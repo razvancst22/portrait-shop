@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
+import { PageContainer } from '@/components/layout/page-container'
 
 export const metadata = {
   title: 'Contact – petportrait.shop',
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-12">
+    <PageContainer maxWidth="md" padding="md">
       <h1 className="font-heading text-2xl font-semibold text-foreground mb-4">
         Contact
       </h1>
@@ -22,6 +23,6 @@ export default function ContactPage() {
       <Link href="/" className={getButtonClassName('outline', 'sm', 'rounded-full')}>
         Back to home
       </Link>
-    </div>
+    </PageContainer>
   )
 }

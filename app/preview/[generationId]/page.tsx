@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import { Button, getButtonClassName } from '@/components/primitives/button'
-import { Card, CardContent } from '@/components/primitives/card'
 
 type StatusResponse = {
   status: string
@@ -86,7 +85,7 @@ export default function PreviewPage() {
       )
     }
     return (
-      <div className="py-8 px-4">
+      <div className="py-8 md:py-12 px-4">
         <div className="container max-w-lg mx-auto animate-fade-in">
           <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
             ← Back
@@ -98,29 +97,24 @@ export default function PreviewPage() {
             Love it? Get the full bundle (high-res + wallpapers) for{' '}
             <strong className="text-foreground">${price ?? 10}</strong>.
           </p>
-          <p className="text-muted-foreground text-sm mb-6 rounded-lg bg-muted/50 border border-border px-3 py-2">
-            What you see is what you get – the same portrait in high resolution. No re-generation, no surprises.
-          </p>
-          <Card className="mb-6 overflow-hidden">
-            <CardContent className="p-0">
-              <div
-                className="relative aspect-[4/5] select-none"
-                onContextMenu={(e) => e.preventDefault()}
-                onDragStart={(e) => e.preventDefault()}
-              >
-                <Image
-                  src={previewUrl}
-                  alt="Your portrait preview"
-                  fill
-                  className="object-cover pointer-events-none"
-                  sizes="(max-width: 640px) 100vw, 512px"
-                  unoptimized
-                  draggable={false}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <Button onClick={handlePurchase} className="w-full rounded-full" size="lg">
+          <div className="mb-6 rounded-xl overflow-hidden bg-background">
+            <div
+              className="relative aspect-[4/5] w-full select-none bg-background rounded-xl"
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+            >
+              <Image
+                src={previewUrl}
+                alt="Your portrait preview"
+                fill
+                className="object-contain pointer-events-none size-full"
+                sizes="(max-width: 640px) 100vw, 512px"
+                unoptimized
+                draggable={false}
+              />
+            </div>
+          </div>
+          <Button onClick={handlePurchase} className="w-full sm:max-w-xs rounded-full" size="lg">
             Purchase – ${price ?? 10}
           </Button>
           <p className="mt-4 text-center text-xs text-muted-foreground">

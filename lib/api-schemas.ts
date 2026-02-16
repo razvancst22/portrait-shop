@@ -8,7 +8,7 @@ const ART_STYLE_IDS = [
   'belle_epoque',
 ] as const
 
-const SUBJECT_TYPE_IDS = ['pet', 'family', 'children', 'couple', 'self'] as const
+const SUBJECT_TYPE_IDS = ['pet', 'dog', 'cat', 'family', 'children', 'couple', 'self'] as const
 const PET_TYPE_IDS = ['dog', 'cat'] as const
 
 export const generateBodySchema = z.object({

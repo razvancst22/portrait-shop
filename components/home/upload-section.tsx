@@ -21,7 +21,7 @@ export function UploadSection() {
   }, [])
 
   const uploadAreaClass =
-    'flex flex-col items-center justify-center min-h-[140px] w-full rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-colors p-8 animate-fade-in animate-fade-in-delay-2'
+    'flex flex-col items-center justify-center min-h-[140px] w-full rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 hover:bg-primary/15 hover:border-primary hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-8 animate-fade-in animate-fade-in-delay-2'
 
   return (
     <section className="w-full max-w-3xl mx-auto mb-10" aria-label="Start creating">

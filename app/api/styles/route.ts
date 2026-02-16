@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const styles: StyleListItem[] = ART_STYLE_IDS.map((id) => {
     const s = ART_STYLE_PROMPTS[id]
     const exampleImageUrl =
-      subjectType === 'pet'
+      subjectType === 'pet' || subjectType === 'dog' || subjectType === 'cat'
         ? `/style-examples/${id}.jpg`
         : `/style-examples/${subjectType}_${id}.jpg`
     return {

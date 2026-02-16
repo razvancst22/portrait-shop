@@ -42,8 +42,8 @@ export default function PricingPage() {
     <div className="flex flex-col">
       {/* Trust bar */}
       <section className="border-b border-border bg-muted/30 py-2">
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-muted-foreground px-4">
-          <span>Free shipping on prints</span>
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-muted-foreground px-4 min-w-0">
+          <span className="truncate max-w-[50vw] sm:max-w-none">Free shipping on prints</span>
           <span>Rated 4.8 ★</span>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default function PricingPage() {
           Compare Plans
         </h2>
         <div className="max-w-4xl mx-auto overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
+          <table className="w-full min-w-[480px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="py-3 px-4 font-semibold text-foreground">Features</th>

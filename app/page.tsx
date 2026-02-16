@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { HeroSection } from '@/components/home/hero-section'
 import { MyPortraitsSection } from '@/components/home/my-portraits-section'
 import { UploadSection } from '@/components/home/upload-section'
-import { CategoryGrid } from '@/components/home/category-grid'
 import { TrustLine } from '@/components/home/trust-line'
 import CircularGallery from '@/components/home/CircularGallery'
 
@@ -40,8 +39,7 @@ export default function HomePage() {
             scrollEase={0.04}
           />
         </section>
-        <CategoryGrid />
-        <TrustLine className="mt-10" />
+        <TrustLine className="mt-10 max-w-xl mx-auto text-center" />
       </main>
     </div>
   )

@@ -53,18 +53,17 @@ export function MyPortraitsSection() {
         {generations.map((gen) => (
           <article
             key={gen.id}
-            className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+            className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0 transition-all duration-200 hover:border-primary/50 hover:shadow-md"
           >
             <Link
               href={`/preview/${gen.id}`}
-              className="relative block w-full overflow-hidden bg-muted rounded-t-xl"
-              style={{ aspectRatio: '4/5' }}
+              className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl transition-transform duration-200 hover:scale-[1.02]"
             >
               {gen.preview_image_url && gen.status === 'completed' ? (
                 <img
                   src={gen.preview_image_url}
                   alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                  className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                  className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
                   draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
                   onDragStart={(e) => e.preventDefault()}

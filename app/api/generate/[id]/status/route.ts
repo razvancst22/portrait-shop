@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 import { createAndUploadWatermark } from '@/lib/image/watermark'
 import { generatePortraitFromReference } from '@/lib/ai/gpt-image'
+import { upscaleImage, isUpscaleConfigured } from '@/lib/ai/upscale'
 
 const IMAGINE_API_URL = 'https://api.imagineapi.dev/v1'
 const TIMEOUT_SECONDS = 5 * 60 // 5 minutes
@@ -83,12 +84,27 @@ export async function GET(
       if (!finalSignedUrl) {
         throw new Error('Could not create signed URL for final image')
       }
+
+      let upscaledPath: string | null = null
+      if (isUpscaleConfigured()) {
+        const upscaledBuffer = await upscaleImage(finalSignedUrl)
+        if (upscaledBuffer && upscaledBuffer.length > 0) {
+          const upscaledStoragePath = `${GPT_IMAGE_FINAL_PATH_PREFIX}/${id}_upscaled.png`
+          const { error: upscaleUploadError } = await supabase.storage
+            .from(BUCKET_UPLOADS)
+            .upload(upscaledStoragePath, upscaledBuffer, { contentType: 'image/png', upsert: true })
+          if (!upscaleUploadError) {
+            upscaledPath = upscaledStoragePath
+          }
+        }
+      }
+
       await supabase
         .from('generations')
         .update({
           status: 'completed',
           final_image_url: finalPath,
-          upscaled_image_url: finalPath,
+          upscaled_image_url: upscaledPath ?? finalPath,
         })
         .eq('id', id)
       try {

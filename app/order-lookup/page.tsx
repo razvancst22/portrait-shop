@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button, getButtonClassName } from '@/components/primitives/button'
 import { Input } from '@/components/primitives/input'
 import { Label } from '@/components/primitives/label'
+import { PageContainer } from '@/components/layout/page-container'
 
 export default function OrderLookupPage() {
   const [orderNumber, setOrderNumber] = useState('')
@@ -35,8 +36,7 @@ export default function OrderLookupPage() {
   }
 
   return (
-    <div className="py-8 px-4">
-      <div className="container max-w-md mx-auto animate-fade-in">
+    <PageContainer maxWidth="sm" padding="md" className="animate-fade-in">
         <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
           ← Back to home
         </Link>
@@ -90,7 +90,6 @@ export default function OrderLookupPage() {
             Back to home
           </Link>
         </p>
-      </div>
-    </div>
+    </PageContainer>
   )
 }
