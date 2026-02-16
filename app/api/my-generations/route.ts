@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClientIfConfigured } from '@/lib/supabase/server'
-import { BUCKET_UPLOADS } from '@/lib/constants'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
-
-const PREVIEW_SIGNED_URL_EXPIRY = 3600 // 1 hour
 
 export type MyGenerationItem = {
   id: string
@@ -44,26 +41,19 @@ export async function GET() {
     return NextResponse.json({ generations: [] })
   }
 
-  const generations: MyGenerationItem[] = await Promise.all(
-    (rows ?? []).map(async (r) => {
-      let previewUrl: string | null = null
-      const previewPath = r.preview_image_url
-      if (previewPath && typeof previewPath === 'string') {
-        const { data } = await supabase.storage
-          .from(BUCKET_UPLOADS)
-          .createSignedUrl(previewPath, PREVIEW_SIGNED_URL_EXPIRY)
-        previewUrl = data?.signedUrl ?? null
-      }
-      return {
-        id: r.id,
-        art_style: r.art_style ?? '',
-        status: r.status ?? 'pending',
-        preview_image_url: previewUrl,
-        is_purchased: r.is_purchased ?? false,
-        created_at: r.created_at ?? '',
-      }
-    })
-  )
+  const generations: MyGenerationItem[] = (rows ?? []).map((r) => {
+    const previewPath = r.preview_image_url
+    return {
+      id: r.id,
+      art_style: r.art_style ?? '',
+      status: r.status ?? 'pending',
+      preview_image_url: previewPath && typeof previewPath === 'string'
+        ? `/api/generate/${r.id}/preview`
+        : null,
+      is_purchased: r.is_purchased ?? false,
+      created_at: r.created_at ?? '',
+    }
+  })
 
   return NextResponse.json({ generations })
 }

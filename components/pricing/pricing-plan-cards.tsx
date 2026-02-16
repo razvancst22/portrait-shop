@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/primitives/card'
-import { Button } from '@/components/primitives/button'
+import { getButtonClassName } from '@/components/primitives/button'
 import { Check } from 'lucide-react'
 
 const ART_PRINT_OPTIONS = [
@@ -45,9 +45,9 @@ export function PricingPlanCards() {
           </ul>
         </CardContent>
         <CardFooter className="pt-4">
-          <Button asChild variant="secondary" className="w-full" size="lg">
-            <Link href="/checkout">Get Portrait Pack</Link>
-          </Button>
+          <Link href="/checkout" className={getButtonClassName('secondary', 'lg', 'w-full')}>
+            Get Portrait Pack
+          </Link>
         </CardFooter>
       </Card>
 
@@ -78,9 +78,9 @@ export function PricingPlanCards() {
           </ul>
         </CardContent>
         <CardFooter className="pt-4">
-          <Button asChild className="w-full" size="lg">
-            <Link href="/checkout">Get Creator Pack</Link>
-          </Button>
+          <Link href="/checkout" className={getButtonClassName('default', 'lg', 'w-full')}>
+            Get Creator Pack
+          </Link>
         </CardFooter>
       </Card>
 
@@ -122,11 +122,12 @@ export function PricingPlanCards() {
           </ul>
         </CardContent>
         <CardFooter className="pt-4">
-          <Button asChild variant="secondary" className="w-full" size="lg">
-            <Link href={`/checkout?print=${encodeURIComponent(artPrintOption.dimensions)}`}>
-              Get Art Print Pack
-            </Link>
-          </Button>
+          <Link
+            href={`/checkout?print=${encodeURIComponent(artPrintOption.dimensions)}`}
+            className={getButtonClassName('secondary', 'lg', 'w-full')}
+          >
+            Get Art Print Pack
+          </Link>
         </CardFooter>
       </Card>
     </div>

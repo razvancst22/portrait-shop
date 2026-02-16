@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/primitives/card'
-import { Button } from '@/components/primitives/button'
+import { getButtonClassName } from '@/components/primitives/button'
 import { Check } from 'lucide-react'
 import { PricingPlanCards } from '@/components/pricing/pricing-plan-cards'
 
@@ -89,9 +89,9 @@ export default function PricingPage() {
                 <span className="text-2xl font-heading font-semibold">${item.price}</span>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button asChild className="w-full" size="lg">
-                  <Link href="/create">Get started</Link>
-                </Button>
+                <Link href="/create" className={getButtonClassName('default', 'lg', 'w-full')}>
+                  Get started
+                </Link>
               </CardFooter>
             </Card>
           ))}
@@ -120,9 +120,9 @@ export default function PricingPage() {
                 <p className="text-2xl font-heading font-semibold">${price}</p>
               </CardContent>
               <CardFooter className="pt-0 justify-center">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/create">Order print</Link>
-                </Button>
+                <Link href="/create" className={getButtonClassName('outline', 'sm')}>
+                  Order print
+                </Link>
               </CardFooter>
             </Card>
           ))}

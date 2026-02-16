@@ -18,7 +18,11 @@ export const LIMITS: Record<string, number> = {
   '/api/order-lookup': 5,
 }
 
+/** GET /api/generate/[id]/preview – 60/min per IP */
+const PREVIEW_PATH_REGEX = /^\/api\/generate\/[^/]+\/preview$/
+
 function getLimit(pathname: string): number {
+  if (PREVIEW_PATH_REGEX.test(pathname)) return 60
   for (const [prefix, limit] of Object.entries(LIMITS)) {
     if (pathname.startsWith(prefix)) return limit
   }

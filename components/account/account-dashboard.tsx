@@ -121,6 +121,11 @@ export function AccountDashboard() {
           />
           <span className="text-sm text-muted-foreground">Hide variants</span>
         </label>
+        {generations.some((g) => g.status === 'completed' && !g.is_purchased) && (
+          <Link href="/cart" className="text-sm font-medium text-primary hover:underline">
+            Cart ({generations.filter((g) => g.status === 'completed' && !g.is_purchased).length}) →
+          </Link>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -194,7 +199,10 @@ export function AccountDashboard() {
                   <img
                     src={gen.preview_image_url}
                     alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onDragStart={(e) => e.preventDefault()}
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">

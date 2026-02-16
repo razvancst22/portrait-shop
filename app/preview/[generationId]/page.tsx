@@ -103,15 +103,20 @@ export default function PreviewPage() {
           </p>
           <Card className="mb-6 overflow-hidden">
             <CardContent className="p-0">
-              <div className="relative aspect-[4/5]">
-            <Image
-              src={previewUrl}
-              alt="Your portrait preview"
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, 512px"
-              unoptimized
-            />
+              <div
+                className="relative aspect-[4/5] select-none"
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+              >
+                <Image
+                  src={previewUrl}
+                  alt="Your portrait preview"
+                  fill
+                  className="object-cover pointer-events-none"
+                  sizes="(max-width: 640px) 100vw, 512px"
+                  unoptimized
+                  draggable={false}
+                />
               </div>
             </CardContent>
           </Card>

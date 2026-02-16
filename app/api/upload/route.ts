@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClientIfConfigured } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
+import { serverErrorResponse } from '@/lib/api-error'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+/** Signed URL expiry in seconds. Use the uploaded photo in create flow within this window or the generate step may fail to fetch the reference image. */
+const UPLOAD_SIGNED_URL_EXPIRY_SECONDS = 7200 // 2 hours
+
 /**
  * POST /api/upload – accept a pet photo, validate, upload to Storage, return imageUrl.
  * No generations row is created here (that happens in the generate API).
+ * The returned imageUrl expires in UPLOAD_SIGNED_URL_EXPIRY_SECONDS; use it for generate within that time.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -52,27 +57,19 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('Upload error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return serverErrorResponse(error, 'Upload')
     }
 
     const { data: signedData, error: signError } = await supabase.storage
       .from(BUCKET_UPLOADS)
-      .createSignedUrl(data.path, 3600) // 1 hour for generate step
+      .createSignedUrl(data.path, UPLOAD_SIGNED_URL_EXPIRY_SECONDS)
 
     if (signError || !signedData?.signedUrl) {
-      return NextResponse.json(
-        { error: signError?.message ?? 'Upload succeeded but could not create URL' },
-        { status: 500 }
-      )
+      return serverErrorResponse(signError ?? new Error('No signed URL'), 'Upload signed URL')
     }
 
     return NextResponse.json({ imageUrl: signedData.signedUrl, path: data.path })
   } catch (e) {
-    console.error('Upload error:', e)
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Upload failed' },
-      { status: 500 }
-    )
+    return serverErrorResponse(e, 'Upload')
   }
 }

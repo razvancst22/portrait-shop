@@ -17,7 +17,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const method = request.method
 
-  if (method === 'POST' && RATE_LIMIT_PATHS.some((p) => pathname.startsWith(p))) {
+  const previewPathRegex = /^\/api\/generate\/[^/]+\/preview$/
+  const isPreviewGet = method === 'GET' && previewPathRegex.test(pathname)
+  const isPostRateLimited =
+    method === 'POST' && RATE_LIMIT_PATHS.some((p) => pathname.startsWith(p))
+  if (isPostRateLimited || isPreviewGet) {
     const ip = getClientIp(request)
     const { allowed, retryAfterSeconds } = checkRateLimit(ip, pathname)
     if (!allowed) {

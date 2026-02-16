@@ -140,6 +140,20 @@ export function SiteHeader() {
                   All categories (home)
                 </Link>
                 <Link
+                  href="/my-portraits"
+                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                  onClick={closeDrawer}
+                >
+                  My Portraits
+                </Link>
+                <Link
+                  href="/cart"
+                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                  onClick={closeDrawer}
+                >
+                  Cart
+                </Link>
+                <Link
                   href="/order-lookup"
                   className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
                   onClick={closeDrawer}
@@ -160,7 +174,7 @@ export function SiteHeader() {
                       className={cn(getButtonClassName('default', 'lg'), 'rounded-full justify-start')}
                       onClick={closeDrawer}
                     >
-                      My Portraits
+                      My account
                     </Link>
                     <Button
                       variant="ghost"

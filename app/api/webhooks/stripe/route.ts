@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { generateAndStoreBundle } from '@/lib/bundle/createBundle'
 import { sendDeliveryEmail } from '@/lib/email/delivery'
+import { serverErrorResponse } from '@/lib/api-error'
+
+const PENDING_EMAIL_PLACEHOLDER = 'pending@stripe'
 
 /**
  * POST /api/webhooks/stripe – Stripe webhook handler.
@@ -50,22 +53,42 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClient()
 
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('id, customer_email, stripe_webhook_event_id')
+    .eq('id', orderId)
+    .maybeSingle()
+
+  if (existingOrder?.stripe_webhook_event_id === event.id) {
+    return NextResponse.json({ received: true })
+  }
+
+  const stripeEmail =
+    (session.customer_details?.email as string | undefined) ??
+    (session.customer_email as string | undefined)
+  const shouldUpdateEmail =
+    existingOrder?.customer_email === PENDING_EMAIL_PLACEHOLDER &&
+    stripeEmail &&
+    stripeEmail.length > 0
+
+  const updatePayload: Record<string, unknown> = {
+    payment_status: 'paid',
+    status: 'paid',
+    stripe_checkout_session_id: session.id,
+    stripe_webhook_event_id: event.id,
+    updated_at: new Date().toISOString(),
+  }
+  if (shouldUpdateEmail) {
+    updatePayload.customer_email = stripeEmail
+  }
+
   const { error: updateError } = await supabase
     .from('orders')
-    .update({
-      payment_status: 'paid',
-      status: 'paid',
-      stripe_checkout_session_id: session.id,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('id', orderId)
 
   if (updateError) {
-    console.error('Webhook: failed to update order', orderId, updateError)
-    return NextResponse.json(
-      { error: updateError.message },
-      { status: 500 }
-    )
+    return serverErrorResponse(updateError, `Webhook: update order ${orderId}`)
   }
 
   if (generationId) {
@@ -82,10 +105,9 @@ export async function POST(request: NextRequest) {
   if (generationId) {
     const result = await generateAndStoreBundle(orderId, generationId)
     if (!result.delivered) {
-      console.error('Webhook: bundle generation failed', orderId, result.error)
-      return NextResponse.json(
-        { error: result.error ?? 'Bundle generation failed' },
-        { status: 500 }
+      return serverErrorResponse(
+        result.error ?? new Error('Bundle generation failed'),
+        `Webhook: bundle order ${orderId}`
       )
     }
     try {

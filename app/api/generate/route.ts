@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClientIfConfigured } from '@/lib/supabase/server'
-import {
-  isAllowedArtStyle,
-  isAllowedPetType,
-  isAllowedSubjectType,
-  buildPrompt,
-  type ArtStyleId,
-  type PetTypeId,
-  type SubjectTypeId,
-} from '@/lib/prompts/artStyles'
+import { buildPrompt } from '@/lib/prompts/artStyles'
+import { generateBodySchema, validationErrorResponse } from '@/lib/api-schemas'
 import { startGeneration } from '@/lib/ai/midjourney'
 import { checkJsonBodySize } from '@/lib/api-limits'
 import { getGuestBalance, deductGuestToken } from '@/lib/tokens/guest-tokens'
@@ -19,9 +12,16 @@ import {
   setGuestIdCookie,
 } from '@/lib/tokens/guest-tokens-cookie'
 import { GUEST_ID_COOKIE, GUEST_ID_COOKIE_MAX_AGE } from '@/lib/tokens/constants'
+import { canUseFreeGeneration, recordFreeGenerationUseFromRequest } from '@/lib/tokens/guest-abuse-prevention'
+import { getClientIp } from '@/lib/request-utils'
+import { serverErrorResponse } from '@/lib/api-error'
+import { isOpenAIProvider } from '@/lib/image-provider'
 
 const INSUFFICIENT_CREDITS_MESSAGE =
   "You've used your 2 free portraits. Sign in to get more, or buy credits."
+
+const ABUSE_CAP_MESSAGE =
+  "You've used your free portraits for this device and network. Sign in for more, or try again in 30 days."
 
 const SUPABASE_REQUIRED_MESSAGE =
   'Supabase not configured. Run migration and set NEXT_PUBLIC_SUPABASE_URL (and keys) to enable generation.'
@@ -70,6 +70,62 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const ip = getClientIp(request)
+  const userAgent = request.headers.get('user-agent') ?? null
+  const acceptLanguage = request.headers.get('accept-language') ?? null
+  try {
+    const allowedByAbuseCap = await canUseFreeGeneration(supabase, ip, userAgent, acceptLanguage)
+    if (!allowedByAbuseCap) {
+      return NextResponse.json(
+        { error: ABUSE_CAP_MESSAGE, code: 'FREE_CAP_30_DAYS' },
+        { status: 403 }
+      )
+    }
+  } catch (e) {
+    console.error('Abuse prevention check failed (fail open):', e)
+  }
+
+  let rawBody: unknown
+  try {
+    rawBody = await request.json()
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid JSON body', code: 'INVALID_JSON' },
+      { status: 400 }
+    )
+  }
+  const parsed = generateBodySchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      validationErrorResponse(parsed.error),
+      { status: 400 }
+    )
+  }
+  const { imageUrl, artStyle, subjectType, petType, idempotencyKey: bodyKey } = parsed.data
+  const idempotencyKey = bodyKey ?? request.headers.get('idempotency-key')?.trim()?.slice(0, 255) ?? null
+  const dbSubjectType =
+    subjectType === 'pet' && petType ? `pet_${petType}` : subjectType
+
+  if (idempotencyKey) {
+    const { data: existing } = await supabase
+      .from('generations')
+      .select('id, midjourney_job_id')
+      .eq('idempotency_key', idempotencyKey)
+      .eq('session_id', guestId)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json(
+        {
+          error: 'Duplicate request. Use the existing generation.',
+          code: 'IDEMPOTENCY_CONFLICT',
+          generationId: existing.id,
+          jobId: existing.midjourney_job_id ?? `openai-${existing.id}`,
+        },
+        { status: 409 }
+      )
+    }
+  }
+
   let deducted: boolean
   let cookieBalanceAfterDeduct: number | null = null
   try {
@@ -88,74 +144,71 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
-    const { imageUrl, artStyle, subjectType, petType } = body as {
-      imageUrl?: string
-      artStyle?: string
-      subjectType?: string
-      petType?: string
-    }
-
-    if (!imageUrl || typeof imageUrl !== 'string') {
-      return NextResponse.json(
-        { error: 'Missing or invalid imageUrl' },
-        { status: 400 }
-      )
-    }
-    if (!isAllowedArtStyle(artStyle ?? '')) {
-      return NextResponse.json(
-        { error: 'Invalid artStyle. Allowed: renaissance, baroque, victorian, regal, belle_epoque' },
-        { status: 400 }
-      )
-    }
-    const resolvedSubjectType: SubjectTypeId = isAllowedSubjectType(subjectType ?? 'pet')
-      ? (subjectType as SubjectTypeId)
-      : 'pet'
-    const resolvedPetType =
-      resolvedSubjectType === 'pet' && petType && isAllowedPetType(petType)
-        ? (petType as PetTypeId)
-        : undefined
-
-    const prompt = buildPrompt(
-      artStyle as ArtStyleId,
-      resolvedSubjectType,
-      resolvedPetType
-    )
-
+    const prompt = buildPrompt(artStyle, subjectType, petType)
     const sessionId = guestId
 
-    const dbSubjectType =
-      resolvedSubjectType === 'pet' && resolvedPetType
-        ? `pet_${resolvedPetType}`
-        : resolvedSubjectType
+    const insertPayload: Record<string, unknown> = {
+      session_id: sessionId,
+      original_image_url: imageUrl,
+      art_style: artStyle,
+      subject_type: dbSubjectType,
+      midjourney_prompt: prompt,
+      status: 'pending',
+    }
+    if (idempotencyKey) insertPayload.idempotency_key = idempotencyKey
 
     const { data: gen, error: insertError } = await supabase
       .from('generations')
-      .insert({
-        session_id: sessionId,
-        original_image_url: imageUrl,
-        art_style: artStyle,
-        subject_type: dbSubjectType,
-        midjourney_prompt: prompt,
-        status: 'pending',
-      })
+      .insert(insertPayload)
       .select('id')
       .single()
 
-    if (insertError || !gen) {
-      console.error('Insert generation error:', insertError)
-      return NextResponse.json(
-        { error: insertError?.message ?? 'Failed to create generation' },
-        { status: 500 }
-      )
+    if (insertError) {
+      if (insertError.code === '23505' && idempotencyKey) {
+        const { data: existing } = await supabase
+          .from('generations')
+          .select('id, midjourney_job_id')
+          .eq('idempotency_key', idempotencyKey)
+          .maybeSingle()
+        if (existing) {
+          return NextResponse.json(
+            {
+              error: 'Duplicate request. Use the existing generation.',
+              code: 'IDEMPOTENCY_CONFLICT',
+              generationId: existing.id,
+              jobId: existing.midjourney_job_id ?? `openai-${existing.id}`,
+            },
+            { status: 409 }
+          )
+        }
+      }
+      return serverErrorResponse(insertError, 'Insert generation')
+    }
+    if (!gen) {
+      return serverErrorResponse(new Error('No generation returned'), 'Insert generation')
     }
 
-    const { jobId, status } = await startGeneration({
-      imageUrl,
-      artStyle: artStyle as ArtStyleId,
-      subjectType: resolvedSubjectType,
-      petType: resolvedPetType,
-    })
+    let jobId: string
+    let status: 'pending' | 'generating'
+    if (isOpenAIProvider()) {
+      if (!process.env.OPENAI_API_KEY) {
+        return NextResponse.json(
+          { error: 'OpenAI image provider is configured but OPENAI_API_KEY is not set.', code: 'PROVIDER_CONFIG' },
+          { status: 503 }
+        )
+      }
+      jobId = `openai-${gen.id}`
+      status = 'generating'
+    } else {
+      const result = await startGeneration({
+        imageUrl,
+        artStyle,
+        subjectType,
+        petType,
+      })
+      jobId = result.jobId
+      status = result.status
+    }
 
     await supabase
       .from('generations')
@@ -164,6 +217,12 @@ export async function POST(request: NextRequest) {
         status: status === 'generating' ? 'generating' : 'pending',
       })
       .eq('id', gen.id)
+
+    try {
+      await recordFreeGenerationUseFromRequest(supabase, ip, userAgent, acceptLanguage)
+    } catch (e) {
+      console.error('Abuse prevention record failed (non-blocking):', e)
+    }
 
     const res = NextResponse.json({
       generationId: gen.id,
@@ -183,10 +242,6 @@ export async function POST(request: NextRequest) {
     }
     return res
   } catch (e) {
-    console.error('Generate error:', e)
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Generation failed' },
-      { status: 500 }
-    )
+    return serverErrorResponse(e, 'Generate')
   }
 }

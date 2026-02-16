@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { serverErrorResponse } from '@/lib/api-error'
 
 /**
  * PATCH /api/generate/[id] – update generation (e.g. pet_name for email marketing).
@@ -27,7 +28,7 @@ export async function PATCH(
     .eq('id', id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return serverErrorResponse(error, 'PATCH generate')
   }
   return NextResponse.json({ ok: true })
 }

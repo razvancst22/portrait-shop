@@ -64,7 +64,10 @@ export function MyPortraitsSection() {
                 <img
                   src={gen.preview_image_url}
                   alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onDragStart={(e) => e.preventDefault()}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">

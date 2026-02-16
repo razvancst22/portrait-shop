@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { createClient } from '@/lib/supabase/server'
-import { BUCKET_DELIVERABLES } from '@/lib/constants'
+import { BUCKET_DELIVERABLES, BUCKET_UPLOADS } from '@/lib/constants'
 
 /** Bundle = 4 assets: 4:5, 9:16, 4:4 (square), 3:4. Source from AI is 4:5. */
 export const BUNDLE_ASSET_TYPES = ['portrait_4_5', 'phone_9_16', 'square_4_4', 'tablet_3_4'] as const
@@ -81,9 +81,23 @@ export async function generateAndStoreBundle(
     return { delivered: false, error: 'Generation not found' }
   }
 
-  const finalImageUrl = gen.final_image_url
-  if (!finalImageUrl) {
+  const finalImageUrlOrPath = gen.final_image_url
+  if (!finalImageUrlOrPath) {
     return { delivered: false, error: 'Generation has no final image' }
+  }
+
+  // Resolve storage path to signed URL when needed (e.g. GPT Image stores path)
+  let sourceImageUrl: string
+  if (finalImageUrlOrPath.startsWith('http')) {
+    sourceImageUrl = finalImageUrlOrPath
+  } else {
+    const { data } = await supabase.storage
+      .from(BUCKET_UPLOADS)
+      .createSignedUrl(finalImageUrlOrPath, 3600)
+    if (!data?.signedUrl) {
+      return { delivered: false, error: 'Could not get final image URL' }
+    }
+    sourceImageUrl = data.signedUrl
   }
 
   // Optional: skip if we already have deliverables (idempotent)
@@ -97,7 +111,7 @@ export async function generateAndStoreBundle(
     return { delivered: true }
   }
 
-  const assets = await createBundleBuffers(finalImageUrl)
+  const assets = await createBundleBuffers(sourceImageUrl)
   const prefix = `orders/${orderId}`
 
   for (const { asset_type, buffer } of assets) {

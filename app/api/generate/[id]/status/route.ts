@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 import { createAndUploadWatermark } from '@/lib/image/watermark'
+import { generatePortraitFromReference } from '@/lib/ai/gpt-image'
 
 const IMAGINE_API_URL = 'https://api.imagineapi.dev/v1'
 const TIMEOUT_SECONDS = 5 * 60 // 5 minutes
-const SIGNED_URL_EXPIRY = 3600 // 1 hour for preview link
+const GPT_IMAGE_FINAL_PATH_PREFIX = 'generations'
+const SIGNED_URL_EXPIRY = 3600 // 1 hour (for watermark step only; final_image_url stored as path)
 
 /**
  * GET /api/generate/[id]/status – poll generation status.
@@ -55,12 +57,78 @@ export async function GET(
 
   const jobId = gen.midjourney_job_id
 
-  async function getPreviewSignedUrl(path: string | null): Promise<string | null> {
-    if (!path) return null
-    const { data } = await supabase.storage
-      .from(BUCKET_UPLOADS)
-      .createSignedUrl(path, SIGNED_URL_EXPIRY)
-    return data?.signedUrl ?? null
+  /** Return app proxy URL so the client never gets a direct storage URL (prevents easy download). */
+  function getPreviewProxyUrl(): string {
+    return `/api/generate/${id}/preview`
+  }
+
+  // OpenAI GPT Image: run generation on first poll, upload, watermark, mark completed
+  if (jobId?.startsWith('openai-') && (gen.status === 'generating' || gen.status === 'pending') && !gen.final_image_url) {
+    try {
+      const imageBuffer = await generatePortraitFromReference(
+        gen.original_image_url,
+        gen.midjourney_prompt
+      )
+      const finalPath = `${GPT_IMAGE_FINAL_PATH_PREFIX}/${id}_final.png`
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_UPLOADS)
+        .upload(finalPath, imageBuffer, { contentType: 'image/png', upsert: true })
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`)
+      }
+      const { data: signedData } = await supabase.storage
+        .from(BUCKET_UPLOADS)
+        .createSignedUrl(finalPath, SIGNED_URL_EXPIRY)
+      const finalSignedUrl = signedData?.signedUrl ?? null
+      if (!finalSignedUrl) {
+        throw new Error('Could not create signed URL for final image')
+      }
+      await supabase
+        .from('generations')
+        .update({
+          status: 'completed',
+          final_image_url: finalPath,
+          upscaled_image_url: finalPath,
+        })
+        .eq('id', id)
+      try {
+        const previewPath = await createAndUploadWatermark(finalSignedUrl, id)
+        await supabase
+          .from('generations')
+          .update({ preview_image_url: previewPath })
+          .eq('id', id)
+      } catch (e) {
+        console.error('Watermark failed:', e)
+      }
+      return NextResponse.json({
+        status: 'completed',
+        previewUrl: getPreviewProxyUrl(),
+        progress: 100,
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Generation failed'
+      console.error('GPT Image generation failed:', e)
+      await supabase
+        .from('generations')
+        .update({
+          status: 'failed',
+          error_message: message,
+        })
+        .eq('id', id)
+      return NextResponse.json({
+        status: 'failed',
+        errorMessage: message,
+      })
+    }
+  }
+
+  // If openai job already completed, return current state
+  if (jobId?.startsWith('openai-') && gen.status === 'completed') {
+    return NextResponse.json({
+      status: 'completed',
+      previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
+      progress: 100,
+    })
   }
 
   // Stub: simulate completed after ~2s (use original as placeholder final)
@@ -81,10 +149,9 @@ export async function GET(
           .from('generations')
           .update({ preview_image_url: previewPath })
           .eq('id', id)
-        const previewUrl = await getPreviewSignedUrl(previewPath)
         return NextResponse.json({
           status: 'completed',
-          previewUrl,
+          previewUrl: getPreviewProxyUrl(),
           progress: 100,
         })
       } catch (e) {
@@ -96,12 +163,9 @@ export async function GET(
         })
       }
     }
-    const previewUrl = gen.preview_image_url
-      ? await getPreviewSignedUrl(gen.preview_image_url)
-      : null
     return NextResponse.json({
       status: gen.status,
-      previewUrl,
+      previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
       progress: elapsed > 1 ? 50 : 10,
     })
   }
@@ -109,12 +173,9 @@ export async function GET(
   // Real ImagineAPI job
   const apiKey = process.env.IMAGINE_API_KEY
   if (!apiKey) {
-    const previewUrl = gen.preview_image_url
-      ? await getPreviewSignedUrl(gen.preview_image_url)
-      : null
     return NextResponse.json({
       status: gen.status,
-      previewUrl,
+      previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
       progress: gen.status === 'completed' ? 100 : 50,
       errorMessage: gen.error_message ?? null,
     })
@@ -124,12 +185,9 @@ export async function GET(
     headers: { Authorization: `Bearer ${apiKey}` },
   })
   if (!statusRes.ok) {
-    const previewUrl = gen.preview_image_url
-      ? await getPreviewSignedUrl(gen.preview_image_url)
-      : null
     return NextResponse.json({
       status: gen.status,
-      previewUrl,
+      previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
       errorMessage: gen.error_message ?? `Status check failed: ${statusRes.status}`,
     })
   }
@@ -154,7 +212,6 @@ export async function GET(
         upscaled_image_url: finalUrl,
       })
       .eq('id', id)
-    let previewUrl: string | null = null
     if (!gen.preview_image_url) {
       try {
         const previewPath = await createAndUploadWatermark(finalUrl, id)
@@ -162,16 +219,13 @@ export async function GET(
           .from('generations')
           .update({ preview_image_url: previewPath })
           .eq('id', id)
-        previewUrl = await getPreviewSignedUrl(previewPath)
       } catch (e) {
         console.error('Watermark failed:', e)
       }
-    } else {
-      previewUrl = await getPreviewSignedUrl(gen.preview_image_url)
     }
     return NextResponse.json({
       status: 'completed',
-      previewUrl,
+      previewUrl: getPreviewProxyUrl(),
       progress: 100,
     })
   }
@@ -190,12 +244,9 @@ export async function GET(
     })
   }
 
-  const previewUrl = gen.preview_image_url
-    ? await getPreviewSignedUrl(gen.preview_image_url)
-    : null
   return NextResponse.json({
     status: apiStatus,
-    previewUrl,
+    previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
     progress: apiStatus === 'generating' ? 50 : 25,
     errorMessage: gen.error_message ?? null,
   })
