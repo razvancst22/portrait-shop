@@ -160,7 +160,7 @@ export function AccountDashboard() {
           Artwork
         </h2>
         <Link
-          href="/pet-portraits"
+          href="/"
           className="text-sm font-medium text-primary hover:underline"
         >
           Create new portrait →
@@ -176,7 +176,7 @@ export function AccountDashboard() {
       ) : displayGenerations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
           <p className="text-muted-foreground mb-4">No portraits yet.</p>
-          <Link href="/pet-portraits" className={getButtonClassName('default', 'lg', 'rounded-full')}>
+          <Link href="/" className={getButtonClassName('default', 'lg', 'rounded-full')}>
             Create your first portrait
           </Link>
         </div>
@@ -221,7 +221,7 @@ export function AccountDashboard() {
                   </Link>
                 ) : gen.status === 'failed' ? (
                   <Link
-                    href="/pet-portraits"
+                    href="/"
                     className="text-xs font-medium text-primary hover:underline"
                   >
                     Try again

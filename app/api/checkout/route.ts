@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { stripe } from '@/lib/stripe'
 import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
 import { checkJsonBodySize } from '@/lib/api-limits'
@@ -61,9 +62,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const user = await getOptionalUser()
     const cookieStore = await cookies()
     const guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
-    if (gen.session_id && guestId && guestId !== gen.session_id) {
+    const isOwner = gen.session_id && (user?.id === gen.session_id || guestId === gen.session_id)
+    if (gen.session_id && !isOwner) {
       return NextResponse.json(
         { error: 'You can only purchase portraits you created.', code: 'OWNERSHIP_MISMATCH' },
         { status: 403 }

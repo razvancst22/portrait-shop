@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 import { cn } from '@/lib/utils'
@@ -31,9 +32,9 @@ export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModa
 
   if (!open) return null
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="out-of-credits-title"
@@ -48,7 +49,7 @@ export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModa
           'relative z-10 w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-xl',
           className
         )}
-        >
+      >
         <button
           type="button"
           onClick={onClose}
@@ -80,4 +81,6 @@ export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModa
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : null
 }

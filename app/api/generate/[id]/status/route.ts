@@ -63,8 +63,25 @@ export async function GET(
     return `/api/generate/${id}/preview`
   }
 
-  // OpenAI GPT Image: run generation on first poll, upload, watermark, mark completed
+  // OpenAI GPT Image: run generation only once (first poll to "claim" wins; others just get status)
   if (jobId?.startsWith('openai-') && (gen.status === 'generating' || gen.status === 'pending') && !gen.final_image_url) {
+    // Atomic claim: only one status poll may run the OpenAI job (prevents duplicate API calls on refresh/multiple tabs)
+    const { data: claimed } = await supabase
+      .from('generations')
+      .update({ openai_run_started_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('openai_run_started_at', null)
+      .select('id')
+      .maybeSingle()
+
+    if (!claimed) {
+      return NextResponse.json({
+        status: 'generating',
+        progress: 50,
+        previewUrl: null,
+      })
+    }
+
     try {
       const imageBuffer = await generatePortraitFromReference(
         gen.original_image_url,

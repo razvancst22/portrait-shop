@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClientIfConfigured } from '@/lib/supabase/server'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { buildPrompt } from '@/lib/prompts/artStyles'
 import { generateBodySchema, validationErrorResponse } from '@/lib/api-schemas'
 import { startGeneration } from '@/lib/ai/midjourney'
 import { checkJsonBodySize } from '@/lib/api-limits'
 import { getGuestBalance, deductGuestToken } from '@/lib/tokens/guest-tokens'
+import { getUserBalance, deductUserToken } from '@/lib/tokens/user-tokens'
 import {
   deductGuestTokenCookie,
   setGuestBalanceCookie,
   setGuestIdCookie,
 } from '@/lib/tokens/guest-tokens-cookie'
-import { GUEST_ID_COOKIE, GUEST_ID_COOKIE_MAX_AGE } from '@/lib/tokens/constants'
+import { GUEST_ID_COOKIE, GUEST_ID_COOKIE_MAX_AGE, isDevGuest, isDevUser, DEV_CREDITS_BALANCE, DEV_USER_CREDITS } from '@/lib/tokens/constants'
 import { canUseFreeGeneration, recordFreeGenerationUseFromRequest } from '@/lib/tokens/guest-abuse-prevention'
 import { getClientIp } from '@/lib/request-utils'
 import { serverErrorResponse } from '@/lib/api-error'
@@ -35,6 +37,7 @@ export async function POST(request: NextRequest) {
   const sizeError = checkJsonBodySize(request)
   if (sizeError) return sizeError
 
+  const user = await getOptionalUser()
   const cookieStore = await cookies()
   let guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
   const isNewGuest = !guestId
@@ -42,8 +45,22 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClientIfConfigured()
 
+  /** When logged in, use user id as session and user_token_usage for balance/deduct. */
+  const sessionId = user ? user.id : guestId
+
   let balance: number
-  if (supabase) {
+  if (user && isDevUser(user.email)) {
+    balance = DEV_USER_CREDITS
+  } else if (user && supabase) {
+    try {
+      const result = await getUserBalance(supabase, user.id)
+      balance = result.balance
+    } catch {
+      balance = 0
+    }
+  } else if (isDevGuest(guestId)) {
+    balance = DEV_CREDITS_BALANCE
+  } else if (supabase) {
     try {
       const result = await getGuestBalance(supabase, guestId)
       balance = result.balance
@@ -73,16 +90,18 @@ export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
   const userAgent = request.headers.get('user-agent') ?? null
   const acceptLanguage = request.headers.get('accept-language') ?? null
-  try {
-    const allowedByAbuseCap = await canUseFreeGeneration(supabase, ip, userAgent, acceptLanguage)
-    if (!allowedByAbuseCap) {
-      return NextResponse.json(
-        { error: ABUSE_CAP_MESSAGE, code: 'FREE_CAP_30_DAYS' },
-        { status: 403 }
-      )
+  if (!user && !isDevGuest(guestId)) {
+    try {
+      const allowedByAbuseCap = await canUseFreeGeneration(supabase, ip, userAgent, acceptLanguage)
+      if (!allowedByAbuseCap) {
+        return NextResponse.json(
+          { error: ABUSE_CAP_MESSAGE, code: 'FREE_CAP_30_DAYS' },
+          { status: 403 }
+        )
+      }
+    } catch (e) {
+      console.error('Abuse prevention check failed (fail open):', e)
     }
-  } catch (e) {
-    console.error('Abuse prevention check failed (fail open):', e)
   }
 
   let rawBody: unknown
@@ -111,7 +130,7 @@ export async function POST(request: NextRequest) {
       .from('generations')
       .select('id, midjourney_job_id')
       .eq('idempotency_key', idempotencyKey)
-      .eq('session_id', guestId)
+      .eq('session_id', sessionId)
       .maybeSingle()
     if (existing) {
       return NextResponse.json(
@@ -128,12 +147,18 @@ export async function POST(request: NextRequest) {
 
   let deducted: boolean
   let cookieBalanceAfterDeduct: number | null = null
-  try {
-    deducted = await deductGuestToken(supabase, guestId)
-  } catch {
-    const result = deductGuestTokenCookie(cookieStore)
-    deducted = result.success
-    if (result.success) cookieBalanceAfterDeduct = result.newBalance
+  if (user && isDevUser(user.email)) {
+    deducted = true
+  } else if (user) {
+    deducted = await deductUserToken(supabase, user.id)
+  } else {
+    try {
+      deducted = await deductGuestToken(supabase, guestId)
+    } catch {
+      const result = deductGuestTokenCookie(cookieStore)
+      deducted = result.success
+      if (result.success) cookieBalanceAfterDeduct = result.newBalance
+    }
   }
 
   if (!deducted) {
@@ -145,7 +170,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const prompt = buildPrompt(artStyle, subjectType, petType)
-    const sessionId = guestId
 
     const insertPayload: Record<string, unknown> = {
       session_id: sessionId,
@@ -218,17 +242,19 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', gen.id)
 
-    try {
-      await recordFreeGenerationUseFromRequest(supabase, ip, userAgent, acceptLanguage)
-    } catch (e) {
-      console.error('Abuse prevention record failed (non-blocking):', e)
+    if (!user) {
+      try {
+        await recordFreeGenerationUseFromRequest(supabase, ip, userAgent, acceptLanguage)
+      } catch (e) {
+        console.error('Abuse prevention record failed (non-blocking):', e)
+      }
     }
 
     const res = NextResponse.json({
       generationId: gen.id,
       jobId,
     })
-    if (isNewGuest) {
+    if (!user && isNewGuest) {
       res.cookies.set(GUEST_ID_COOKIE, guestId, {
         httpOnly: true,
         sameSite: 'lax',
@@ -237,7 +263,7 @@ export async function POST(request: NextRequest) {
         secure: process.env.NODE_ENV === 'production',
       })
     }
-    if (cookieBalanceAfterDeduct !== null) {
+    if (!user && cookieBalanceAfterDeduct !== null) {
       setGuestBalanceCookie(res, cookieBalanceAfterDeduct)
     }
     return res

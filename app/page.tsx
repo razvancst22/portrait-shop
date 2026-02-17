@@ -20,14 +20,16 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center px-4 py-16 md:py-24">
       <main className="max-w-3xl w-full text-center">
-        <HeroSection />
-        {/* Upload option must always remain on the main page */}
-        <UploadSection />
-        {/* My portraits: hidden until user has creations; cards invite to purchase */}
-        <MyPortraitsSection />
-        {/* Full-width gallery on desktop (breaks out of max-w-3xl) */}
+        <div className="relative z-10">
+          <HeroSection />
+          {/* Upload option must always remain on the main page */}
+          <UploadSection />
+          {/* My portraits: hidden until user has creations; cards invite to purchase */}
+          <MyPortraitsSection />
+        </div>
+        {/* Full-width gallery on desktop (breaks out of max-w-3xl). z-0 so it stays under modals (z-50). */}
         <section
-          className="relative left-1/2 w-screen -translate-x-1/2 mt-10"
+          className="relative left-1/2 w-screen -translate-x-1/2 mt-10 z-0"
           style={{ height: '420px' }}
           aria-label="Portrait gallery"
         >

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
-import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
+import { PortraitActionCard } from '@/components/preview/portrait-action-card'
+import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 
 type MyGenerationItem = {
   id: string
@@ -22,11 +22,12 @@ function styleDisplayName(artStyle: string): string {
 
 /**
  * Hidden until the user has at least one creation. Renders under the hero on the main page.
- * Shows "My portraits" and cards for each generation, with CTAs to purchase / get high-res.
+ * Shows "My portraits" and cards for each generation (same card UI as preview: Download 4K + Order Print).
  */
 export function MyPortraitsSection() {
   const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
 
   useEffect(() => {
     fetch('/api/my-generations', { credentials: 'include' })
@@ -49,59 +50,30 @@ export function MyPortraitsSection() {
       <h2 className="font-heading text-xl font-semibold text-foreground mb-4">
         My portraits
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
         {generations.map((gen) => (
-          <article
+          <PortraitActionCard
             key={gen.id}
-            className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0 transition-all duration-200 hover:border-primary/50 hover:shadow-md"
-          >
-            <Link
-              href={`/preview/${gen.id}`}
-              className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl transition-transform duration-200 hover:scale-[1.02]"
-            >
-              {gen.preview_image_url && gen.status === 'completed' ? (
-                <img
-                  src={gen.preview_image_url}
-                  alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                  className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onDragStart={(e) => e.preventDefault()}
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                  {gen.status === 'completed' ? 'No preview' : gen.status === 'failed' ? 'Failed' : 'Creating…'}
-                </div>
-              )}
-            </Link>
-            <div className="p-3 flex flex-col gap-2 flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {styleDisplayName(gen.art_style)}
-              </p>
-              {gen.is_purchased ? (
-                <span className="text-xs text-muted-foreground">Purchased</span>
-              ) : gen.status === 'completed' ? (
-                <Link
-                  href={`/preview/${gen.id}`}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Get full resolution – ${DIGITAL_BUNDLE_PRICE_USD}
-                </Link>
-              ) : gen.status === 'failed' ? (
-                <Link
-                  href="/pet-portraits"
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Try again
-                </Link>
-              ) : null}
-            </div>
-          </article>
+            generationId={gen.id}
+            imageUrl={gen.preview_image_url}
+            imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
+            status={gen.status}
+            isPurchased={gen.is_purchased}
+            buttonsLayout="row"
+            onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
+          />
         ))}
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
-        Love it? Get the high-res bundle for each portrait – no re-generation.
+        Love it? Get the high-res bundle or order a print for each portrait.
       </p>
+
+      <PreviewPackageModal
+        open={packageModal !== null}
+        onClose={() => setPackageModal(null)}
+        variant={packageModal?.variant ?? 'portrait-pack'}
+        generationId={packageModal?.generationId ?? ''}
+      />
     </section>
   )
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClientIfConfigured } from '@/lib/supabase/server'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
 
 export type MyGenerationItem = {
@@ -13,9 +14,8 @@ export type MyGenerationItem = {
 }
 
 /**
- * GET /api/my-generations – list generations for the current guest (or logged-in user).
- * Uses guest_id cookie to match session_id on generations. Works without login.
- * preview_image_url in DB is a storage path; we return a fresh signed URL so thumbnails load.
+ * GET /api/my-generations – list generations for the current guest or logged-in user.
+ * Logged-in: session_id = user.id. Guest: session_id = guest_id cookie.
  */
 export async function GET() {
   const supabase = createClientIfConfigured()
@@ -23,16 +23,17 @@ export async function GET() {
     return NextResponse.json({ generations: [] })
   }
 
+  const user = await getOptionalUser()
   const cookieStore = await cookies()
-  const guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
-  if (!guestId) {
+  const sessionId = user?.id ?? cookieStore.get(GUEST_ID_COOKIE)?.value
+  if (!sessionId) {
     return NextResponse.json({ generations: [] })
   }
 
   const { data: rows, error } = await supabase
     .from('generations')
     .select('id, art_style, status, preview_image_url, is_purchased, created_at')
-    .eq('session_id', guestId)
+    .eq('session_id', sessionId)
     .order('created_at', { ascending: false })
     .limit(50)
 

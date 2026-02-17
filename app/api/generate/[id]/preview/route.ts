@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
 
@@ -26,9 +27,11 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  const user = await getOptionalUser()
   const cookieStore = await cookies()
   const guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
-  if (gen.session_id && guestId !== gen.session_id) {
+  const canView = !gen.session_id || user?.id === gen.session_id || guestId === gen.session_id
+  if (!canView) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

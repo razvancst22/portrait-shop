@@ -1,10 +1,12 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import { Button, getButtonClassName } from '@/components/primitives/button'
+import { Download, Printer } from 'lucide-react'
+import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 
 type StatusResponse = {
   status: string
@@ -15,13 +17,13 @@ type StatusResponse = {
 
 export default function PreviewPage() {
   const params = useParams()
-  const router = useRouter()
   const generationId = params.generationId as string
   const [status, setStatus] = useState<string>('generating')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [price, setPrice] = useState<number | null>(null)
+  const [packageModal, setPackageModal] = useState<PreviewPackageVariant | null>(null)
 
   const pollStatus = useCallback(async () => {
     const res = await fetch(`/api/generate/${generationId}/status`)
@@ -51,9 +53,6 @@ export default function PreviewPage() {
       .catch(() => setPrice(10))
   }, [])
 
-  const handlePurchase = () => {
-    router.push(`/checkout?generationId=${generationId}`)
-  }
 
   if (status === 'failed') {
     return (
@@ -97,9 +96,11 @@ export default function PreviewPage() {
             Love it? Get the full bundle (high-res + wallpapers) for{' '}
             <strong className="text-foreground">${price ?? 10}</strong>.
           </p>
-          <div className="mb-6 rounded-xl overflow-hidden bg-background">
+
+          {/* Single card: image + action buttons */}
+          <div className="rounded-2xl overflow-hidden bg-card text-card-foreground border border-border shadow-xl">
             <div
-              className="relative aspect-[4/5] w-full select-none bg-background rounded-xl"
+              className="relative aspect-[4/5] w-full select-none bg-muted"
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
             >
@@ -113,13 +114,33 @@ export default function PreviewPage() {
                 draggable={false}
               />
             </div>
+            <div className="p-4 sm:p-5 flex flex-col gap-3">
+              <Button
+                size="lg"
+                className="w-full rounded-xl justify-center gap-3 h-12 shadow-md shadow-primary/25"
+                onClick={() => setPackageModal('portrait-pack')}
+              >
+                <Download className="size-5 shrink-0" />
+                <span>Download 4K</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full rounded-xl justify-center gap-3 h-12"
+                onClick={() => setPackageModal('art-print-pack')}
+              >
+                <Printer className="size-5 shrink-0" />
+                <span>Order Print</span>
+              </Button>
+            </div>
           </div>
-          <Button onClick={handlePurchase} className="w-full sm:max-w-xs rounded-full" size="lg">
-            Purchase – ${price ?? 10}
-          </Button>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            You’ll complete payment on the next page.
-          </p>
+
+          <PreviewPackageModal
+            open={packageModal !== null}
+            onClose={() => setPackageModal(null)}
+            variant={packageModal ?? 'portrait-pack'}
+            generationId={generationId}
+          />
         </div>
       </div>
     )

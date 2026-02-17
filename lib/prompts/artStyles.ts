@@ -23,7 +23,7 @@ export function isAllowedSubjectType(value: string): value is SubjectTypeId {
 
 /** SEO-friendly route and display name per category. */
 export const CATEGORY_ROUTES: Record<SubjectTypeId, { path: string; title: string; shortTitle: string }> = {
-  pet: { path: '/pet-portraits', title: 'Pet Portraits', shortTitle: 'Pet' },
+  pet: { path: '/', title: 'Pet Portraits', shortTitle: 'Pet' },
   dog: { path: '/dog-portraits', title: 'Dog Portraits', shortTitle: 'Dog' },
   cat: { path: '/cat-portraits', title: 'Cat Portraits', shortTitle: 'Cat' },
   family: { path: '/family-portraits', title: 'Family Portraits', shortTitle: 'Family' },

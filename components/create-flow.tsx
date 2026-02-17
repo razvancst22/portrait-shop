@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/primitives/button'
 import { Card, CardContent } from '@/components/primitives/card'
 import { Label } from '@/components/primitives/label'
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils'
 import type { SubjectTypeId } from '@/lib/prompts/artStyles'
 import { CREATE_FLOW_COPY } from '@/lib/create-flow-config'
 import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
+import { UploadPhotoArea } from '@/components/upload-photo-area'
 
 type StyleItem = {
   id: string
@@ -26,21 +28,38 @@ type Step = 'upload' | 'preview' | 'styles' | 'generating'
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_MB = 10
 
+const GENERATING_MESSAGES = [
+  'Analyzing your photo…',
+  'Studying the composition…',
+  'Mixing colors on the palette…',
+  'Adding artistic flair…',
+  'Bringing your portrait to life…',
+  'Adding the finishing touches…',
+  'Almost there…',
+  'Just a moment longer…',
+]
+
 type CreateFlowProps = {
   category: SubjectTypeId
 }
 
 export function CreateFlow({ category }: CreateFlowProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const copy = CREATE_FLOW_COPY[category]
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  /** When user uploaded from the home page, we get imageUrl in the URL and skip re-upload in startGeneration */
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [styles, setStyles] = useState<StyleItem[]>([])
   const [loadingStyles, setLoadingStyles] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
+  const [displayProgress, setDisplayProgress] = useState(0)
+  const [statusMessageIndex, setStatusMessageIndex] = useState(0)
   const [genStatus, setGenStatus] = useState<string>('generating')
   const [nameValue, setNameValue] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +68,16 @@ export function CreateFlow({ category }: CreateFlowProps) {
   const [insufficientCredits, setInsufficientCredits] = useState(false)
   const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // If we landed here with ?imageUrl=... (e.g. from home page upload), go straight to preview
+  useEffect(() => {
+    const imageUrl = searchParams.get('imageUrl')
+    if (imageUrl) {
+      setPreviewUrl(imageUrl)
+      setUploadedImageUrl(imageUrl)
+      setStep('preview')
+    }
+  }, [searchParams])
 
   const validateAndSetFile = useCallback((f: File | null) => {
     if (!f) return
@@ -95,12 +124,14 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }, [])
 
   const changePhoto = useCallback(() => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
     setFile(null)
     setPreviewUrl(null)
+    setUploadedImageUrl(null)
     setStep('upload')
     setError(null)
-  }, [previewUrl])
+    router.replace(pathname ?? '/')
+  }, [previewUrl, router, pathname])
 
   const loadStyles = useCallback(async () => {
     setLoadingStyles(true)
@@ -149,29 +180,50 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }, [step, fetchCredits])
 
   const startGeneration = useCallback(async () => {
-    if (!file || !selectedStyle) return
+    if (!selectedStyle) return
+    const imageUrlToUse = uploadedImageUrl
+    let resolvedImageUrl = imageUrlToUse
+    if (!resolvedImageUrl) {
+      if (!file) return
+      setError(null)
+      setInsufficientCredits(false)
+      setStep('generating')
+      setProgress(0)
+      setDisplayProgress(0)
+      setStatusMessageIndex(0)
+      setGenStatus('generating')
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({}))
+          const message = uploadRes.status === 503
+            ? (err.error || 'Upload is not configured yet. Set up Supabase to enable uploads.')
+            : (err.error || `Upload failed: ${uploadRes.status}`)
+          throw new Error(message)
+        }
+        const { imageUrl } = await uploadRes.json()
+        resolvedImageUrl = imageUrl
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+        setStep('styles')
+        return
+      }
+    }
     setError(null)
     setInsufficientCredits(false)
     setStep('generating')
     setProgress(0)
+    setDisplayProgress(0)
+    setStatusMessageIndex(0)
     setGenStatus('generating')
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({}))
-        const message = uploadRes.status === 503
-          ? (err.error || 'Upload is not configured yet. Set up Supabase to enable uploads.')
-          : (err.error || `Upload failed: ${uploadRes.status}`)
-        throw new Error(message)
-      }
-      const { imageUrl } = await uploadRes.json()
       const genRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl,
+          imageUrl: resolvedImageUrl,
           artStyle: selectedStyle,
           subjectType: category,
         }),
@@ -198,7 +250,28 @@ export function CreateFlow({ category }: CreateFlowProps) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setStep('styles')
     }
-  }, [file, selectedStyle, category, fetchCredits])
+  }, [file, selectedStyle, category, fetchCredits, uploadedImageUrl])
+
+  // Fake progress: smoothly advance from 0 toward 92% while waiting
+  useEffect(() => {
+    if (step !== 'generating' || genStatus === 'completed' || genStatus === 'failed') return
+    const interval = setInterval(() => {
+      setDisplayProgress((p) => {
+        if (p >= 92) return p
+        return Math.min(92, p + (92 - p) * 0.05)
+      })
+    }, 320)
+    return () => clearInterval(interval)
+  }, [step, genStatus])
+
+  // Rotate status messages every 2.5s
+  useEffect(() => {
+    if (step !== 'generating' || genStatus === 'completed' || genStatus === 'failed') return
+    const interval = setInterval(() => {
+      setStatusMessageIndex((i) => (i + 1) % GENERATING_MESSAGES.length)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [step, genStatus])
 
   useEffect(() => {
     if (step !== 'generating' || !generationId) return
@@ -208,7 +281,10 @@ export function CreateFlow({ category }: CreateFlowProps) {
         if (!res.ok) return
         const data = await res.json()
         setGenStatus(data.status ?? 'generating')
-        if (typeof data.progress === 'number') setProgress(data.progress)
+        if (typeof data.progress === 'number') {
+          setProgress(data.progress)
+          setDisplayProgress(data.progress)
+        }
         if (data.status === 'completed') {
           if (pollRef.current) clearInterval(pollRef.current)
           if (nameValue.trim()) {
@@ -237,12 +313,13 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }, [step, generationId, router, nameValue])
 
   if (step === 'upload') {
-    const uploadAreaClass = cn(
-      'flex flex-col items-center justify-center min-h-[280px] w-full rounded-2xl border-2 border-dashed p-8 transition-all duration-200 w-full animate-fade-in animate-fade-in-delay-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-      isDragOver
-        ? 'border-primary bg-primary/10'
-        : 'border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/15 hover:shadow-lg hover:-translate-y-0.5'
-    )
+    const uploadSubtitleMessages = [
+      'Use a well-lit photo',
+      tokenBalance !== null
+        ? `${tokenBalance} free portrait${tokenBalance !== 1 ? 's' : ''} remaining · No sign-in required`
+        : 'Free portraits · No sign-in required',
+      `Click or drag here · JPEG, PNG or WebP, max ${MAX_MB}MB`,
+    ]
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16 md:py-24">
         <main className="max-w-3xl text-center w-full">
@@ -256,10 +333,15 @@ export function CreateFlow({ category }: CreateFlowProps) {
             className="hidden"
             id="upload-photo"
           />
-          <label
-            htmlFor={tokenBalance === 0 ? undefined : 'upload-photo'}
-            role="button"
-            tabIndex={0}
+          <UploadPhotoArea
+            creditsCount={tokenBalance}
+            creditsLabel="Credit"
+            pickStyleLabel="Pick Style"
+            uploadTitle={isDragOver ? copy.uploadDropLabel : copy.uploadLabel}
+            subtitle={uploadSubtitleMessages}
+            subtitleRotateIntervalMs={4000}
+            as="label"
+            htmlFor="upload-photo"
             onKeyDown={(e) => {
               if (tokenBalance === 0 && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault()
@@ -275,27 +357,10 @@ export function CreateFlow({ category }: CreateFlowProps) {
             onDrop={onDrop}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            className={uploadAreaClass}
-          >
-            <span className="text-4xl mb-3" aria-hidden>
-              📷
-            </span>
-            <span className="font-semibold text-foreground text-lg">
-              {isDragOver ? copy.uploadDropLabel : copy.uploadLabel}
-            </span>
-            <span className="text-sm text-muted-foreground mt-1">
-              {tokenBalance !== null ? (
-                <>
-                  <strong className="text-foreground">{tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''}</strong> remaining · No sign-in required
-                </>
-              ) : (
-                'Free portraits · No sign-in required'
-              )}
-            </span>
-            <span className="text-sm text-muted-foreground mt-1">
-              Click or drag here · JPEG, PNG or WebP, max {MAX_MB}MB
-            </span>
-          </label>
+            isDragOver={isDragOver}
+            disabled={tokenBalance === 0}
+            className="animate-fade-in animate-fade-in-delay-2"
+          />
           {error && (
             <p className="mt-4 text-sm text-destructive animate-fade-in" role="alert">{error}</p>
           )}
@@ -436,15 +501,35 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }
 
   if (step === 'generating') {
+    const showProgress = genStatus === 'completed' ? progress : Math.round(displayProgress)
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-8 bg-generating">
         <div className="w-full max-w-md text-center space-y-8 animate-fade-in animate-fade-in-delay-1">
-          <h1 className="font-heading text-xl font-semibold text-foreground">{copy.generatingTitle}</h1>
+          <div className="flex flex-col items-center gap-4">
+            <Loader2
+              className={cn('size-12 text-primary', genStatus === 'generating' && 'animate-spin')}
+              aria-hidden
+            />
+            <h1 className="font-heading text-xl font-semibold text-foreground">{copy.generatingTitle}</h1>
+            <p
+              key={statusMessageIndex}
+              className="text-sm text-muted-foreground min-h-[1.5rem] animate-fade-in"
+            >
+              {genStatus === 'generating'
+                ? GENERATING_MESSAGES[statusMessageIndex]
+                : genStatus === 'failed'
+                  ? 'Something went wrong.'
+                  : 'Done!'}
+            </p>
+          </div>
           <div className="w-full space-y-2">
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
+            <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${showProgress}%` }}
+              />
             </div>
-            <p className="text-sm text-muted-foreground">{progress}%</p>
+            <p className="text-sm text-muted-foreground tabular-nums">{showProgress}%</p>
           </div>
           <div className="text-left space-y-2">
             <Label htmlFor="name-generating">{copy.nameLabel}</Label>

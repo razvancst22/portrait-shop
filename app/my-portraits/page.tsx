@@ -6,7 +6,8 @@ import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
-import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
+import { PortraitActionCard } from '@/components/preview/portrait-action-card'
+import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 
 type MyGenerationItem = {
   id: string
@@ -27,6 +28,7 @@ export default function MyPortraitsPage() {
   const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [loadingCredits, setLoadingCredits] = useState(true)
   const [loadingGenerations, setLoadingGenerations] = useState(true)
+  const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
 
   const loadCredits = useCallback(() => {
     setLoadingCredits(true)
@@ -77,7 +79,7 @@ export default function MyPortraitsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 className="font-heading text-lg font-semibold text-foreground">Artwork</h2>
           <Link
-            href="/pet-portraits"
+            href="/"
             className="text-sm font-medium text-primary hover:underline"
           >
             Create new portrait →
@@ -85,7 +87,7 @@ export default function MyPortraitsPage() {
         </div>
 
         {loadingGenerations ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="rounded-xl aspect-[4/5]" />
             ))}
@@ -93,56 +95,33 @@ export default function MyPortraitsPage() {
         ) : generations.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
             <p className="text-muted-foreground mb-4">No portraits yet.</p>
-            <Link href="/pet-portraits">
+            <Link href="/">
               <Button className="rounded-full">Create your first portrait</Button>
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
             {generations.map((gen) => (
-              <article
+              <PortraitActionCard
                 key={gen.id}
-                className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
-              >
-                <Link
-                  href={`/preview/${gen.id}`}
-                  className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl"
-                >
-                  {gen.preview_image_url && gen.status === 'completed' ? (
-                    <img
-                      src={gen.preview_image_url}
-                      alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                      className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
-                      draggable={false}
-                      onContextMenu={(e) => e.preventDefault()}
-                      onDragStart={(e) => e.preventDefault()}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm p-2">
-                      {gen.status === 'completed' ? 'No preview' : gen.status === 'failed' ? 'Failed' : 'Creating…'}
-                    </div>
-                  )}
-                </Link>
-                <div className="p-3 flex flex-col gap-2 flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {styleDisplayName(gen.art_style)}
-                  </p>
-                  {gen.is_purchased ? (
-                    <span className="text-xs text-muted-foreground">Purchased</span>
-                  ) : gen.status === 'completed' ? (
-                    <Link href={`/preview/${gen.id}`} className="text-xs font-medium text-primary hover:underline">
-                      Get full resolution – ${DIGITAL_BUNDLE_PRICE_USD}
-                    </Link>
-                  ) : gen.status === 'failed' ? (
-                    <Link href="/pet-portraits" className="text-xs font-medium text-primary hover:underline">
-                      Try again
-                    </Link>
-                  ) : null}
-                </div>
-              </article>
+                generationId={gen.id}
+                imageUrl={gen.preview_image_url}
+                imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
+                status={gen.status}
+                isPurchased={gen.is_purchased}
+                buttonsLayout="row"
+                onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
+              />
             ))}
           </div>
         )}
+
+        <PreviewPackageModal
+          open={packageModal !== null}
+          onClose={() => setPackageModal(null)}
+          variant={packageModal?.variant ?? 'portrait-pack'}
+          generationId={packageModal?.generationId ?? ''}
+        />
 
         <p className="mt-8 text-center">
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
