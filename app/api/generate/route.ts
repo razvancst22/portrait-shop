@@ -4,7 +4,7 @@ import { createClientIfConfigured } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { buildPrompt } from '@/lib/prompts/artStyles'
 import { generateBodySchema, validationErrorResponse } from '@/lib/api-schemas'
-import { startGeneration } from '@/lib/ai/midjourney'
+import { generatePortraitFromReference } from '@/lib/ai/gpt-image'
 import { checkJsonBodySize } from '@/lib/api-limits'
 import { getGuestBalance, deductGuestToken } from '@/lib/tokens/guest-tokens'
 import { getUserBalance, deductUserToken } from '@/lib/tokens/user-tokens'
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
       original_image_url: imageUrl,
       art_style: artStyle,
       subject_type: dbSubjectType,
-      midjourney_prompt: prompt,
+      prompt: prompt,
       status: 'pending',
     }
     if (idempotencyKey) insertPayload.idempotency_key = idempotencyKey
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       if (insertError.code === '23505' && idempotencyKey) {
         const { data: existing } = await supabase
           .from('generations')
-          .select('id, midjourney_job_id')
+          .select('id, job_id')
           .eq('idempotency_key', idempotencyKey)
           .maybeSingle()
         if (existing) {
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
               error: 'Duplicate request. Use the existing generation.',
               code: 'IDEMPOTENCY_CONFLICT',
               generationId: existing.id,
-              jobId: existing.midjourney_job_id ?? `openai-${existing.id}`,
+              jobId: existing.job_id ?? `openai-${existing.id}`,
             },
             { status: 409 }
           )
@@ -224,20 +224,15 @@ export async function POST(request: NextRequest) {
       jobId = `openai-${gen.id}`
       status = 'generating'
     } else {
-      const result = await startGeneration({
-        imageUrl,
-        artStyle,
-        subjectType,
-        petType,
-      })
-      jobId = result.jobId
-      status = result.status
+      // For non-OpenAI generation, create stub job ID
+      jobId = `stub-${gen.id}`
+      status = 'generating'
     }
 
     await supabase
       .from('generations')
       .update({
-        midjourney_job_id: jobId,
+        job_id: jobId,
         status: status === 'generating' ? 'generating' : 'pending',
       })
       .eq('id', gen.id)

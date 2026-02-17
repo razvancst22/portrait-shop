@@ -1,67 +1,10 @@
-import sharp from 'sharp'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_DELIVERABLES, BUCKET_UPLOADS } from '@/lib/constants'
-
-/** Bundle = 4 assets: 4:5, 9:16, 4:4 (square), 3:4. Source from AI is 4:5. */
-export const BUNDLE_ASSET_TYPES = ['portrait_4_5', 'phone_9_16', 'square_4_4', 'tablet_3_4'] as const
-
-/** Target dimensions. portrait_4_5 preserves 4:5; others are center crop to fill. */
-const ASSET_SPECS: Record<(typeof BUNDLE_ASSET_TYPES)[number], { width: number; height: number; fit: 'inside' | 'cover' }> = {
-  portrait_4_5: { width: 2048, height: 2048, fit: 'inside' }, // 4:5, max 2048 long edge
-  phone_9_16: { width: 1080, height: 1920, fit: 'cover' },   // 9:16 phone wallpaper
-  square_4_4: { width: 2048, height: 2048, fit: 'cover' },  // 4:4 (1:1) square
-  tablet_3_4: { width: 1536, height: 2048, fit: 'cover' },  // 3:4 tablet
-}
-
-/** Minimum long edge for high-res deliverables (same image, no re-generation). */
-const MIN_LONG_EDGE = 2048
+import { upscaleImage, isUpscaleConfigured } from '@/lib/ai/upscale'
+import { ensureStorageBuckets } from '@/lib/supabase/storage'
 
 /**
- * Download image from URL and produce 4 bundle assets (JPEG buffers): 4:5, 9:16, 4:4, 3:4.
- * Same image as preview – we only upscale when needed so purchase is high-res. No AI re-run.
- */
-export async function createBundleBuffers(
-  sourceImageUrl: string
-): Promise<{ asset_type: (typeof BUNDLE_ASSET_TYPES)[number]; buffer: Buffer }[]> {
-  const response = await fetch(sourceImageUrl)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch source image: ${response.status}`)
-  }
-  const sourceBuffer = Buffer.from(await response.arrayBuffer())
-  let source = sharp(sourceBuffer)
-  const metadata = await source.metadata()
-  const w = metadata.width ?? 0
-  const h = metadata.height ?? 0
-  const longEdge = Math.max(w, h)
-
-  if (longEdge > 0 && longEdge < MIN_LONG_EDGE) {
-    const scale = MIN_LONG_EDGE / longEdge
-    const newW = Math.round(w * scale)
-    const newH = Math.round(h * scale)
-    const upscaled = await source.resize(newW, newH, { kernel: sharp.kernel.lanczos3 }).toBuffer()
-    source = sharp(upscaled)
-  }
-
-  const results: { asset_type: (typeof BUNDLE_ASSET_TYPES)[number]; buffer: Buffer }[] = []
-
-  for (const assetType of BUNDLE_ASSET_TYPES) {
-    const spec = ASSET_SPECS[assetType]
-    const pipeline = source
-      .clone()
-      .resize(spec.width, spec.height, {
-        fit: spec.fit,
-        position: 'center',
-        withoutEnlargement: spec.fit === 'inside',
-      })
-    const buffer = await pipeline.jpeg({ quality: 90 }).toBuffer()
-    results.push({ asset_type: assetType, buffer })
-  }
-
-  return results
-}
-
-/**
- * Generate the 4 bundle assets (portrait_4_5, phone_9_16, square_4_4, tablet_3_4) from generation.final_image_url,
+ * Generate a single 4K PNG from generation.final_image_url using Replicate upscale,
  * upload to Storage, insert order_deliverables, and set order status to delivered.
  * Idempotent: if order already has deliverables, skip (only update order status).
  */
@@ -73,7 +16,7 @@ export async function generateAndStoreBundle(
 
   const { data: gen, error: genError } = await supabase
     .from('generations')
-    .select('id, final_image_url')
+    .select('id, final_image_url, upscaled_image_url')
     .eq('id', generationId)
     .single()
 
@@ -81,23 +24,80 @@ export async function generateAndStoreBundle(
     return { delivered: false, error: 'Generation not found' }
   }
 
-  const finalImageUrlOrPath = gen.final_image_url
-  if (!finalImageUrlOrPath) {
-    return { delivered: false, error: 'Generation has no final image' }
+  // Prefer upscaled version if available, otherwise use final image
+  const imageUrlOrPath = gen.upscaled_image_url || gen.final_image_url
+  if (!imageUrlOrPath) {
+    return { delivered: false, error: 'Generation has no image available' }
+  }
+  
+  console.log('Using image:', imageUrlOrPath)
+  console.log('Has upscaled version:', !!gen.upscaled_image_url)
+
+  // If we already have an upscaled version, just download it as PNG instead of calling Replicate again
+  if (gen.upscaled_image_url && gen.upscaled_image_url !== gen.final_image_url) {
+    console.log('Using existing upscaled image, skipping Replicate call')
+    
+    let upscaledUrl: string
+    if (gen.upscaled_image_url.startsWith('http')) {
+      upscaledUrl = gen.upscaled_image_url
+    } else {
+      const { data } = await supabase.storage
+        .from(BUCKET_UPLOADS)
+        .createSignedUrl(gen.upscaled_image_url, 3600)
+      if (!data?.signedUrl) {
+        return { delivered: false, error: 'Could not get upscaled image URL' }
+      }
+      upscaledUrl = data.signedUrl
+    }
+    
+    // Download existing upscaled image
+    const response = await fetch(upscaledUrl)
+    if (!response.ok) {
+      return { delivered: false, error: 'Failed to fetch existing upscaled image' }
+    }
+    const upscaled4kBuffer = Buffer.from(await response.arrayBuffer())
+    
+    // Store it
+    const filePath = `orders/${orderId}/upscaled_portrait.png`
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_DELIVERABLES)
+      .upload(filePath, upscaled4kBuffer, { contentType: 'image/png', upsert: true })
+    
+    if (uploadError) {
+      return { delivered: false, error: `Failed to upload existing upscaled PNG: ${uploadError.message}` }
+    }
+
+    // Insert deliverable record
+    const { error: insertError } = await supabase.from('order_deliverables').insert({
+      order_id: orderId,
+      asset_type: 'upscaled_portrait',
+      file_path: filePath,
+    })
+    
+    if (insertError) {
+      return { delivered: false, error: `Failed to insert deliverable record: ${insertError.message}` }
+    }
+
+    // Mark order as delivered
+    await supabase.from('orders').update({ status: 'delivered', updated_at: new Date().toISOString() }).eq('id', orderId)
+    return { delivered: true }
   }
 
   // Resolve storage path to signed URL when needed (e.g. GPT Image stores path)
   let sourceImageUrl: string
-  if (finalImageUrlOrPath.startsWith('http')) {
-    sourceImageUrl = finalImageUrlOrPath
+  if (imageUrlOrPath.startsWith('http')) {
+    sourceImageUrl = imageUrlOrPath
+    console.log('Using direct HTTP URL:', sourceImageUrl)
   } else {
     const { data } = await supabase.storage
       .from(BUCKET_UPLOADS)
-      .createSignedUrl(finalImageUrlOrPath, 3600)
+      .createSignedUrl(imageUrlOrPath, 3600)
     if (!data?.signedUrl) {
       return { delivered: false, error: 'Could not get final image URL' }
     }
     sourceImageUrl = data.signedUrl
+    console.log('Created signed URL:', sourceImageUrl)
+    console.log('Original path:', imageUrlOrPath)
   }
 
   // Optional: skip if we already have deliverables (idempotent)
@@ -111,27 +111,71 @@ export async function generateAndStoreBundle(
     return { delivered: true }
   }
 
-  const assets = await createBundleBuffers(sourceImageUrl)
-  const prefix = `orders/${orderId}`
+  let finalBuffer: Buffer
 
-  for (const { asset_type, buffer } of assets) {
-    const filePath = `${prefix}/${asset_type}.jpg`
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET_DELIVERABLES)
-      .upload(filePath, buffer, { contentType: 'image/jpeg', upsert: true })
-    if (uploadError) {
-      return { delivered: false, error: `Upload ${asset_type}: ${uploadError.message}` }
+  // Try to upscale with Replicate, fall back to original if it fails
+  if (isUpscaleConfigured()) {
+    console.log('Attempting Replicate upscale...')
+    const upscaledBuffer = await upscaleImage(sourceImageUrl, 2)
+    if (upscaledBuffer) {
+      console.log('Replicate upscale successful')
+      finalBuffer = upscaledBuffer
+    } else {
+      console.log('Replicate upscale failed, using original image')
+      // Fallback: download original image
+      const response = await fetch(sourceImageUrl)
+      if (!response.ok) {
+        return { delivered: false, error: 'Failed to fetch source image' }
+      }
+      finalBuffer = Buffer.from(await response.arrayBuffer())
     }
-    const { error: insertError } = await supabase.from('order_deliverables').insert({
-      order_id: orderId,
-      asset_type,
-      file_path: filePath,
-    })
-    if (insertError) {
-      return { delivered: false, error: `Insert deliverable ${asset_type}: ${insertError.message}` }
+  } else {
+    console.log('Replicate not configured, using original image')
+    // Fallback: download original image
+    const response = await fetch(sourceImageUrl)
+    if (!response.ok) {
+      return { delivered: false, error: 'Failed to fetch source image' }
     }
+    finalBuffer = Buffer.from(await response.arrayBuffer())
   }
 
+  // Store single PNG (upscaled or original)
+  const filePath = `orders/${orderId}/portrait.png`
+  let { error: uploadError } = await supabase.storage
+    .from(BUCKET_DELIVERABLES)
+    .upload(filePath, finalBuffer, { contentType: 'image/png', upsert: true })
+  
+  // If bucket doesn't exist, create it and try again
+  if (uploadError && uploadError.message.includes('Bucket not found')) {
+    console.log('Deliverables bucket not found, creating storage buckets...')
+    try {
+      await ensureStorageBuckets()
+      console.log('Storage buckets created, retrying upload...')
+      const retry = await supabase.storage
+        .from(BUCKET_DELIVERABLES)
+        .upload(filePath, finalBuffer, { contentType: 'image/png', upsert: true })
+      uploadError = retry.error
+    } catch (e) {
+      console.error('Failed to create storage buckets:', e)
+    }
+  }
+  
+  if (uploadError) {
+    return { delivered: false, error: `Failed to upload PNG: ${uploadError.message}` }
+  }
+
+  // Insert single deliverable record
+  const { error: insertError } = await supabase.from('order_deliverables').insert({
+    order_id: orderId,
+    asset_type: 'portrait',
+    file_path: filePath,
+  })
+  
+  if (insertError) {
+    return { delivered: false, error: `Failed to insert deliverable record: ${insertError.message}` }
+  }
+
+  // Mark order as delivered
   const { error: orderUpdateError } = await supabase
     .from('orders')
     .update({ status: 'delivered', updated_at: new Date().toISOString() })

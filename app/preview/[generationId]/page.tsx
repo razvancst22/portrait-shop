@@ -7,12 +7,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { Button, getButtonClassName } from '@/components/primitives/button'
 import { Download, Printer } from 'lucide-react'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { ToastContainer, showToast } from '@/components/ui/toast'
 
 type StatusResponse = {
   status: string
   previewUrl?: string | null
   progress?: number
   errorMessage?: string | null
+  isPurchased?: boolean
 }
 
 export default function PreviewPage() {
@@ -24,6 +26,13 @@ export default function PreviewPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [price, setPrice] = useState<number | null>(null)
   const [packageModal, setPackageModal] = useState<PreviewPackageVariant | null>(null)
+  const [isPurchased, setIsPurchased] = useState<boolean>(false)
+  const [isDownloading, setIsDownloading] = useState<boolean>(false)
+  
+  // Use final image for purchased items, preview for unpurchased
+  const displayImageUrl = isPurchased && status === 'completed' 
+    ? `/api/generate/${generationId}/final` 
+    : previewUrl
 
   const pollStatus = useCallback(async () => {
     const res = await fetch(`/api/generate/${generationId}/status`)
@@ -37,6 +46,7 @@ export default function PreviewPage() {
     if (data.previewUrl) setPreviewUrl(data.previewUrl)
     if (data.progress != null) setProgress(data.progress)
     if (data.errorMessage) setErrorMessage(data.errorMessage)
+    if (data.isPurchased != null) setIsPurchased(data.isPurchased)
   }, [generationId])
 
   useEffect(() => {
@@ -73,12 +83,12 @@ export default function PreviewPage() {
   }
 
   if (status === 'completed') {
-    if (!previewUrl) {
+    if (!displayImageUrl) {
       return (
         <div className="flex min-h-[50vh] items-center justify-center px-4">
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
-            <p className="text-muted-foreground">Preparing your preview image…</p>
+            <p className="text-muted-foreground">Preparing your image…</p>
           </div>
         </div>
       )
@@ -90,11 +100,17 @@ export default function PreviewPage() {
             ← Back
           </Link>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">
-            Your preview is ready
+            {isPurchased ? 'Your portrait is ready' : 'Your preview is ready'}
           </h1>
           <p className="text-muted-foreground mb-6">
-            Love it? Get the full bundle (high-res + wallpapers) for{' '}
-            <strong className="text-foreground">${price ?? 10}</strong>.
+            {isPurchased ? (
+              'Download your high-resolution portrait or order a print.'
+            ) : (
+              <>
+                Love it? Get the full bundle (high-res + wallpapers) for{' '}
+                <strong className="text-foreground">${price ?? 10}</strong>.
+              </>
+            )}
           </p>
 
           {/* Single card: image + action buttons */}
@@ -105,8 +121,8 @@ export default function PreviewPage() {
               onDragStart={(e) => e.preventDefault()}
             >
               <Image
-                src={previewUrl}
-                alt="Your portrait preview"
+                src={displayImageUrl}
+                alt={isPurchased ? "Your portrait" : "Your portrait preview"}
                 fill
                 className="object-contain pointer-events-none size-full"
                 sizes="(max-width: 640px) 100vw, 512px"
@@ -118,10 +134,43 @@ export default function PreviewPage() {
               <Button
                 size="lg"
                 className="w-full rounded-xl justify-center gap-3 h-12 shadow-md shadow-primary/25"
-                onClick={() => setPackageModal('portrait-pack')}
+                onClick={() => {
+                  if (isPurchased) {
+                    setIsDownloading(true)
+                    const toastId = showToast.loading('Preparing your portrait download...')
+                    
+                    fetch(`/api/download/${generationId}`)
+                      .then(response => {
+                        if (!response.ok) throw new Error(`Download failed: ${response.status}`)
+                        return response.json()
+                      })
+                      .then(data => {
+                        if (data.downloadUrl) {
+                          showToast.success('Download ready! Redirecting...')
+                          setTimeout(() => {
+                            window.location.href = data.downloadUrl
+                          }, 500)
+                        }
+                      })
+                      .catch(error => {
+                        console.error(error)
+                        showToast.error('Download failed. Please try again.')
+                      })
+                      .finally(() => setIsDownloading(false))
+                  } else {
+                    setPackageModal('portrait-pack')
+                  }
+                }}
+                disabled={isDownloading}
               >
-                <Download className="size-5 shrink-0" />
-                <span>Download 4K</span>
+                {isDownloading ? (
+                  <div className="size-5 animate-spin rounded-full border-2 border-background border-t-transparent shrink-0" />
+                ) : (
+                  <Download className="size-5 shrink-0" />
+                )}
+                <span>
+                  {isDownloading ? 'Preparing download...' : (isPurchased ? 'Download' : 'Download 4K')}
+                </span>
               </Button>
               <Button
                 variant="secondary"
@@ -140,7 +189,9 @@ export default function PreviewPage() {
             onClose={() => setPackageModal(null)}
             variant={packageModal ?? 'portrait-pack'}
             generationId={generationId}
+            isPurchased={isPurchased}
           />
+          <ToastContainer />
         </div>
       </div>
     )

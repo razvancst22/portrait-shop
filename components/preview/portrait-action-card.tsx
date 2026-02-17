@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/primitives/button'
 import { Download, Printer } from 'lucide-react'
 import type { PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { showToast } from '@/components/ui/toast'
 
 type PortraitActionCardProps = {
   generationId: string
@@ -10,7 +12,7 @@ type PortraitActionCardProps = {
   imageAlt: string
   status: string
   onOpenPackageModal: (variant: PreviewPackageVariant) => void
-  /** When true, show "Purchased" instead of action buttons (optional). */
+  /** When true, use final image instead of watermarked preview */
   isPurchased?: boolean
   /** 'stack' = buttons stacked vertically (default); 'row' = buttons on same row (e.g. My Portraits section). */
   buttonsLayout?: 'stack' | 'row'
@@ -31,8 +33,14 @@ export function PortraitActionCard({
   buttonsLayout = 'stack',
   className = '',
 }: PortraitActionCardProps) {
+  const [isDownloading, setIsDownloading] = useState(false)
   const completed = status === 'completed'
-  const showButtons = completed && !isPurchased
+  const showButtons = completed
+  
+  // Use final image for purchased items, preview for unpurchased
+  const displayImageUrl = isPurchased && completed 
+    ? `/api/generate/${generationId}/final` 
+    : imageUrl
 
   return (
     <article
@@ -44,9 +52,9 @@ export function PortraitActionCard({
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
       >
-        {imageUrl && completed ? (
+        {displayImageUrl && completed ? (
           <img
-            src={imageUrl}
+            src={displayImageUrl}
             alt={imageAlt}
             className="absolute inset-0 size-full object-cover object-center pointer-events-none"
             draggable={false}
@@ -64,18 +72,52 @@ export function PortraitActionCard({
             : 'flex flex-col gap-3 p-4 sm:p-5 bg-card border-t border-border shrink-0'
         }
       >
-        {isPurchased ? (
-          <p className="text-sm text-muted-foreground text-center py-2">Purchased</p>
-        ) : showButtons ? (
+        {showButtons ? (
           <>
             <Button
               size="lg"
               className={`rounded-xl justify-center shadow-md shadow-primary/25 ${buttonsLayout === 'row' ? 'flex-1 min-w-0 h-11 text-sm gap-1.5 whitespace-nowrap' : 'w-full gap-3 h-12'}`}
-              onClick={() => onOpenPackageModal('portrait-pack')}
-              title="Download 4K"
+              onClick={() => {
+                if (isPurchased) {
+                  setIsDownloading(true)
+                  showToast.loading('Preparing your portrait download...')
+                  
+                  fetch(`/api/download/${generationId}`)
+                    .then(response => {
+                      if (!response.ok) throw new Error(`Download failed: ${response.status}`)
+                      return response.json()
+                    })
+                    .then(data => {
+                      if (data.downloadUrl) {
+                        showToast.success('Download ready! Redirecting...')
+                        setTimeout(() => {
+                          window.location.href = data.downloadUrl
+                        }, 500)
+                      }
+                    })
+                    .catch(error => {
+                      console.error(error)
+                      showToast.error('Download failed. Please try again.')
+                    })
+                    .finally(() => setIsDownloading(false))
+                } else {
+                  onOpenPackageModal('portrait-pack')
+                }
+              }}
+              disabled={isDownloading}
+              title={isPurchased ? "Download Your Portrait" : "Download 4K"}
             >
-              <Download className={buttonsLayout === 'row' ? 'size-4 shrink-0' : 'size-5 shrink-0'} />
-              <span>{buttonsLayout === 'row' ? '4K' : 'Download 4K'}</span>
+              {isDownloading ? (
+                <div className={`animate-spin rounded-full border-2 border-background border-t-transparent shrink-0 ${buttonsLayout === 'row' ? 'size-4' : 'size-5'}`} />
+              ) : (
+                <Download className={buttonsLayout === 'row' ? 'size-4 shrink-0' : 'size-5 shrink-0'} />
+              )}
+              <span>
+                {isDownloading 
+                  ? (buttonsLayout === 'row' ? 'Loading...' : 'Preparing...')
+                  : (buttonsLayout === 'row' ? (isPurchased ? 'Download' : '4K') : (isPurchased ? 'Download' : 'Download 4K'))
+                }
+              </span>
             </Button>
             <Button
               variant="secondary"

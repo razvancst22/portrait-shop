@@ -4,6 +4,7 @@ import { MyPortraitsSection } from '@/components/home/my-portraits-section'
 import { UploadSection } from '@/components/home/upload-section'
 import { TrustLine } from '@/components/home/trust-line'
 import CircularGallery from '@/components/home/CircularGallery'
+import { GALLERY_IMAGES } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
   title: 'Classic Portraits for Pets, Family, Couples & More | petportrait.shop',
@@ -27,21 +28,24 @@ export default function HomePage() {
           {/* My portraits: hidden until user has creations; cards invite to purchase */}
           <MyPortraitsSection />
         </div>
-        {/* Full-width gallery on desktop (breaks out of max-w-3xl). z-0 so it stays under modals (z-50). */}
+        {/* Portrait gallery */}
         <section
-          className="relative left-1/2 w-screen -translate-x-1/2 mt-10 z-0"
-          style={{ height: '420px' }}
+          className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-0"
+          style={{ height: '600px' }}
           aria-label="Portrait gallery"
         >
           <CircularGallery
+            items={GALLERY_IMAGES}
             bend={0}
             textColor="#ffffff"
             borderRadius={0.05}
-            scrollSpeed={0.8}
-            scrollEase={0.04}
+            scrollSpeed={2}
+            scrollEase={0.05}
           />
         </section>
-        <TrustLine className="mt-10 max-w-xl mx-auto text-center" />
+        <section className="mt-10">
+          <TrustLine className="max-w-xl mx-auto text-center" />
+        </section>
       </main>
     </div>
   )

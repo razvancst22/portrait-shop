@@ -4,7 +4,7 @@
  */
 export const GALLERY_IMAGES: { image: string; text: string }[] = [
   { image: '/gallery/1.jpg', text: 'Renaissance' },
-  { image: '/gallery/2.jpg', text: 'Baroque' },
-  { image: '/gallery/3.jpg', text: 'Victorian' },
-  // Add more: { image: '/gallery/yourfile.jpg', text: 'Label' },
+  { image: '/gallery/2.png', text: 'Baroque' },
+  { image: '/gallery/3.png', text: 'Victorian' },
+  { image: '/gallery/4.png', text: 'Classical' },
 ]

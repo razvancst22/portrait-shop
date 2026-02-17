@@ -74,6 +74,76 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+      // Check if bypass is allowed for testing
+      const bypassAllowed = process.env.NODE_ENV === 'development' || process.env.BYPASS_STRIPE_FOR_TESTING === 'true'
+      
+      if (bypassAllowed) {
+        // Import here to avoid issues when modules aren't available
+        const { generateAndStoreBundle } = await import('@/lib/bundle/createBundle')
+        const { createDownloadToken } = await import('@/lib/email/delivery')
+        
+        const orderNumber = generateOrderNumber()
+        const total = DIGITAL_BUNDLE_PRICE_USD
+
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            order_number: orderNumber,
+            customer_email: email || 'test@localhost',
+            subtotal_usd: total,
+            tax_amount_usd: 0,
+            total_usd: total,
+            payment_status: 'paid',  // Skip payment for testing
+            status: 'paid',
+          })
+          .select('id')
+          .single()
+
+        if (orderError || !order) {
+          return serverErrorResponse(orderError ?? new Error('No order returned'), 'Order insert (bypass)')
+        }
+
+        await supabase.from('order_items').insert({
+          order_id: order.id,
+          product_type: 'digital_bundle',
+          generation_id: generationId,
+          unit_price_usd: DIGITAL_BUNDLE_PRICE_USD,
+          quantity: 1,
+          subtotal_usd: DIGITAL_BUNDLE_PRICE_USD,
+        })
+
+        // Mark generation as purchased
+        await supabase
+          .from('generations')
+          .update({
+            is_purchased: true,
+            purchased_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', generationId)
+
+        // Generate the 4K PNG bundle
+        const result = await generateAndStoreBundle(order.id, generationId)
+        if (!result.delivered) {
+          return NextResponse.json(
+            { error: result.error || 'Bundle generation failed' },
+            { status: 500 }
+          )
+        }
+
+        // Create download token
+        const downloadToken = createDownloadToken(order.id)
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin
+        const downloadUrl = `${baseUrl}/download?token=${encodeURIComponent(downloadToken)}`
+
+        return NextResponse.json({
+          bypass: true,
+          downloadUrl,
+          orderId: order.id,
+          orderNumber,
+        })
+      }
+
       return NextResponse.json(
         {
           error: 'Stripe is not configured',

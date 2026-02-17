@@ -104,6 +104,7 @@ export async function GET(
 
       let upscaledPath: string | null = null
       if (isUpscaleConfigured()) {
+        // Pure upscaling only - no modifications
         const upscaledBuffer = await upscaleImage(finalSignedUrl)
         if (upscaledBuffer && upscaledBuffer.length > 0) {
           const upscaledStoragePath = `${GPT_IMAGE_FINAL_PATH_PREFIX}/${id}_upscaled.png`
@@ -137,6 +138,7 @@ export async function GET(
         status: 'completed',
         previewUrl: getPreviewProxyUrl(),
         progress: 100,
+        isPurchased: !!gen.is_purchased,
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Generation failed'
@@ -161,6 +163,7 @@ export async function GET(
       status: 'completed',
       previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
       progress: 100,
+      isPurchased: !!gen.is_purchased,
     })
   }
 
@@ -186,6 +189,7 @@ export async function GET(
           status: 'completed',
           previewUrl: getPreviewProxyUrl(),
           progress: 100,
+          isPurchased: !!gen.is_purchased,
         })
       } catch (e) {
         console.error('Watermark failed:', e)
@@ -193,6 +197,7 @@ export async function GET(
           status: 'completed',
           previewUrl: null,
           progress: 100,
+          isPurchased: !!gen.is_purchased,
         })
       }
     }
@@ -200,18 +205,20 @@ export async function GET(
       status: gen.status,
       previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
       progress: elapsed > 1 ? 50 : 10,
+      isPurchased: !!gen.is_purchased,
     })
   }
 
   // Real ImagineAPI job
   const apiKey = process.env.IMAGINE_API_KEY
   if (!apiKey) {
-    return NextResponse.json({
-      status: gen.status,
-      previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
-      progress: gen.status === 'completed' ? 100 : 50,
-      errorMessage: gen.error_message ?? null,
-    })
+  return NextResponse.json({
+    status: gen.status,
+    previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
+    progress: gen.status === 'completed' ? 100 : 50,
+    errorMessage: gen.error_message ?? null,
+    isPurchased: !!gen.is_purchased,
+  })
   }
 
   const statusRes = await fetch(`${IMAGINE_API_URL}/status/${jobId}`, {
@@ -260,6 +267,7 @@ export async function GET(
       status: 'completed',
       previewUrl: getPreviewProxyUrl(),
       progress: 100,
+      isPurchased: !!gen.is_purchased,
     })
   }
 
@@ -274,6 +282,7 @@ export async function GET(
     return NextResponse.json({
       status: 'failed',
       errorMessage: apiData.error ?? 'Generation failed',
+      isPurchased: !!gen.is_purchased,
     })
   }
 
@@ -282,5 +291,6 @@ export async function GET(
     previewUrl: gen.preview_image_url ? getPreviewProxyUrl() : null,
     progress: apiStatus === 'generating' ? 50 : 25,
     errorMessage: gen.error_message ?? null,
+    isPurchased: !!gen.is_purchased,
   })
 }

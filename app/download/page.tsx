@@ -1,23 +1,19 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Button, getButtonClassName } from '@/components/primitives/button'
-import { PageContainer } from '@/components/layout/page-container'
 import { createClient } from '@/lib/supabase/server'
-
-export const metadata: Metadata = {
-  title: 'Download your bundle – petportrait.shop',
-  description: 'Download your pet portrait bundle. Links expire in 1 hour. Lost your link? Use order lookup to get a new one.',
-}
 import { verifyDownloadToken } from '@/lib/email/delivery'
 import { BUCKET_DELIVERABLES } from '@/lib/constants'
+import { DownloadPageClient } from './client-page'
+
+export const metadata: Metadata = {
+  title: 'Download your 4K portrait – petportrait.shop',
+  description: 'Download your 4K PNG portrait. Link expires in 1 hour. Lost your link? Use order lookup to get a new one.',
+}
 
 const SIGNED_URL_EXPIRY = 3600 // 1 hour
 
 const ASSET_LABELS: Record<string, string> = {
-  portrait_4_5: 'Portrait (4:5)',
-  phone_9_16: 'Phone wallpaper (9:16)',
-  square_4_4: 'Square (4:4)',
-  tablet_3_4: 'Tablet (3:4)',
+  'portrait': 'Portrait (PNG)',
+  'upscaled_portrait': 'Upscaled Portrait (PNG)', // Keep backward compatibility
 }
 
 async function getDownloadData(token: string | null) {
@@ -41,6 +37,13 @@ async function getDownloadData(token: string | null) {
 
   if (delError || !deliverables?.length) return null
 
+  // Also get the generation for final image (non-watermarked)
+  const { data: orderItem } = await supabase
+    .from('order_items')
+    .select('generation_id, generation:generations(preview_image_url, final_image_url)')
+    .eq('order_id', order.id)
+    .single()
+
   const downloads: { asset_type: string; url: string; label: string }[] = []
   for (const d of deliverables) {
     const { data: signed } = await supabase.storage
@@ -55,7 +58,16 @@ async function getDownloadData(token: string | null) {
     }
   }
 
-  return { orderNumber: order.order_number, downloads }
+  // Use final image (non-watermarked) for purchased items since they've paid
+  const finalImageUrl = orderItem?.generation_id 
+    ? `/api/generate/${orderItem.generation_id}/final`
+    : null
+
+  return { 
+    orderNumber: order.order_number, 
+    downloads,
+    previewImageUrl: finalImageUrl  // Actually the final image, not preview
+  }
 }
 
 export default async function DownloadPage({
@@ -71,60 +83,5 @@ export default async function DownloadPage({
 
   const data = await getDownloadData(token ?? null)
 
-  if (!data) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
-          <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Invalid or expired link</h1>
-          <p className="text-muted-foreground mb-6">
-            This download link is invalid or has expired. You can request a new link using your
-            order number and email.
-          </p>
-          <Link href="/order-lookup" className={getButtonClassName('default', 'lg', 'rounded-full')}>
-            Get a new download link
-          </Link>
-          <p className="mt-6">
-            <Link href="/" className={getButtonClassName('ghost', 'sm')}>
-              Back to home
-            </Link>
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <PageContainer maxWidth="md" padding="md">
-      <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Your portrait bundle</h1>
-        <p className="text-muted-foreground mb-6">
-          Order <strong className="text-foreground">{data.orderNumber}</strong>. Download links expire in 1 hour.
-        </p>
-        <ul className="space-y-3">
-          {data.downloads.map((d) => (
-            <li key={d.asset_type}>
-              <a
-                href={d.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <span>{d.label}</span>
-                <span className="text-sm text-muted-foreground">Download</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-8 text-sm text-muted-foreground">
-          Lost your link?{' '}
-          <Link href="/order-lookup" className="text-foreground underline hover:no-underline">
-            Get a new download link
-          </Link>
-        </p>
-        <p className="mt-4">
-          <Link href="/" className={getButtonClassName('ghost', 'sm')}>
-            Back to home
-          </Link>
-        </p>
-    </PageContainer>
-  )
+  return <DownloadPageClient data={data} />
 }

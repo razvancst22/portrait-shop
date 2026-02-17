@@ -8,6 +8,7 @@ import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { ToastContainer } from '@/components/ui/toast'
 
 type MyGenerationItem = {
   id: string
@@ -121,7 +122,10 @@ export default function MyPortraitsPage() {
           onClose={() => setPackageModal(null)}
           variant={packageModal?.variant ?? 'portrait-pack'}
           generationId={packageModal?.generationId ?? ''}
+          isPurchased={packageModal ? generations.find(g => g.id === packageModal.generationId)?.is_purchased ?? false : false}
         />
+        
+        <ToastContainer />
 
         <p className="mt-8 text-center">
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">

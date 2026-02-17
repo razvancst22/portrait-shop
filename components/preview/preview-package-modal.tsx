@@ -21,6 +21,7 @@ type PreviewPackageModalProps = {
   onClose: () => void
   variant: PreviewPackageVariant
   generationId: string
+  isPurchased?: boolean
   className?: string
 }
 
@@ -33,6 +34,7 @@ export function PreviewPackageModal({
   onClose,
   variant,
   generationId,
+  isPurchased = false,
   className,
 }: PreviewPackageModalProps) {
   const [artPrintOption, setArtPrintOption] = useState<(typeof ART_PRINT_OPTIONS)[number]>(
@@ -78,12 +80,19 @@ export function PreviewPackageModal({
           <span>Lifetime access to your portrait</span>
         </li>
       </ul>
-      <Link
-        href={`/checkout?generationId=${encodeURIComponent(generationId)}`}
-        className={getButtonClassName('default', 'lg', 'w-full rounded-xl')}
-      >
-        Get Portrait Pack
-      </Link>
+      {isPurchased ? (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground mb-2">You own this portrait</p>
+          <p className="text-xs text-muted-foreground">Use the Download button to get your high-res file</p>
+        </div>
+      ) : (
+        <Link
+          href={`/checkout?generationId=${encodeURIComponent(generationId)}`}
+          className={getButtonClassName('default', 'lg', 'w-full rounded-xl')}
+        >
+          Get Portrait Pack
+        </Link>
+      )}
     </>
   )
 
@@ -126,7 +135,7 @@ export function PreviewPackageModal({
         href={`/checkout?generationId=${encodeURIComponent(generationId)}&print=${encodeURIComponent(artPrintOption.dimensions)}`}
         className={getButtonClassName('default', 'lg', 'w-full rounded-xl')}
       >
-        Get Art Print Pack
+        {isPurchased ? 'Order Print' : 'Get Art Print Pack'}
       </Link>
     </>
   )

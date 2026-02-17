@@ -30,6 +30,11 @@ function CheckoutRedirect() {
           setStatus('stripe_not_configured')
           return
         }
+        if (data.bypass && data.downloadUrl) {
+          // Bypass mode - redirect directly to download
+          window.location.href = data.downloadUrl
+          return
+        }
         if (data.checkoutUrl) {
           window.location.href = data.checkoutUrl
           return
