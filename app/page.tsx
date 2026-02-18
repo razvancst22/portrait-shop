@@ -39,8 +39,8 @@ export default function HomePage() {
             bend={0}
             textColor="#ffffff"
             borderRadius={0.05}
-            scrollSpeed={2}
-            scrollEase={0.05}
+            scrollSpeed={0.8}
+            scrollEase={0.08}
           />
         </section>
         <section className="mt-10">

@@ -3,16 +3,16 @@ import { cn } from '@/lib/utils'
 
 const variantClasses: Record<string, string> = {
   default:
-    'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]',
+    'bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0',
   destructive:
-    'bg-destructive text-white shadow-md hover:bg-destructive/90 hover:shadow-lg active:scale-[0.98]',
+    'bg-destructive text-white shadow-md shadow-destructive/20 hover:bg-destructive/95 hover:shadow-lg hover:shadow-destructive/25 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0',
   outline:
-    'border border-input bg-background shadow-sm hover:border-primary hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-[0.98]',
+    'border border-input bg-background/80 backdrop-blur-sm shadow-sm hover:border-primary/60 hover:bg-primary/8 hover:text-foreground hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0',
   secondary:
-    'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/70 hover:shadow-md active:scale-[0.98]',
+    'bg-secondary/90 text-secondary-foreground shadow-sm hover:bg-secondary/75 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0',
   ghost:
-    'hover:bg-primary/10 hover:text-foreground active:bg-primary/15',
-  link: 'text-primary underline-offset-4 hover:underline hover:text-primary/90',
+    'hover:bg-primary/12 hover:text-foreground hover:-translate-y-0.5 active:bg-primary/20 active:translate-y-0',
+  link: 'text-primary underline-offset-4 hover:underline hover:text-primary/80 hover:-translate-y-0.5',
 }
 
 const sizeClasses: Record<string, string> = {
@@ -26,7 +26,7 @@ const sizeClasses: Record<string, string> = {
 }
 
 const baseButtonClasses =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 ease-out outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 export interface ButtonProps extends React.ComponentProps<'button'> {
   variant?: keyof typeof variantClasses

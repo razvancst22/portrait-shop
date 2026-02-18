@@ -2,7 +2,7 @@
 
 import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform } from 'ogl';
 import { useEffect, useRef } from 'react';
-import { GALLERY_IMAGES } from '@/lib/gallery-images';
+import { GALLERY_IMAGES_LEGACY, GalleryImage, getOptimalImageUrl } from '@/lib/gallery-images';
 
 type GL = Renderer['gl'];
 
@@ -143,13 +143,12 @@ interface Viewport {
 interface MediaProps {
   geometry: Plane;
   gl: GL;
-  image: string;
+  imageData: GalleryImage | { image: string; text: string };
   index: number;
   length: number;
   renderer: Renderer;
   scene: Transform;
   screen: ScreenSize;
-  text: string;
   viewport: Viewport;
   bend: number;
   textColor: string;
@@ -161,7 +160,7 @@ class Media {
   extra: number = 0;
   geometry: Plane;
   gl: GL;
-  image: string;
+  imageData: GalleryImage | { image: string; text: string };
   index: number;
   length: number;
   renderer: Renderer;
@@ -175,7 +174,6 @@ class Media {
   font?: string;
   program!: Program;
   plane!: Mesh;
-  title!: Title;
   scale!: number;
   padding!: number;
   width!: number;
@@ -184,17 +182,22 @@ class Media {
   speed: number = 0;
   isBefore: boolean = false;
   isAfter: boolean = false;
+  
+  // Progressive loading properties
+  blurTexture?: Texture;
+  mainTexture?: Texture;
+  isMainImageLoaded: boolean = false;
+  blurImageLoaded: boolean = false;
 
   constructor({
     geometry,
     gl,
-    image,
+    imageData,
     index,
     length,
     renderer,
     scene,
     screen,
-    text,
     viewport,
     bend,
     textColor,
@@ -203,13 +206,13 @@ class Media {
   }: MediaProps) {
     this.geometry = geometry;
     this.gl = gl;
-    this.image = image;
+    this.imageData = imageData;
     this.index = index;
     this.length = length;
     this.renderer = renderer;
     this.scene = scene;
     this.screen = screen;
-    this.text = text;
+    this.text = 'text' in imageData ? imageData.text : imageData.text;
     this.viewport = viewport;
     this.bend = bend;
     this.textColor = textColor;
@@ -217,14 +220,14 @@ class Media {
     this.font = font;
     this.createShader();
     this.createMesh();
-    this.createTitle();
     this.onResize();
   }
 
   createShader() {
-    const texture = new Texture(this.gl, {
-      generateMipmaps: true
-    });
+    // Create textures for progressive loading
+    this.blurTexture = new Texture(this.gl, { generateMipmaps: false });
+    this.mainTexture = new Texture(this.gl, { generateMipmaps: true });
+    
     this.program = new Program(this.gl, {
       depthTest: false,
       depthWrite: false,
@@ -248,8 +251,12 @@ class Media {
         precision highp float;
         uniform vec2 uImageSizes;
         uniform vec2 uPlaneSizes;
-        uniform sampler2D tMap;
+        uniform sampler2D tBlurMap;
+        uniform sampler2D tMainMap;
         uniform float uBorderRadius;
+        uniform float uProgress;
+        uniform bool uBlurLoaded;
+        uniform bool uMainLoaded;
         varying vec2 vUv;
         
         float roundedBoxSDF(vec2 p, vec2 b, float r) {
@@ -266,7 +273,20 @@ class Media {
             vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
             vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
           );
-          vec4 color = texture2D(tMap, uv);
+          
+          vec4 color = vec4(0.1, 0.1, 0.1, 1.0); // Default dark color
+          
+          if (uMainLoaded) {
+            vec4 mainColor = texture2D(tMainMap, uv);
+            if (uBlurLoaded) {
+              vec4 blurColor = texture2D(tBlurMap, uv);
+              color = mix(blurColor, mainColor, smoothstep(0.0, 1.0, uProgress));
+            } else {
+              color = mainColor;
+            }
+          } else if (uBlurLoaded) {
+            color = texture2D(tBlurMap, uv);
+          }
           
           float d = roundedBoxSDF(vUv - 0.5, vec2(0.5 - uBorderRadius), uBorderRadius);
           
@@ -278,22 +298,75 @@ class Media {
         }
       `,
       uniforms: {
-        tMap: { value: texture },
+        tBlurMap: { value: this.blurTexture },
+        tMainMap: { value: this.mainTexture },
         uPlaneSizes: { value: [0, 0] },
         uImageSizes: { value: [0, 0] },
         uSpeed: { value: 0 },
         uTime: { value: 100 * Math.random() },
-        uBorderRadius: { value: this.borderRadius }
+        uBorderRadius: { value: this.borderRadius },
+        uProgress: { value: 0 },
+        uBlurLoaded: { value: false },
+        uMainLoaded: { value: false }
       },
       transparent: true
     });
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = this.image;
-    img.onload = () => {
-      texture.image = img;
-      this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
+    
+    this.loadImages();
+  }
+  
+  loadImages() {
+    // Load blur placeholder first (fast, small file)
+    if ('blurDataURL' in this.imageData) {
+      const blurImg = new Image();
+      blurImg.crossOrigin = 'anonymous';
+      blurImg.src = this.imageData.blurDataURL;
+      blurImg.onload = () => {
+        this.blurTexture!.image = blurImg;
+        this.program.uniforms.uBlurLoaded.value = true;
+        this.blurImageLoaded = true;
+      };
+    }
+    
+    // Load main image with optimal resolution
+    const mainImageUrl = 'blurDataURL' in this.imageData 
+      ? getOptimalImageUrl(this.imageData)
+      : this.imageData.image;
+    
+    const mainImg = new Image();
+    mainImg.crossOrigin = 'anonymous';
+    mainImg.src = mainImageUrl;
+    mainImg.onload = () => {
+      this.mainTexture!.image = mainImg;
+      this.program.uniforms.uMainLoaded.value = true;
+      this.program.uniforms.uImageSizes.value = [mainImg.naturalWidth, mainImg.naturalHeight];
+      this.isMainImageLoaded = true;
+      
+      // Start fade transition
+      this.animateProgressiveLoad();
     };
+  }
+  
+  animateProgressiveLoad() {
+    const startTime = Date.now();
+    const duration = 500; // 500ms fade transition
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      this.program.uniforms.uProgress.value = this.easeInOutCubic(progress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
+  }
+  
+  easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   createMesh() {
@@ -302,17 +375,6 @@ class Media {
       program: this.program
     });
     this.plane.setParent(this.scene);
-  }
-
-  createTitle() {
-    this.title = new Title({
-      gl: this.gl,
-      plane: this.plane,
-      renderer: this.renderer,
-      text: this.text,
-      textColor: this.textColor,
-      font: this.font
-    });
   }
 
   update(scroll: { current: number; last: number }, direction: 'right' | 'left') {
@@ -365,9 +427,9 @@ class Media {
         this.plane.program.uniforms.uViewportSizes.value = [this.viewport.width, this.viewport.height];
       }
     }
-    this.scale = this.screen.height / 1500;
-    this.plane.scale.y = (this.viewport.height * (900 * this.scale)) / this.screen.height;
-    this.plane.scale.x = (this.viewport.width * (700 * this.scale)) / this.screen.width;
+    this.scale = this.screen.height / 1100;
+    this.plane.scale.y = (this.viewport.height * (1100 * this.scale)) / this.screen.height;
+    this.plane.scale.x = (this.viewport.width * (880 * this.scale)) / this.screen.width;
     this.plane.program.uniforms.uPlaneSizes.value = [this.plane.scale.x, this.plane.scale.y];
     this.padding = 2;
     this.width = this.plane.scale.x + this.padding;
@@ -377,7 +439,7 @@ class Media {
 }
 
 interface AppConfig {
-  items?: { image: string; text: string }[];
+  items?: GalleryImage[] | { image: string; text: string }[];
   bend?: number;
   textColor?: string;
   borderRadius?: number;
@@ -403,7 +465,7 @@ class App {
   scene!: Transform;
   planeGeometry!: Plane;
   medias: Media[] = [];
-  mediasImages: { image: string; text: string }[] = [];
+  mediasImages: (GalleryImage | { image: string; text: string })[] = [];
   screen!: { width: number; height: number };
   viewport!: { width: number; height: number };
   raf: number = 0;
@@ -472,26 +534,25 @@ class App {
   }
 
   createMedias(
-    items: { image: string; text: string }[] | undefined,
+    items: GalleryImage[] | { image: string; text: string }[] | undefined,
     bend: number = 1,
     textColor: string,
     borderRadius: number,
     font: string
   ) {
-    // Use your actual gallery images
-    const galleryItems = items && items.length ? items : GALLERY_IMAGES;
+    // Use optimized gallery images, fallback to legacy format if needed
+    const galleryItems = items && items.length ? items : GALLERY_IMAGES_LEGACY;
     this.mediasImages = galleryItems.concat(galleryItems);
     this.medias = this.mediasImages.map((data, index) => {
       return new Media({
         geometry: this.planeGeometry,
         gl: this.gl,
-        image: data.image,
+        imageData: data,
         index,
         length: this.mediasImages.length,
         renderer: this.renderer,
         scene: this.scene,
         screen: this.screen,
-        text: data.text,
         viewport: this.viewport,
         bend,
         textColor,
@@ -598,7 +659,7 @@ class App {
 }
 
 interface CircularGalleryProps {
-  items?: { image: string; text: string }[];
+  items?: GalleryImage[] | { image: string; text: string }[];
   bend?: number;
   textColor?: string;
   borderRadius?: number;

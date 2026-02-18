@@ -14,6 +14,7 @@ export const GUEST_ID_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 export const DEV_CREDITS_BALANCE = 9999
 
 export function isDevGuest(guestId: string | undefined): boolean {
+  if (process.env.NODE_ENV !== 'development') return false
   const devId = process.env.DEV_GUEST_ID?.trim()
   return !!devId && !!guestId && guestId === devId
 }
@@ -22,6 +23,7 @@ export function isDevGuest(guestId: string | undefined): boolean {
 export const DEV_USER_CREDITS = 1000
 
 export function isDevUser(email: string | undefined): boolean {
+  if (process.env.NODE_ENV !== 'development') return false
   const devEmail = process.env.DEV_USER_EMAIL?.trim()?.toLowerCase()
   return !!devEmail && !!email && email.toLowerCase() === devEmail
 }
