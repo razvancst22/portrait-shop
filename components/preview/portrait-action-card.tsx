@@ -63,14 +63,21 @@ export function PortraitActionCard({
             />
             {/* Subtle always-visible gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-            {/* Purchased badge: tiny green checkmark */}
-            {isPurchased && (
+            {/* Status badge: Purchased (green check) or Preview (muted pill) */}
+            {isPurchased ? (
               <div
                 className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-emerald-500/90 text-white shadow-md"
                 aria-label="Purchased"
               >
                 <Check className="size-3.5 stroke-[2.5]" />
               </div>
+            ) : (
+              <span
+                className="absolute top-2 right-2 rounded-full bg-black/40 backdrop-blur-sm px-2 py-1 text-[10px] font-medium text-white/90"
+                aria-label="Preview"
+              >
+                Preview
+              </span>
             )}
             {/* Enhanced gradient overlay on hover for button readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />

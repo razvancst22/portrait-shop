@@ -56,7 +56,7 @@ export function ImagePerformanceMonitor({ enabled = false }: { enabled?: boolean
               averageLoadTime: avgLoad,
               totalDataTransferred: totalSize,
               fastestLoad: fastest === Infinity ? 0 : fastest,
-              slowestLoad
+              slowestLoad: slowest === -Infinity ? 0 : slowest
             })
             
             return updated

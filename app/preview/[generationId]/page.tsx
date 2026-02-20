@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import { Button, getButtonClassName } from '@/components/primitives/button'
-import { Download, Printer } from 'lucide-react'
+import { Check, Download, Loader2, Printer } from 'lucide-react'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { ToastContainer, showToast } from '@/components/ui/toast'
 
@@ -132,8 +132,24 @@ export default function PreviewPage() {
           <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
             ← Back
           </Link>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium mb-4 ${
+              isPurchased
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {isPurchased ? (
+              <>
+                <Check className="size-3.5 stroke-[2.5]" aria-hidden />
+                Purchased
+              </>
+            ) : (
+              'Preview'
+            )}
+          </span>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">
-            {isPurchased ? 'Your portrait is ready' : 'Your preview is ready'}
+            {isPurchased ? 'You own this portrait' : 'Preview your portrait'}
           </h1>
           <p className="text-muted-foreground mb-6">
             {isPurchased ? (
@@ -235,7 +251,11 @@ export default function PreviewPage() {
   const strokeDashoffset = circumference - (showProgress / 100) * circumference
 
   return (
-    <div className="flex min-h-[50vh] items-center justify-center px-4">
+    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+      <span className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary animate-pulse">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        Creating…
+      </span>
       <div className="text-center space-y-6">
         {/* Circular progress: SVG ring that fills as we advance */}
         <div className="relative mx-auto h-14 w-14">
