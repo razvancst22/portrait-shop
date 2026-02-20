@@ -3,7 +3,7 @@ import { AuthForm } from '@/components/auth/auth-form'
 
 export const metadata: Metadata = {
   title: 'Log in | petportrait.shop',
-  description: 'Sign in to your account to buy more credits and manage your portraits.',
+  description: 'Sign in to your account to buy more Portrait Generations and manage your portraits.',
 }
 
 export default function LoginPage() {
@@ -14,7 +14,7 @@ export default function LoginPage() {
           Log in
         </h1>
         <p className="text-muted-foreground mb-8">
-          Sign in to buy more credits and see your portraits.
+          Sign in to buy more Portrait Generations and see your portraits.
         </p>
         <div className="text-left">
           <AuthForm />

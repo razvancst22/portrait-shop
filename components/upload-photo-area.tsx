@@ -7,13 +7,15 @@ import { cn } from '@/lib/utils'
 export type UploadPhotoAreaWrapperAs = 'label' | 'button' | 'div' | 'link'
 
 export type UploadPhotoAreaProps = {
-  /** Left slot: e.g. "1 Credit" with icon */
+  /** Left slot: e.g. "1 Portrait Generation" with icon */
   creditsCount: number | null
   creditsLabel?: string
   /** Right slot: e.g. "Pick Style" link or button */
   pickStyleLabel?: string
   pickStyleHref?: string
   onPickStyle?: () => void
+  /** Alternative right slot: custom component (e.g. StyleSelector) */
+  styleSelector?: React.ReactNode
   /** Center content */
   uploadTitle: string
   /** Subtitle text, or array of messages to rotate through */
@@ -34,7 +36,7 @@ export type UploadPhotoAreaProps = {
   className?: string
   /** Drag-over state when used as drop zone */
   isDragOver?: boolean
-  /** Accessibility: disabled when no credits */
+  /** Accessibility: disabled when no Portrait Generations */
   disabled?: boolean
   children?: React.ReactNode
 }
@@ -53,7 +55,7 @@ function useRotatingMessage(messages: string[], intervalMs: number): string {
 
 export function UploadPhotoArea({
   creditsCount,
-  creditsLabel = 'Credit',
+  creditsLabel = 'Portrait Generation',
   pickStyleLabel = 'Pick Style',
   pickStyleHref,
   onPickStyle,
@@ -72,6 +74,7 @@ export function UploadPhotoArea({
   isDragOver = false,
   disabled = false,
   children,
+  styleSelector,
 }: UploadPhotoAreaProps) {
   const subtitleMessages = Array.isArray(subtitle) ? subtitle : [subtitle]
   const rotatingSubtitle = useRotatingMessage(
@@ -119,7 +122,11 @@ export function UploadPhotoArea({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {pickStyleHref ? (
+          {styleSelector ? (
+            <div onClick={(e) => e.stopPropagation()}>
+              {styleSelector}
+            </div>
+          ) : pickStyleHref ? (
             <a
               href={pickStyleHref}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -140,12 +147,12 @@ export function UploadPhotoArea({
               <Palette className="size-4 text-primary/80" aria-hidden />
               <span className="font-medium">{pickStyleLabel}</span>
             </button>
-          ) : (
+          ) : pickStyleLabel ? (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Palette className="size-4 text-primary/80" aria-hidden />
               <span className="font-medium">{pickStyleLabel}</span>
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 

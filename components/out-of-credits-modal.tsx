@@ -14,7 +14,7 @@ type OutOfCreditsModalProps = {
 
 /**
  * Modal shown when the user tries to upload with 0 free portraits.
- * Offers Sign up and Buy credits.
+ * Offers Sign up and Buy Portrait Generations.
  */
 export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModalProps) {
   useEffect(() => {
@@ -62,7 +62,7 @@ export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModa
           You're out of free portraits
         </h2>
         <p className="mt-2 text-muted-foreground text-sm">
-          Sign up to get more free portraits, or buy credits to keep creating.
+          Sign up to get more free portraits, or buy Portrait Generations to keep creating.
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <Link
@@ -75,7 +75,7 @@ export function OutOfCreditsModal({ open, onClose, className }: OutOfCreditsModa
             href="/pricing"
             className={getButtonClassName('outline', 'lg', 'rounded-full flex-1 text-center')}
           >
-            Buy credits
+            Buy Portrait Generations
           </Link>
         </div>
       </div>

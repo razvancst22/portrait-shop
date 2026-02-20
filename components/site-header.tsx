@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User, Clock, DollarSign, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { createClient } from '@/lib/supabase/client'
@@ -18,6 +18,7 @@ export function SiteHeader() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [createExpanded, setCreateExpanded] = useState(true)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -108,93 +109,160 @@ export function SiteHeader() {
               aria-modal="true"
               aria-label="Menu"
             >
-              <Link
-                href="/"
-                className="font-heading text-lg font-semibold text-foreground"
-                onClick={closeDrawer}
-              >
-                petportrait.shop
-              </Link>
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-2">
-                  Portraits
-                </span>
-                {SUBJECT_TYPE_IDS.map((id) => (
-                  <Link
-                    key={id}
-                    href={CATEGORY_ROUTES[id].path}
-                    className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
-                    onClick={closeDrawer}
-                  >
-                    {CATEGORY_ROUTES[id].title}
-                  </Link>
-                ))}
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mt-4">
-                  Other
-                </span>
+              <div className="flex items-center justify-between mb-6">
                 <Link
                   href="/"
-                  className={cn(getButtonClassName('ghost', 'lg'), 'rounded-full justify-start')}
+                  className="font-heading text-lg font-semibold text-foreground truncate max-w-[180px]"
                   onClick={closeDrawer}
+                  title={user?.email ?? 'petportrait.shop'}
                 >
-                  All categories (home)
+                  {user?.email ?? 'petportrait.shop'}
                 </Link>
+                <div className="text-xs text-muted-foreground shrink-0">
+                  Navigation
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                {/* Create Section (Expandable) */}
+                <div>
+                  <button
+                    className={cn(
+                      'w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors',
+                      'text-left font-medium text-foreground'
+                    )}
+                    onClick={() => setCreateExpanded(!createExpanded)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Palette className="size-5" />
+                      <span>Create</span>
+                    </div>
+                    {createExpanded ? (
+                      <ChevronDown className="size-4" />
+                    ) : (
+                      <ChevronRight className="size-4" />
+                    )}
+                  </button>
+                  
+                  {createExpanded && (
+                    <div className="ml-8 mt-1 space-y-1">
+                      <Link
+                        href="/dog-portraits"
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
+                        )}
+                        onClick={closeDrawer}
+                      >
+                        <Heart className="size-4" />
+                        <span>Pet Portraits</span>
+                      </Link>
+                      <Link
+                        href="/family-portraits"
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
+                        )}
+                        onClick={closeDrawer}
+                      >
+                        <Users className="size-4" />
+                        <span>Family Portraits</span>
+                      </Link>
+                      <Link
+                        href="/children-portraits"
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
+                        )}
+                        onClick={closeDrawer}
+                      >
+                        <Baby className="size-4" />
+                        <span>Children's Portraits</span>
+                      </Link>
+                      <Link
+                        href="/couple-portraits"
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
+                        )}
+                        onClick={closeDrawer}
+                      >
+                        <Heart className="size-4" />
+                        <span>Couple Portraits</span>
+                      </Link>
+                      <Link
+                        href="/self-portrait"
+                        className={cn(
+                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
+                        )}
+                        onClick={closeDrawer}
+                      >
+                        <User className="size-4" />
+                        <span>Self-Portraits</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* My Masterpieces */}
                 <Link
-                  href="/my-portraits"
-                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                  href="/my-masterpieces"
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                  )}
                   onClick={closeDrawer}
                 >
-                  My Portraits
+                  <Clock className="size-5" />
+                  <span>My Masterpieces</span>
                 </Link>
-                <Link
-                  href="/cart"
-                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
-                  onClick={closeDrawer}
-                >
-                  Cart
-                </Link>
-                <Link
-                  href="/order-lookup"
-                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
-                  onClick={closeDrawer}
-                >
-                  Order lookup
-                </Link>
+
+                {/* Pricing */}
                 <Link
                   href="/pricing"
-                  className={cn(getButtonClassName('outline', 'lg'), 'rounded-full justify-start')}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                  )}
                   onClick={closeDrawer}
                 >
-                  Pricing
+                  <DollarSign className="size-5" />
+                  <span>Pricing</span>
                 </Link>
+
+                {/* Account Settings (only when logged in) */}
+                {user && (
+                  <Link
+                    href="/account"
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                    )}
+                    onClick={closeDrawer}
+                  >
+                    <Settings className="size-5" />
+                    <span>Account Settings</span>
+                  </Link>
+                )}
+
+                {/* Sign Out / Sign In */}
                 {user ? (
-                  <>
-                    <Link
-                      href="/account"
-                      className={cn(getButtonClassName('default', 'lg'), 'rounded-full justify-start')}
-                      onClick={closeDrawer}
-                    >
-                      My account
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      className="rounded-full justify-start w-full"
-                      onClick={handleSignOut}
-                    >
-                      Log out
-                    </Button>
-                  </>
+                  <button
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground text-left w-full'
+                    )}
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="size-5" />
+                    <span>Sign Out</span>
+                  </button>
                 ) : (
                   <Link
                     href="/login"
-                    className={cn(getButtonClassName('ghost', 'lg'), 'rounded-full justify-start')}
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                    )}
                     onClick={closeDrawer}
                   >
-                    Log in
+                    <User className="size-5" />
+                    <span>Sign In</span>
                   </Link>
                 )}
               </div>
+
             </div>
           </>,
           document.body
@@ -212,17 +280,19 @@ export function SiteHeader() {
             petportrait.shop
           </Link>
 
-          {/* Menu: all nav options are inside the drawer. Icon can be replaced later. */}
-          <Button
-            ref={menuButtonRef}
-            variant="ghost"
-            className="min-h-[44px] min-w-[44px] rounded-full"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={drawerOpen}
-          >
-            <Menu className="size-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Menu: all nav options are inside the drawer. Icon can be replaced later. */}
+            <Button
+              ref={menuButtonRef}
+              variant="ghost"
+              className="min-h-[44px] min-w-[44px] rounded-full"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+            >
+              <Menu className="size-5" />
+            </Button>
+          </div>
         </div>
       </header>
       {drawerContent}

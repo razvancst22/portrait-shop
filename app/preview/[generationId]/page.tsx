@@ -9,6 +9,17 @@ import { Download, Printer } from 'lucide-react'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { ToastContainer, showToast } from '@/components/ui/toast'
 
+const GENERATING_MESSAGES = [
+  'Analyzing your photo…',
+  'Studying the composition…',
+  'Mixing colors on the palette…',
+  'Adding artistic flair…',
+  'Bringing your portrait to life…',
+  'Adding the finishing touches…',
+  'Almost there…',
+  'Just a moment longer…',
+]
+
 type StatusResponse = {
   status: string
   previewUrl?: string | null
@@ -22,7 +33,8 @@ export default function PreviewPage() {
   const generationId = params.generationId as string
   const [status, setStatus] = useState<string>('generating')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [progress, setProgress] = useState(0)
+  const [displayProgress, setDisplayProgress] = useState(0)
+  const [statusMessageIndex, setStatusMessageIndex] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [price, setPrice] = useState<number | null>(null)
   const [packageModal, setPackageModal] = useState<PreviewPackageVariant | null>(null)
@@ -44,7 +56,7 @@ export default function PreviewPage() {
     const data: StatusResponse = await res.json()
     setStatus(data.status)
     if (data.previewUrl) setPreviewUrl(data.previewUrl)
-    if (data.progress != null) setProgress(data.progress)
+    if (data.progress != null) setDisplayProgress(data.progress)
     if (data.errorMessage) setErrorMessage(data.errorMessage)
     if (data.isPurchased != null) setIsPurchased(data.isPurchased)
   }, [generationId])
@@ -55,6 +67,27 @@ export default function PreviewPage() {
     const interval = setInterval(pollStatus, 2000)
     return () => clearInterval(interval)
   }, [pollStatus, status])
+
+  // Simulated progress: advance from current toward 92% while waiting (or use API progress)
+  useEffect(() => {
+    if (status !== 'generating') return
+    const interval = setInterval(() => {
+      setDisplayProgress((p) => {
+        if (p >= 92) return p
+        return Math.min(92, p + (92 - p) * 0.05)
+      })
+    }, 320)
+    return () => clearInterval(interval)
+  }, [status])
+
+  // Rotate status messages every 2.5s
+  useEffect(() => {
+    if (status !== 'generating') return
+    const interval = setInterval(() => {
+      setStatusMessageIndex((i) => (i + 1) % GENERATING_MESSAGES.length)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [status])
 
   useEffect(() => {
     fetch('/api/pricing')
@@ -116,7 +149,7 @@ export default function PreviewPage() {
           {/* Single card: image + action buttons */}
           <div className="rounded-2xl overflow-hidden bg-card text-card-foreground border border-border shadow-xl">
             <div
-              className="relative aspect-[4/5] w-full select-none bg-muted"
+              className="relative aspect-[4/5] w-full select-none bg-muted/20"
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
             >
@@ -124,7 +157,7 @@ export default function PreviewPage() {
                 src={displayImageUrl}
                 alt={isPurchased ? "Your portrait" : "Your portrait preview"}
                 fill
-                className="object-contain pointer-events-none size-full"
+                className="object-cover pointer-events-none size-full"
                 sizes="(max-width: 640px) 100vw, 512px"
                 unoptimized
                 draggable={false}
@@ -197,15 +230,60 @@ export default function PreviewPage() {
     )
   }
 
+  const showProgress = Math.round(displayProgress)
+  const circumference = 2 * Math.PI * 24
+  const strokeDashoffset = circumference - (showProgress / 100) * circumference
+
   return (
     <div className="flex min-h-[50vh] items-center justify-center px-4">
-      <div className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
-        <p className="text-foreground">Creating your preview…</p>
-        <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
-        <p className="mt-4 text-sm text-muted-foreground">
-          This usually takes under a minute.
-        </p>
+      <div className="text-center space-y-6">
+        {/* Circular progress: SVG ring that fills as we advance */}
+        <div className="relative mx-auto h-14 w-14">
+          <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56" aria-hidden>
+            <circle
+              className="text-muted"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+              cx="28"
+              cy="28"
+              r="24"
+            />
+            <circle
+              className="text-primary transition-all duration-500 ease-out"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              fill="none"
+              cx="28"
+              cy="28"
+              r="24"
+            />
+          </svg>
+          {/* Subtle spin overlay when progress is low */}
+          {showProgress < 30 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            </div>
+          )}
+        </div>
+        <div className="space-y-1">
+          <p className="text-foreground font-medium">Creating your preview…</p>
+          <p
+            key={statusMessageIndex}
+            className="text-sm text-muted-foreground min-h-[1.25rem] animate-fade-in"
+          >
+            {GENERATING_MESSAGES[statusMessageIndex]}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-2xl font-semibold tabular-nums text-foreground">{showProgress}%</p>
+          <p className="text-xs text-muted-foreground">
+            This usually takes under a minute.
+          </p>
+        </div>
       </div>
     </div>
   )

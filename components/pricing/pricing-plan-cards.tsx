@@ -32,7 +32,7 @@ export function PricingPlanCards() {
           <ul className="space-y-2.5 text-sm text-foreground">
             <li className="flex gap-2">
               <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-              <span>5 Credits</span>
+              <span>5 Portrait Generations</span>
             </li>
             <li className="flex gap-2">
               <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
@@ -65,7 +65,7 @@ export function PricingPlanCards() {
           <ul className="space-y-2.5 text-sm text-foreground">
             <li className="flex gap-2">
               <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-              <span>10 Credits</span>
+              <span>10 Portrait Generations</span>
             </li>
             <li className="flex gap-2">
               <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
@@ -117,7 +117,7 @@ export function PricingPlanCards() {
           <ul className="space-y-2.5 text-sm text-foreground">
             <li className="flex gap-2">
               <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-              <span>10 credits – Creator pack included</span>
+              <span>10 Portrait Generations – Creator pack included</span>
             </li>
           </ul>
         </CardContent>

@@ -56,7 +56,7 @@ export async function GET(
     })
   }
 
-  const jobId = gen.midjourney_job_id
+  const jobId = gen.job_id
 
   /** Return app proxy URL so the client never gets a direct storage URL (prevents easy download). */
   function getPreviewProxyUrl(): string {
@@ -85,7 +85,7 @@ export async function GET(
     try {
       const imageBuffer = await generatePortraitFromReference(
         gen.original_image_url,
-        gen.midjourney_prompt
+        gen.prompt
       )
       const finalPath = `${GPT_IMAGE_FINAL_PATH_PREFIX}/${id}_final.png`
       const { error: uploadError } = await supabase.storage

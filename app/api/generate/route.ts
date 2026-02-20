@@ -20,7 +20,7 @@ import { serverErrorResponse } from '@/lib/api-error'
 import { isOpenAIProvider } from '@/lib/image-provider'
 
 const INSUFFICIENT_CREDITS_MESSAGE =
-  "You've used your 2 free portraits. Sign in to get more, or buy credits."
+  "You've used your 2 free portraits. Sign in to get more, or buy Portrait Generations."
 
 const ABUSE_CAP_MESSAGE =
   "You've used your free portraits for this device and network. Sign in for more, or try again in 30 days."
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
   if (idempotencyKey) {
     const { data: existing } = await supabase
       .from('generations')
-      .select('id, midjourney_job_id')
+      .select('id, job_id')
       .eq('idempotency_key', idempotencyKey)
       .eq('session_id', sessionId)
       .maybeSingle()
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           error: 'Duplicate request. Use the existing generation.',
           code: 'IDEMPOTENCY_CONFLICT',
           generationId: existing.id,
-          jobId: existing.midjourney_job_id ?? `openai-${existing.id}`,
+          jobId: existing.job_id ?? `openai-${existing.id}`,
         },
         { status: 409 }
       )

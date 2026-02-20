@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
-import { StylesModal } from '@/components/styles-modal'
+import { StyleSelector } from '@/components/style-selector'
 import { Button } from '@/components/primitives/button'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
@@ -21,25 +21,73 @@ const SUBTITLE_MESSAGES = (tokens: number) => [
  * Upload option on the main page. Do not remove – must stay on the home page.
  * User uploads here; "Pick Style" opens a modal with all styles. After upload,
  * user picks a style in the modal to generate; then redirect to preview page.
- * When 0 tokens, click opens sign-up / buy-credits modal.
+ * When 0 tokens, click opens sign-up / buy-Portrait-Generations modal.
  */
 export function UploadSection() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [tokens, setTokens] = useState<number | null>(null)
   const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false)
-  const [showStylesModal, setShowStylesModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   const handleChangePhoto = useCallback(() => {
     setUploadedImageUrl(null)
     setUploadError(null)
+    setSelectedStyle(null)
+    setGenerateError(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }, [])
+
+  const handleStyleSelect = useCallback(async (styleId: string) => {
+    if (!uploadedImageUrl) {
+      setSelectedStyle(styleId)
+      return
+    }
+
+    setGenerating(true)
+    setGenerateError(null)
+    setSelectedStyle(styleId)
+    
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: uploadedImageUrl,
+          artStyle: styleId,
+          subjectType: 'pet',
+        }),
+        credentials: 'include',
+      })
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        if (res.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
+          setGenerateError(err.error ?? "You've used your free portraits. Sign in or buy Portrait Generations.")
+          setShowOutOfCreditsModal(true)
+        } else {
+          setGenerateError(err.error || `Generation failed: ${res.status}`)
+        }
+        return
+      }
+      
+      const { generationId } = await res.json()
+      setUploadedImageUrl(null)
+      setSelectedStyle(null)
+      router.push(`/preview/${generationId}`)
+    } catch (e) {
+      setGenerateError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setGenerating(false)
+    }
+  }, [uploadedImageUrl, router])
 
   useEffect(() => {
     fetch('/api/credits', { credentials: 'include' })
@@ -123,44 +171,63 @@ export function UploadSection() {
       />
       {uploadedImageUrl ? (
         <div className="flex flex-col items-center text-center animate-fade-in">
-          <p className="text-sm font-medium text-foreground mb-2">Photo uploaded. Pick a style to create your portrait.</p>
+          <p className="text-sm font-medium text-foreground mb-2">
+            {generating ? 'Creating your portrait...' : 'Photo uploaded. Pick a style to create your portrait.'}
+          </p>
           <div className="relative aspect-[4/5] w-40 rounded-xl overflow-hidden bg-muted mb-3">
             <Image src={uploadedImageUrl} alt="Your upload" fill className="object-cover object-center" unoptimized />
+            {generating && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <span className="text-sm font-medium">Creating…</span>
+              </div>
+            )}
           </div>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button onClick={() => setShowStylesModal(true)} className="rounded-full" size="lg">
-              Choose style
-            </Button>
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+            <StyleSelector
+              selectedStyle={selectedStyle || undefined}
+              onStyleSelect={handleStyleSelect}
+              disabled={generating}
+              className="mb-0"
+            />
             <Button
               onClick={handleChangePhoto}
               variant="outline"
               className="rounded-full"
               size="lg"
               type="button"
+              disabled={generating}
             >
               Change photo
             </Button>
           </div>
+          {generateError && (
+            <p className="mt-3 text-sm text-destructive text-center" role="alert">
+              {generateError}
+            </p>
+          )}
         </div>
       ) : tokens === 0 ? (
         <UploadPhotoArea
           creditsCount={0}
-          creditsLabel="Credit"
-          pickStyleLabel="Pick Style"
-          onPickStyle={() => setShowStylesModal(true)}
+          creditsLabel="Portrait Generation"
           uploadTitle="Upload your photo"
           subtitle={subtitle}
           subtitleRotateIntervalMs={0}
           as="button"
           onClick={() => setShowOutOfCreditsModal(true)}
           disabled={false}
+          styleSelector={
+            <StyleSelector
+              selectedStyle={selectedStyle || undefined}
+              onStyleSelect={handleStyleSelect}
+              disabled={true}
+            />
+          }
         />
       ) : (
         <UploadPhotoArea
           creditsCount={tokens}
-          creditsLabel="Credit"
-          pickStyleLabel="Pick Style"
-          onPickStyle={() => setShowStylesModal(true)}
+          creditsLabel="Portrait Generation"
           uploadTitle={uploading ? 'Uploading…' : 'Upload your photo'}
           subtitle={uploading ? 'One moment…' : subtitle}
           subtitleRotateIntervalMs={uploading ? 0 : Array.isArray(subtitle) ? 4000 : 0}
@@ -170,6 +237,13 @@ export function UploadSection() {
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           disabled={uploading}
+          styleSelector={
+            <StyleSelector
+              selectedStyle={selectedStyle || undefined}
+              onStyleSelect={handleStyleSelect}
+              disabled={uploading}
+            />
+          }
         />
       )}
       {uploadError && (
@@ -177,17 +251,6 @@ export function UploadSection() {
           {uploadError}
         </p>
       )}
-      <StylesModal
-        open={showStylesModal}
-        onClose={() => setShowStylesModal(false)}
-        category="pet"
-        imageUrl={uploadedImageUrl}
-        onGenerateSuccess={(generationId) => {
-          setShowStylesModal(false)
-          setUploadedImageUrl(null)
-          router.push(`/preview/${generationId}`)
-        }}
-      />
       <OutOfCreditsModal open={showOutOfCreditsModal} onClose={() => setShowOutOfCreditsModal(false)} />
     </section>
   )

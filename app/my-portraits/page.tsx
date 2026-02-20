@@ -68,7 +68,7 @@ export default function MyPortraitsPage() {
 
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <span className="text-sm text-muted-foreground">
-            {loadingCredits ? '…' : `${credits ?? 0} credits remaining`}
+            {loadingCredits ? '…' : `${credits ?? 0} Portrait Generations remaining`}
           </span>
           {unpurchasedCount > 0 && (
             <Link href="/cart" className="text-sm font-medium text-primary hover:underline">

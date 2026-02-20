@@ -85,7 +85,7 @@ export function StylesModal({
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
           if (res.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
-            setError(err.error ?? "You've used your free portraits. Sign in or buy credits.")
+            setError(err.error ?? "You've used your free portraits. Sign in or buy Portrait Generations.")
           } else {
             setError(err.error || `Generation failed: ${res.status}`)
           }

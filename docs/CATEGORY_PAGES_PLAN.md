@@ -199,7 +199,7 @@ Inject these in the `<head>` or layout for each category route (e.g. via a share
 | **Categories + prompts** | `lib/prompts/artStyles.ts` (or `lib/prompts/categories.ts`), `lib/prompts/buildPrompt.ts` (category-aware builder) |
 | **Styles API** | `app/api/styles/route.ts` (query `category`, optional filtering, category example URLs) |
 | **Generate API** | `app/api/generate/route.ts` (body `subjectType`, validation, pass to prompt builder) |
-| **AI layer** | `lib/ai/midjourney.ts` (accept subjectType; use new buildPrompt) |
+| **AI layer** | `lib/ai/gpt-image.ts` (accept subjectType; use new buildPrompt) |
 | **Create flow** | New shared component e.g. `components/create-flow.tsx` (category prop, styles from API, subjectType in request) |
 | **Category pages** | `app/pet-portraits/page.tsx`, `app/family-portraits/page.tsx`, `app/children-portraits/page.tsx`, `app/couple-portraits/page.tsx`, `app/self-portrait/page.tsx` (each: metadata, SEO block, `<CreateFlow category="…" />`) |
 | **Home** | `app/page.tsx` (category picker or redirect to `/pet-portraits`) |

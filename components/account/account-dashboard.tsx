@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Star, Download, RefreshCw, X } from 'lucide-react'
+import { Star, Download, RefreshCw } from 'lucide-react'
 import { Button, getButtonClassName } from '@/components/primitives/button'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
-const WELCOME_BANNER_KEY = 'petportrait_account_welcome_dismissed'
 
 type MyGenerationItem = {
   id: string
@@ -30,7 +29,6 @@ export function AccountDashboard() {
   const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [loadingCredits, setLoadingCredits] = useState(true)
   const [loadingGenerations, setLoadingGenerations] = useState(true)
-  const [welcomeDismissed, setWelcomeDismissed] = useState<boolean | null>(null)
   const [hideVariants, setHideVariants] = useState(false)
 
   const loadCredits = useCallback(() => {
@@ -51,25 +49,12 @@ export function AccountDashboard() {
       .finally(() => setLoadingGenerations(false))
   }, [])
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setWelcomeDismissed(localStorage.getItem(WELCOME_BANNER_KEY) === '1')
-    } else {
-      setWelcomeDismissed(false)
-    }
-  }, [])
 
   useEffect(() => {
     loadCredits()
     loadGenerations()
   }, [loadCredits, loadGenerations])
 
-  const dismissWelcome = () => {
-    setWelcomeDismissed(true)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(WELCOME_BANNER_KEY, '1')
-    }
-  }
 
   const displayGenerations = hideVariants
     ? generations.filter((g, i, arr) => arr.findIndex((x) => x.art_style === g.art_style) === i)
@@ -81,32 +66,6 @@ export function AccountDashboard() {
         My Masterpieces
       </h1>
 
-      {welcomeDismissed === false && (
-        <div className="relative rounded-2xl bg-primary/15 border border-primary/30 p-6 mb-8">
-          <button
-            type="button"
-            onClick={dismissWelcome}
-            className="absolute right-4 top-4 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:bg-background/50 hover:text-foreground"
-            aria-label="Dismiss"
-          >
-            <X className="size-5" />
-          </button>
-          <div className="flex flex-col sm:flex-row items-start gap-4 pr-12 sm:pr-12">
-            <span className="text-3xl opacity-80" aria-hidden>✨</span>
-            <div>
-              <h2 className="font-heading text-xl font-semibold text-foreground">
-                Welcome to Your Pack! 🎨
-              </h2>
-              <p className="text-foreground/90 mt-1">
-                Your {credits ?? 2} credit{credits !== 1 ? 's' : ''} {credits === 1 ? 'is' : 'are'} ready!
-              </p>
-              <p className="text-muted-foreground text-sm mt-2">
-                Upload an image below to start creating your first masterpiece.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <p className="text-muted-foreground mb-4">
         View and download all your created artwork.
@@ -146,7 +105,7 @@ export function AccountDashboard() {
         <div className="flex flex-wrap gap-6 mt-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <Star className="size-4 text-primary/80" />
-            {loadingCredits ? '…' : `${credits ?? 0} credits remaining`}
+            {loadingCredits ? '…' : `${credits ?? 0} Portrait Generations remaining`}
           </span>
           <span className="flex items-center gap-2">
             <Download className="size-4 text-primary/80" />

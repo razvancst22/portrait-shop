@@ -26,14 +26,14 @@ const ART_PRINT_SIZES = [
 ]
 
 const COMPARE_FEATURES = [
-  { feature: 'Credits', digital: '5', starter: '10', studio: '60' },
+  { feature: 'Portrait Generations', digital: '5', starter: '10', studio: '60' },
   { feature: 'Downloads', digital: '2', starter: '10', studio: 'Unlimited' },
   { feature: 'Art Styles', digital: '1 style', starter: '6 styles', studio: 'All 19 styles' },
   { feature: 'Watermark', digital: 'Yes', starter: 'No', studio: 'No' },
   { feature: 'Retry Tools', digital: true, starter: true, studio: true },
   { feature: 'Precision Editor - Simple', digital: false, starter: true, studio: true },
   { feature: 'Advanced Precision Editor', digital: false, starter: false, studio: true },
-  { feature: 'Price per credit', digital: '$5.80', starter: '$4.90', studio: '$3.32' },
+  { feature: 'Price per Portrait Generation', digital: '$5.80', starter: '$4.90', studio: '$3.32' },
   { feature: 'Commercial use', digital: false, starter: true, studio: true },
 ]
 

@@ -8,6 +8,12 @@ export type StyleListItem = {
   description: string
   /** URL for the style example image. Category-specific path when category provided; fallback to /style-examples/{id}.jpg */
   exampleImageUrl: string
+  /** Color palette for UI display */
+  colors: {
+    primary: string    // Accent color unique to each style
+    secondary: string  // Complementary color
+    background: string // Background tone
+  }
 }
 
 /**
@@ -31,6 +37,7 @@ export async function GET(request: NextRequest) {
       name: s.name,
       description: s.description,
       exampleImageUrl,
+      colors: s.colors,
     }
   })
   return NextResponse.json(styles)

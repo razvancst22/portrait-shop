@@ -6,7 +6,7 @@ import { BUCKET_UPLOADS } from '@/lib/constants'
 const PREVIEW_WIDTH = 1080
 const PREVIEW_HEIGHT = 1350 // 4:5
 
-const WATERMARK_TEXT = 'PREVIEW'
+const WATERMARK_TEXT = 'Portrait'
 
 /**
  * Download image from URL, resize to 4:5, apply uniform repeated watermark, return JPEG buffer.
@@ -36,8 +36,9 @@ export async function addWatermark(imageUrl: string): Promise<Buffer> {
   const rows = 5
   const stepX = width / (cols + 1)
   const stepY = height / (rows + 1)
-  const fontSize = Math.min(Math.floor(width / 18), Math.floor(height / 22))
-  const textOpacity = 0.22
+  const fontSize = Math.min(Math.floor(width / 16), Math.floor(height / 20))
+  const textOpacity = 0.52
+  const strokeOpacity = 0.35
 
   const textElements: string[] = []
   for (let row = 0; row < rows; row++) {
@@ -50,8 +51,9 @@ export async function addWatermark(imageUrl: string): Promise<Buffer> {
           text-anchor="middle" dominant-baseline="middle"
           font-family="Arial, sans-serif"
           font-size="${fontSize}"
-          font-weight="600"
+          font-weight="700"
           fill="white" opacity="${textOpacity}"
+          stroke="black" stroke-width="2" stroke-opacity="${strokeOpacity}"
           transform="rotate(-30 ${x} ${y})"
         >${WATERMARK_TEXT}</text>`
       )

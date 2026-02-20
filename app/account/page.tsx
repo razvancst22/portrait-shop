@@ -6,7 +6,7 @@ import { PageContainer } from '@/components/layout/page-container'
 
 export const metadata: Metadata = {
   title: 'My Masterpieces | petportrait.shop',
-  description: 'View your portraits, credit balance, and plan.',
+  description: 'View your portraits, Portrait Generation balance, and plan.',
 }
 
 export default async function AccountPage() {

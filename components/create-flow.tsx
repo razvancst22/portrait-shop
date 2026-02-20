@@ -15,6 +15,7 @@ import type { SubjectTypeId } from '@/lib/prompts/artStyles'
 import { CREATE_FLOW_COPY } from '@/lib/create-flow-config'
 import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
+import { StyleSelector } from '@/components/style-selector'
 
 type StyleItem = {
   id: string
@@ -156,12 +157,19 @@ export function CreateFlow({ category }: CreateFlowProps) {
     }
   }, [category])
 
-  const goToChooseStyle = useCallback(() => {
+  const goToChooseStyle = useCallback((preSelectedStyle?: string) => {
     setError(null)
     setInsufficientCredits(false)
+    if (preSelectedStyle) {
+      setSelectedStyle(preSelectedStyle)
+    }
     setStep('styles')
     loadStyles()
   }, [loadStyles])
+  
+  const handleStyleSelectFromUpload = useCallback((styleId: string) => {
+    goToChooseStyle(styleId)
+  }, [goToChooseStyle])
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -233,7 +241,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
         const err = await genRes.json().catch(() => ({}))
         if (genRes.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
           setInsufficientCredits(true)
-          setError(err.error ?? "You've used your 2 free portraits. Sign in to get more, or buy credits.")
+          setError(err.error ?? "You've used your 2 free portraits. Sign in to get more, or buy Portrait Generations.")
         } else if (genRes.status === 503 && err.code === 'SUPABASE_NOT_CONFIGURED') {
           setError(err.error ?? 'Generation is not configured yet. Set up Supabase to enable generation.')
         } else {
@@ -335,8 +343,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
           />
           <UploadPhotoArea
             creditsCount={tokenBalance}
-            creditsLabel="Credit"
-            pickStyleLabel="Pick Style"
+            creditsLabel="Portrait Generation"
             uploadTitle={isDragOver ? copy.uploadDropLabel : copy.uploadLabel}
             subtitle={uploadSubtitleMessages}
             subtitleRotateIntervalMs={4000}
@@ -360,6 +367,13 @@ export function CreateFlow({ category }: CreateFlowProps) {
             isDragOver={isDragOver}
             disabled={tokenBalance === 0}
             className="animate-fade-in animate-fade-in-delay-2"
+            styleSelector={
+              <StyleSelector
+                selectedStyle={selectedStyle || undefined}
+                onStyleSelect={handleStyleSelectFromUpload}
+                disabled={tokenBalance === 0}
+              />
+            }
           />
           {error && (
             <p className="mt-4 text-sm text-destructive animate-fade-in" role="alert">{error}</p>
@@ -408,7 +422,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
             <p className="text-sm text-muted-foreground mb-6">
               {tokenBalance} free portrait{tokenBalance !== 1 ? 's' : ''} remaining.
               {tokenBalance === 0 && (
-                <> <Link href="/pricing" className="text-primary underline">Buy credits</Link> or sign in for more.</>
+                <> <Link href="/pricing" className="text-primary underline">Buy Portrait Generations</Link> or sign in for more.</>
               )}
             </p>
           )}
@@ -483,7 +497,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
                   <p className="text-sm text-destructive">{error}</p>
                   {insufficientCredits && (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      <Link href="/pricing" className="text-primary font-medium underline">Buy credits</Link>
+                      <Link href="/pricing" className="text-primary font-medium underline">Buy Portrait Generations</Link>
                       {' · '}
                       <Link href="/login" className="text-primary font-medium underline">Sign in</Link>
                     </p>
