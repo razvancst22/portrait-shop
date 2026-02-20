@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User, Clock, DollarSign, Settings, LogOut } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User, Clock, DollarSign, Settings, LogOut, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { createClient } from '@/lib/supabase/client'
@@ -200,16 +200,16 @@ export function SiteHeader() {
                   )}
                 </div>
 
-                {/* My Masterpieces */}
+                {/* My Portraits */}
                 <Link
-                  href="/my-masterpieces"
+                  href="/my-portraits"
                   className={cn(
                     'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
                   )}
                   onClick={closeDrawer}
                 >
                   <Clock className="size-5" />
-                  <span>My Masterpieces</span>
+                  <span>My Portraits</span>
                 </Link>
 
                 {/* Pricing */}
@@ -224,7 +224,7 @@ export function SiteHeader() {
                   <span>Pricing</span>
                 </Link>
 
-                {/* Account Settings (only when logged in) */}
+                {/* My Account (only when logged in) */}
                 {user && (
                   <Link
                     href="/account"
@@ -234,7 +234,7 @@ export function SiteHeader() {
                     onClick={closeDrawer}
                   >
                     <Settings className="size-5" />
-                    <span>Account Settings</span>
+                    <span>My Account</span>
                   </Link>
                 )}
 

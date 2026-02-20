@@ -1,15 +1,12 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { verifyDownloadToken } from '@/lib/email/delivery'
-import { BUCKET_DELIVERABLES } from '@/lib/constants'
 import { DownloadPageClient } from './client-page'
 
 export const metadata: Metadata = {
   title: 'Download your 4K portrait – petportrait.shop',
-  description: 'Download your 4K PNG portrait. Link expires in 1 hour. Lost your link? Use order lookup to get a new one.',
+  description: 'Download your 4K PNG portrait. Lost your link? Use order lookup to get a new one.',
 }
-
-const SIGNED_URL_EXPIRY = 3600 // 1 hour
 
 const ASSET_LABELS: Record<string, string> = {
   'portrait': 'Portrait (PNG)',
@@ -44,19 +41,14 @@ async function getDownloadData(token: string | null) {
     .eq('order_id', order.id)
     .single()
 
-  const downloads: { asset_type: string; url: string; label: string }[] = []
-  for (const d of deliverables) {
-    const { data: signed } = await supabase.storage
-      .from(BUCKET_DELIVERABLES)
-      .createSignedUrl(d.file_path, SIGNED_URL_EXPIRY)
-    if (signed?.signedUrl) {
-      downloads.push({
-        asset_type: d.asset_type,
-        url: signed.signedUrl,
-        label: ASSET_LABELS[d.asset_type] ?? d.asset_type,
-      })
-    }
-  }
+  // Use same-origin proxy URL with Content-Disposition so browser downloads instead of opening in new tab
+  const proxyDownloadUrl = `/api/download/file?token=${encodeURIComponent(token)}`
+  const firstDeliverable = deliverables[0]
+  const downloads: { asset_type: string; url: string; label: string }[] = [{
+    asset_type: firstDeliverable.asset_type,
+    url: proxyDownloadUrl,
+    label: ASSET_LABELS[firstDeliverable.asset_type] ?? firstDeliverable.asset_type,
+  }]
 
   // Use final image (non-watermarked) for purchased items since they've paid
   const finalImageUrl = orderItem?.generation_id 

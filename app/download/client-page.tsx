@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 type DownloadPageProps = {
   data: {
@@ -16,17 +16,37 @@ type DownloadPageProps = {
 }
 
 export function DownloadPageClient({ data }: DownloadPageProps) {
+  const [downloadComplete, setDownloadComplete] = useState(false)
+
+  const triggerDownload = useCallback(async () => {
+    const url = data?.downloads?.[0]?.url
+    if (!url) return
+    try {
+      const res = await fetch(url, { credentials: 'include' })
+      if (!res.ok) throw new Error('Download failed')
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `portrait-${data!.orderNumber}.png`
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+      setDownloadComplete(true)
+    } catch {
+      setDownloadComplete(false)
+    }
+  }, [data])
+
   // Auto-download when page loads
   useEffect(() => {
     if (data?.downloads?.[0]?.url) {
-      const timer = setTimeout(() => {
-        // Open download in new tab to keep success page visible
-        window.open(data.downloads[0].url, '_blank')
-      }, 1000) // 1 second delay to show the UI first
-      
+      const timer = setTimeout(() => triggerDownload(), 1000)
       return () => clearTimeout(timer)
     }
-  }, [data])
+  }, [data, triggerDownload])
 
   if (!data) {
     return (
@@ -135,15 +155,43 @@ export function DownloadPageClient({ data }: DownloadPageProps) {
         {/* Download Card */}
         <div className="bg-card/80 backdrop-blur border border-border/50 rounded-2xl shadow-2xl p-8 mb-8">
           {/* Auto-download Status */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-6 mb-8">
+          <div
+            className={`rounded-xl p-6 mb-8 border ${
+              downloadComplete
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800/50'
+                : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800/50'
+            }`}
+          >
             <div className="flex items-center gap-4">
-              <div className="animate-spin w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full shrink-0"></div>
+              {downloadComplete ? (
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="animate-spin w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full shrink-0"></div>
+              )}
               <div>
-                <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                  Download starting automatically...
+                <p
+                  className={`font-semibold mb-1 ${
+                    downloadComplete
+                      ? 'text-green-900 dark:text-green-100'
+                      : 'text-blue-900 dark:text-blue-100'
+                  }`}
+                >
+                  {downloadComplete ? 'Download complete' : 'Download starting automatically...'}
                 </p>
-                <p className="text-sm text-blue-700 dark:text-blue-200">
-                  Your high-resolution portrait will download in a moment
+                <p
+                  className={`text-sm ${
+                    downloadComplete
+                      ? 'text-green-700 dark:text-green-200'
+                      : 'text-blue-700 dark:text-blue-200'
+                  }`}
+                >
+                  {downloadComplete
+                    ? 'Your portrait has been downloaded'
+                    : 'Your high-resolution portrait will download in a moment'}
                 </p>
               </div>
             </div>
@@ -158,11 +206,9 @@ export function DownloadPageClient({ data }: DownloadPageProps) {
               High-resolution PNG ready for printing and sharing
             </p>
             
-            <a
-              href={data.downloads[0].url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={`portrait-${data.orderNumber}.png`}
+            <button
+              type="button"
+              onClick={() => triggerDownload()}
               className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <svg
@@ -179,7 +225,7 @@ export function DownloadPageClient({ data }: DownloadPageProps) {
                 />
               </svg>
               Download Portrait
-            </a>
+            </button>
           </div>
         </div>
 
@@ -187,7 +233,7 @@ export function DownloadPageClient({ data }: DownloadPageProps) {
         <div className="text-center space-y-6">
           <p className="text-sm text-muted-foreground">
             <span className="inline-block w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-            Download link expires in 1 hour
+            If the download didn&apos;t start automatically, click the Download button above.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

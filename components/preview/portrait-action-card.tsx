@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/primitives/button'
-import { Download, Printer } from 'lucide-react'
+import { Check, Download, Printer } from 'lucide-react'
 import type { PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { showToast } from '@/components/ui/toast'
 
@@ -63,6 +63,15 @@ export function PortraitActionCard({
             />
             {/* Subtle always-visible gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+            {/* Purchased badge: tiny green checkmark */}
+            {isPurchased && (
+              <div
+                className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-emerald-500/90 text-white shadow-md"
+                aria-label="Purchased"
+              >
+                <Check className="size-3.5 stroke-[2.5]" />
+              </div>
+            )}
             {/* Enhanced gradient overlay on hover for button readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
           </>

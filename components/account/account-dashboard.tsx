@@ -2,34 +2,26 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Star, Download, RefreshCw } from 'lucide-react'
-import { Button, getButtonClassName } from '@/components/primitives/button'
-import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
-import type { ArtStyleId } from '@/lib/prompts/artStyles'
-import { DIGITAL_BUNDLE_PRICE_USD } from '@/lib/constants'
+import { Star, Download, RefreshCw, Package } from 'lucide-react'
+import { Button } from '@/components/primitives/button'
+import { Skeleton } from '@/components/primitives/skeleton'
 import { cn } from '@/lib/utils'
 
 
-type MyGenerationItem = {
+type MyOrderItem = {
   id: string
-  art_style: string
-  status: string
-  preview_image_url: string | null
-  is_purchased: boolean
+  order_number: string
   created_at: string
-}
-
-function styleDisplayName(artStyle: string): string {
-  const id = artStyle as ArtStyleId
-  return ART_STYLE_PROMPTS[id]?.name ?? artStyle
+  status: string
+  total_usd: number
+  downloadUrl: string
 }
 
 export function AccountDashboard() {
   const [credits, setCredits] = useState<number | null>(null)
-  const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [loadingCredits, setLoadingCredits] = useState(true)
-  const [loadingGenerations, setLoadingGenerations] = useState(true)
-  const [hideVariants, setHideVariants] = useState(false)
+  const [loadingOrders, setLoadingOrders] = useState(true)
+  const [orders, setOrders] = useState<MyOrderItem[]>([])
 
   const loadCredits = useCallback(() => {
     setLoadingCredits(true)
@@ -40,62 +32,29 @@ export function AccountDashboard() {
       .finally(() => setLoadingCredits(false))
   }, [])
 
-  const loadGenerations = useCallback(() => {
-    setLoadingGenerations(true)
-    fetch('/api/my-generations', { credentials: 'include' })
+  const loadOrders = useCallback(() => {
+    setLoadingOrders(true)
+    fetch('/api/my-orders', { credentials: 'include' })
       .then((r) => r.json())
-      .then((d) => setGenerations(d.generations ?? []))
-      .catch(() => setGenerations([]))
-      .finally(() => setLoadingGenerations(false))
+      .then((d) => setOrders(d.orders ?? []))
+      .catch(() => setOrders([]))
+      .finally(() => setLoadingOrders(false))
   }, [])
-
 
   useEffect(() => {
     loadCredits()
-    loadGenerations()
-  }, [loadCredits, loadGenerations])
-
-
-  const displayGenerations = hideVariants
-    ? generations.filter((g, i, arr) => arr.findIndex((x) => x.art_style === g.art_style) === i)
-    : generations
+    loadOrders()
+  }, [loadCredits, loadOrders])
 
   return (
     <div className="w-full max-w-3xl mx-auto text-left">
       <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-6">
-        My Masterpieces
+        My Account
       </h1>
 
-
-      <p className="text-muted-foreground mb-4">
-        View and download all your created artwork.
+      <p className="text-muted-foreground mb-6">
+        Manage your plan, orders, and downloads.
       </p>
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hideVariants}
-            onChange={(e) => setHideVariants(e.target.checked)}
-            className="rounded border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
-          <span className="text-sm text-muted-foreground">Hide variants</span>
-        </label>
-        {generations.some((g) => g.status === 'completed' && !g.is_purchased) && (
-          <Link href="/cart" className="text-sm font-medium text-primary hover:underline">
-            Cart ({generations.filter((g) => g.status === 'completed' && !g.is_purchased).length}) →
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2"
-          onClick={() => { loadGenerations(); loadCredits(); }}
-          disabled={loadingGenerations || loadingCredits}
-        >
-          <RefreshCw className={cn('size-4', (loadingGenerations || loadingCredits) && 'animate-spin')} />
-          Refresh
-        </Button>
-      </div>
 
       <div className="mb-8">
         <p className="text-sm text-muted-foreground mb-2">Your Plan:</p>
@@ -109,88 +68,74 @@ export function AccountDashboard() {
           </span>
           <span className="flex items-center gap-2">
             <Download className="size-4 text-primary/80" />
-            0/0 downloads
+            {loadingOrders ? '…' : `${orders.length} order${orders.length === 1 ? '' : 's'}`}
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <h2 className="font-heading text-lg font-semibold text-foreground">
-          Artwork
+      <div className="mb-8">
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Package className="size-5" />
+          Order History
         </h2>
-        <Link
-          href="/"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Create new portrait →
-        </Link>
+        {loadingOrders ? (
+          <div className="space-y-2">
+            <div className="rounded-xl border border-border bg-muted/30 h-14 animate-pulse" />
+            <div className="rounded-xl border border-border bg-muted/30 h-14 animate-pulse" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Orders placed while logged in, or with the same email as your account, will appear here.
+            </p>
+            <Link
+              href="/order-lookup"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Lost your link? Look up an order by order number and email →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {orders.map((order) => (
+              <div
+                key={order.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-border bg-card p-4"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{order.order_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(order.created_at).toLocaleDateString()} · ${order.total_usd.toFixed(2)}
+                  </p>
+                </div>
+                <Link
+                  href={order.downloadUrl}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0"
+                >
+                  <Download className="size-4" />
+                  Download
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {loadingGenerations ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border border-border bg-muted/30 aspect-[4/5] animate-pulse" />
-          ))}
-        </div>
-      ) : displayGenerations.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
-          <p className="text-muted-foreground mb-4">No portraits yet.</p>
-          <Link href="/" className={getButtonClassName('default', 'lg', 'rounded-full')}>
-            Create your first portrait
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {displayGenerations.map((gen) => (
-            <article
-              key={gen.id}
-              className="rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
-            >
-              <Link
-                href={`/preview/${gen.id}`}
-                className="relative block w-full aspect-[4/5] overflow-hidden bg-muted rounded-t-xl"
-              >
-                {gen.preview_image_url && gen.status === 'completed' ? (
-                  <img
-                    src={gen.preview_image_url}
-                    alt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                    className="absolute inset-0 size-full object-cover object-center select-none pointer-events-none"
-                    draggable={false}
-                    onContextMenu={(e) => e.preventDefault()}
-                    onDragStart={(e) => e.preventDefault()}
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                    {gen.status === 'completed' ? 'No preview' : gen.status === 'failed' ? 'Failed' : 'Creating…'}
-                  </div>
-                )}
-              </Link>
-              <div className="p-3 flex flex-col gap-2 flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  {styleDisplayName(gen.art_style)}
-                </p>
-                {gen.is_purchased ? (
-                  <span className="text-xs text-muted-foreground">Purchased</span>
-                ) : gen.status === 'completed' ? (
-                  <Link
-                    href={`/preview/${gen.id}`}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Get full resolution – ${DIGITAL_BUNDLE_PRICE_USD}
-                  </Link>
-                ) : gen.status === 'failed' ? (
-                  <Link
-                    href="/"
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Try again
-                  </Link>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2"
+          onClick={() => { loadCredits(); loadOrders(); }}
+          disabled={loadingCredits || loadingOrders}
+        >
+          <RefreshCw className={cn('size-4', (loadingCredits || loadingOrders) && 'animate-spin')} />
+          Refresh
+        </Button>
+        <Link href="/my-portraits" className="text-sm font-medium text-primary hover:underline">
+          View your portraits →
+        </Link>
+      </div>
 
       <p className="mt-8 text-center">
         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { sendDeliveryEmail } from '@/lib/email/delivery'
 import { checkJsonBodySize } from '@/lib/api-limits'
 
@@ -42,6 +43,18 @@ export async function POST(request: NextRequest) {
   const orderEmail = (order.customer_email || '').trim().toLowerCase()
   if (orderEmail !== email) {
     return NextResponse.json({ success: true, message: GENERIC_MESSAGE })
+  }
+
+  const authUser = await getOptionalUser()
+  if (authUser?.email && authUser.email.trim().toLowerCase() === email) {
+    const { error: updateErr } = await supabase
+      .from('orders')
+      .update({ user_id: authUser.id })
+      .eq('id', order.id)
+      .is('user_id', null)
+    if (updateErr) {
+      console.error('order-lookup: failed to link order to account', order.id, updateErr)
+    }
   }
 
   if (order.status === 'delivered') {

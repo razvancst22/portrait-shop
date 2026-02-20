@@ -89,12 +89,13 @@ export async function POST(request: NextRequest) {
           .from('orders')
           .insert({
             order_number: orderNumber,
-            customer_email: email || 'test@localhost',
+            customer_email: email || user?.email || 'test@localhost',
             subtotal_usd: total,
             tax_amount_usd: 0,
             total_usd: total,
             payment_status: 'paid',  // Skip payment for testing
             status: 'paid',
+            ...(user?.id && { user_id: user.id }),
           })
           .select('id')
           .single()
@@ -169,6 +170,7 @@ export async function POST(request: NextRequest) {
         total_usd: total,
         payment_status: 'pending',
         status: 'pending_payment',
+        ...(user?.id && { user_id: user.id }),
       })
       .select('id')
       .single()

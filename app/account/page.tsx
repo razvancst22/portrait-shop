@@ -5,8 +5,8 @@ import { AccountDashboard } from '@/components/account/account-dashboard'
 import { PageContainer } from '@/components/layout/page-container'
 
 export const metadata: Metadata = {
-  title: 'My Masterpieces | petportrait.shop',
-  description: 'View your portraits, Portrait Generation balance, and plan.',
+  title: 'My Account | petportrait.shop',
+  description: 'Manage your plan, order history, and downloads.',
 }
 
 export default async function AccountPage() {
