@@ -3,8 +3,8 @@ import { HeroSection } from '@/components/home/hero-section'
 import { MyPortraitsSection } from '@/components/home/my-portraits-section'
 import { UploadSection } from '@/components/home/upload-section'
 import { TrustLine } from '@/components/home/trust-line'
-import CircularGallery from '@/components/home/CircularGallery'
-import { GALLERY_IMAGES } from '@/lib/gallery-images'
+import CircularGallery from '@/components/CircularGallery'
+import { GALLERY_IMAGES, getOptimalImageUrl } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
   title: 'Classic Portraits for Pets, Family, Couples & More | petportrait.shop',
@@ -31,13 +31,12 @@ export default function HomePage() {
         {/* Portrait gallery */}
         <section
           className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-0 px-4 md:px-6 box-border"
-          style={{ height: '600px' }}
+          style={{ height: '380px' }}
           aria-label="Portrait gallery"
         >
           <CircularGallery
-            items={GALLERY_IMAGES}
+            items={GALLERY_IMAGES.map((g) => ({ image: getOptimalImageUrl(g) }))}
             bend={0}
-            textColor="#ffffff"
             borderRadius={0.05}
             scrollSpeed={0.8}
             scrollEase={0.08}

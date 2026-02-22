@@ -106,7 +106,7 @@ export function PortraitActionCard({
           >
             <Button
               size={buttonsLayout === 'row' ? 'sm' : 'default'}
-              className={`backdrop-blur-xl bg-white/95 hover:bg-white text-gray-900 border border-white/20 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-semibold hover:scale-105 ${
+              className={`backdrop-blur-xl bg-green-500 hover:bg-green-600 text-white border border-green-600/30 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-semibold hover:scale-105 ${
                 buttonsLayout === 'row' 
                   ? 'flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1 sm:gap-1.5 rounded-full px-3 sm:px-4' 
                   : 'w-full h-10 sm:h-11 text-sm sm:text-base gap-2 sm:gap-2.5 rounded-full px-4 sm:px-6'
@@ -144,7 +144,7 @@ export function PortraitActionCard({
               title={isPurchased ? "Download Your Portrait" : "Download 4K"}
             >
               {isDownloading ? (
-                <div className={`animate-spin rounded-full border-2 border-gray-900 border-t-transparent shrink-0 ${buttonsLayout === 'row' ? 'size-3 sm:size-3.5' : 'size-4 sm:size-5'}`} />
+                <div className={`animate-spin rounded-full border-2 border-white border-t-transparent shrink-0 ${buttonsLayout === 'row' ? 'size-3 sm:size-3.5' : 'size-4 sm:size-5'}`} />
               ) : (
                 <Download className={buttonsLayout === 'row' ? 'size-3 sm:size-3.5 shrink-0' : 'size-4 sm:size-5 shrink-0'} />
               )}
@@ -159,7 +159,7 @@ export function PortraitActionCard({
             <Button
               variant="secondary"
               size={buttonsLayout === 'row' ? 'sm' : 'default'}
-              className={`backdrop-blur-xl bg-white/80 hover:bg-white/95 text-gray-900 border border-white/30 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-medium hover:scale-105 ${
+              className={`backdrop-blur-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 border border-yellow-600/30 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-medium hover:scale-105 ${
                 buttonsLayout === 'row' 
                   ? 'flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1 sm:gap-1.5 rounded-full px-3 sm:px-4' 
                   : 'w-full h-10 sm:h-11 text-sm sm:text-base gap-2 sm:gap-2.5 rounded-full px-4 sm:px-6'
