@@ -341,7 +341,7 @@ class App {
   scene!: Transform;
   planeGeometry!: Plane;
   medias: Media[] = [];
-  mediasImages: (GalleryImage | { image: string; text: string })[] = [];
+  mediasImages: (GalleryImage | { image: string; text?: string })[] = [];
   screen!: { width: number; height: number };
   viewport!: { width: number; height: number };
   raf: number = 0;

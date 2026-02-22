@@ -50,3 +50,22 @@ export function setGuestIdCookie(
 ) {
   res.cookies.set(GUEST_ID_COOKIE, guestId, COOKIE_OPTS)
 }
+
+/** Cookie options to expire/delete a cookie (maxAge: 0). */
+const EXPIRE_COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  maxAge: 0,
+  path: '/' as const,
+  secure: process.env.NODE_ENV === 'production',
+}
+
+/**
+ * Clear guest cookies on the response (e.g. on logout so user gets fresh guest state).
+ */
+export function clearGuestCookies(
+  res: { cookies: { set: (name: string, value: string, opts: object) => void } }
+) {
+  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+}

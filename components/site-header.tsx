@@ -32,9 +32,10 @@ export function SiteHeader() {
   }, [])
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
     closeDrawer()
+    const supabase = createClient()
+    await fetch('/api/auth/clear-guest-cookies', { method: 'POST', credentials: 'include' })
+    await supabase.auth.signOut()
     router.push('/')
     router.refresh()
   }

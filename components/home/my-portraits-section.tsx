@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
@@ -23,19 +24,33 @@ function styleDisplayName(artStyle: string): string {
 /**
  * Hidden until the user has at least one creation. Renders under the hero on the main page.
  * Shows "My portraits" and cards for each generation (same card UI as preview: Download 4K + Order Print).
+ * Refetches when auth state changes (e.g. logout) so portraits update immediately.
  */
 export function MyPortraitsSection() {
   const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
 
-  useEffect(() => {
+  const fetchGenerations = useCallback(() => {
+    setLoading(true)
     fetch('/api/my-generations', { credentials: 'include' })
       .then((r) => r.json())
       .then((d) => setGenerations(d.generations ?? []))
       .catch(() => setGenerations([]))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    fetchGenerations()
+  }, [fetchGenerations])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      fetchGenerations()
+    })
+    return () => subscription.unsubscribe()
+  }, [fetchGenerations])
 
   if (loading || generations.length === 0) {
     return null
