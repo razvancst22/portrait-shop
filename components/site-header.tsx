@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User, Clock, DollarSign, Settings, LogOut, Palette } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { createClient } from '@/lib/supabase/client'
@@ -193,7 +193,7 @@ export function SiteHeader() {
                         )}
                         onClick={closeDrawer}
                       >
-                        <User className="size-4" />
+                        <UserIcon className="size-4" />
                         <span>Self-Portraits</span>
                       </Link>
                     </div>
@@ -257,7 +257,7 @@ export function SiteHeader() {
                     )}
                     onClick={closeDrawer}
                   >
-                    <User className="size-5" />
+                    <UserIcon className="size-5" />
                     <span>Sign In</span>
                   </Link>
                 )}

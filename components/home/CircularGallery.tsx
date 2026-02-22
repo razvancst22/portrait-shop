@@ -212,7 +212,7 @@ class Media {
     this.renderer = renderer;
     this.scene = scene;
     this.screen = screen;
-    this.text = 'text' in imageData ? imageData.text : imageData.text;
+    this.text = imageData.text;
     this.viewport = viewport;
     this.bend = bend;
     this.textColor = textColor;
