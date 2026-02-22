@@ -397,7 +397,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
             <Image src={previewUrl} alt={copy.previewAlt} fill className="object-cover object-center size-full" unoptimized />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={goToChooseStyle} className="rounded-full" size="lg">
+            <Button onClick={() => goToChooseStyle()} className="rounded-full" size="lg">
               Choose style
             </Button>
             <Button onClick={changePhoto} variant="outline" className="rounded-full" size="lg">
