@@ -45,11 +45,14 @@ export async function deductUserToken(
     return false
   }
 
-  const { error: updateErr } = await supabase
+  // Optimistic lock: update only if tokens_used still matches. Verify row was actually updated
+  // to prevent race where two concurrent requests both read 0 and one gets false success.
+  const { data: updated, error: updateErr } = await supabase
     .from('user_token_usage')
     .update({ tokens_used: existing.tokens_used + 1 })
     .eq('user_id', userId)
     .eq('tokens_used', existing.tokens_used)
+    .select('id')
 
-  return !updateErr
+  return !updateErr && Array.isArray(updated) && updated.length === 1
 }

@@ -273,6 +273,7 @@ class App {
   boundOnTouchDown!: (e: MouseEvent | TouchEvent) => void;
   boundOnTouchMove!: (e: MouseEvent | TouchEvent) => void;
   boundOnTouchUp!: () => void;
+  boundOnTouchCancel!: () => void;
 
   isDown: boolean = false;
   start: number = 0;
@@ -412,7 +413,8 @@ class App {
 
   onTouchMove(e: MouseEvent | TouchEvent) {
     if (!this.isDown) return;
-    const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    if ('touches' in e) e.preventDefault();
+    const x = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
     const distance = (this.start - x) * (this.scrollSpeed * 0.025);
     this.scroll.target = (this.scroll.position ?? 0) + distance;
   }
@@ -472,15 +474,17 @@ class App {
     this.boundOnTouchDown = this.onTouchDown.bind(this);
     this.boundOnTouchMove = this.onTouchMove.bind(this);
     this.boundOnTouchUp = this.onTouchUp.bind(this);
+    this.boundOnTouchCancel = this.onTouchUp.bind(this);
     window.addEventListener('resize', this.boundOnResize);
     window.addEventListener('mousewheel', this.boundOnWheel);
     window.addEventListener('wheel', this.boundOnWheel);
     window.addEventListener('mousedown', this.boundOnTouchDown);
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
-    window.addEventListener('touchstart', this.boundOnTouchDown);
-    window.addEventListener('touchmove', this.boundOnTouchMove);
-    window.addEventListener('touchend', this.boundOnTouchUp);
+    this.container.addEventListener('touchstart', this.boundOnTouchDown);
+    this.container.addEventListener('touchmove', this.boundOnTouchMove, { passive: false });
+    this.container.addEventListener('touchend', this.boundOnTouchUp);
+    this.container.addEventListener('touchcancel', this.boundOnTouchCancel);
   }
 
   destroy() {
@@ -491,9 +495,10 @@ class App {
     window.removeEventListener('mousedown', this.boundOnTouchDown);
     window.removeEventListener('mousemove', this.boundOnTouchMove);
     window.removeEventListener('mouseup', this.boundOnTouchUp);
-    window.removeEventListener('touchstart', this.boundOnTouchDown);
-    window.removeEventListener('touchmove', this.boundOnTouchMove);
-    window.removeEventListener('touchend', this.boundOnTouchUp);
+    this.container.removeEventListener('touchstart', this.boundOnTouchDown);
+    this.container.removeEventListener('touchmove', this.boundOnTouchMove);
+    this.container.removeEventListener('touchend', this.boundOnTouchUp);
+    this.container.removeEventListener('touchcancel', this.boundOnTouchCancel);
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }
@@ -529,5 +534,11 @@ export default function CircularGallery({
       app.destroy();
     };
   }, [items, bend, borderRadius, scrollSpeed, scrollEase]);
-  return <div className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing" ref={containerRef} />;
+  return (
+    <div
+      className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
+      style={{ touchAction: 'pan-y' }}
+      ref={containerRef}
+    />
+  );
 }

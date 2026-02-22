@@ -47,6 +47,7 @@ export function AuthForm() {
           setLoading(false)
           return
         }
+        await fetch('/api/auth/link-guest', { method: 'POST', credentials: 'include' })
         router.push('/account')
         router.refresh()
       }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Star, Download, RefreshCw, Package } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { cn } from '@/lib/utils'
@@ -45,6 +46,14 @@ export function AccountDashboard() {
     loadCredits()
     loadOrders()
   }, [loadCredits, loadOrders])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadCredits()
+    })
+    return () => subscription.unsubscribe()
+  }, [loadCredits])
 
   return (
     <div className="w-full max-w-3xl mx-auto text-left">

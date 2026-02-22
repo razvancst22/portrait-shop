@@ -1,5 +1,13 @@
 import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
-import { GUEST_TOKENS_INITIAL, GUEST_BALANCE_COOKIE, GUEST_ID_COOKIE, GUEST_ID_COOKIE_MAX_AGE } from './constants'
+import {
+  GUEST_TOKENS_INITIAL,
+  GUEST_BALANCE_COOKIE,
+  GUEST_ID_COOKIE,
+  GUEST_ID_COOKIE_MAX_AGE,
+  DEV_GUEST_ACTIVE_COOKIE,
+  POST_LOGOUT_COOKIE,
+  POST_LOGOUT_MAX_AGE,
+} from './constants'
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -60,12 +68,37 @@ const EXPIRE_COOKIE_OPTS = {
   secure: process.env.NODE_ENV === 'production',
 }
 
+/** Post-logout cookie: 1h expiry so credits API returns 0 instead of creating new guest. */
+const POST_LOGOUT_COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  maxAge: POST_LOGOUT_MAX_AGE,
+  path: '/' as const,
+  secure: process.env.NODE_ENV === 'production',
+}
+
 /**
- * Clear guest cookies on the response (e.g. on logout so user gets fresh guest state).
+ * Clear guest cookies and set post_logout on the response (on logout).
+ * When post_logout is present, credits API returns 0 – no auto new-guest.
  */
 export function clearGuestCookies(
   res: { cookies: { set: (name: string, value: string, opts: object) => void } }
 ) {
   res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTS)
   res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(POST_LOGOUT_COOKIE, '1', POST_LOGOUT_COOKIE_OPTS)
+}
+
+/**
+ * Expire all guest and post-logout cookies (e.g. after successful login/signup).
+ * Use when linking guest to user so guest_id is cleared and post_logout removed.
+ */
+export function expireGuestAndPostLogoutCookies(
+  res: { cookies: { set: (name: string, value: string, opts: object) => void } }
+) {
+  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(POST_LOGOUT_COOKIE, '', EXPIRE_COOKIE_OPTS)
 }

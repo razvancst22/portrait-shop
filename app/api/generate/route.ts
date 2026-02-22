@@ -9,11 +9,16 @@ import { checkJsonBodySize } from '@/lib/api-limits'
 import { getGuestBalance, deductGuestToken } from '@/lib/tokens/guest-tokens'
 import { getUserBalance, deductUserToken } from '@/lib/tokens/user-tokens'
 import {
-  deductGuestTokenCookie,
-  setGuestBalanceCookie,
-  setGuestIdCookie,
-} from '@/lib/tokens/guest-tokens-cookie'
-import { GUEST_ID_COOKIE, GUEST_ID_COOKIE_MAX_AGE, isDevGuest, isDevUser, DEV_CREDITS_BALANCE, DEV_USER_CREDITS } from '@/lib/tokens/constants'
+  GUEST_ID_COOKIE,
+  GUEST_ID_COOKIE_MAX_AGE,
+  isDevGuest,
+  isDevGuestWithActiveSession,
+  isDevUser,
+  DEV_CREDITS_BALANCE,
+  DEV_USER_CREDITS,
+  DEV_GUEST_ACTIVE_COOKIE,
+  POST_LOGOUT_COOKIE,
+} from '@/lib/tokens/constants'
 import { canUseFreeGeneration, recordFreeGenerationUseFromRequest } from '@/lib/tokens/guest-abuse-prevention'
 import { getClientIp } from '@/lib/request-utils'
 import { serverErrorResponse } from '@/lib/api-error'
@@ -39,9 +44,19 @@ export async function POST(request: NextRequest) {
 
   const user = await getOptionalUser()
   const cookieStore = await cookies()
+
+  // Post-logout: no credits, block generation. Prevents bypassing UI "0 credits" state.
+  if (!user && cookieStore.get(POST_LOGOUT_COOKIE)?.value === '1') {
+    return NextResponse.json(
+      { error: INSUFFICIENT_CREDITS_MESSAGE, code: 'INSUFFICIENT_CREDITS' },
+      { status: 403 }
+    )
+  }
+
   let guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
   const isNewGuest = !guestId
   if (!guestId) guestId = crypto.randomUUID()
+  const hasDevGuestActive = cookieStore.get(DEV_GUEST_ACTIVE_COOKIE)?.value === '1'
 
   const supabase = createClientIfConfigured()
 
@@ -58,11 +73,13 @@ export async function POST(request: NextRequest) {
     } catch {
       balance = 0
     }
-  } else if (isDevGuest(guestId)) {
+  } else if (isDevGuestWithActiveSession(guestId, cookieStore.get(DEV_GUEST_ACTIVE_COOKIE)?.value === '1')) {
     balance = DEV_CREDITS_BALANCE
   } else if (supabase) {
     try {
-      const result = await getGuestBalance(supabase, guestId)
+      const result = await getGuestBalance(supabase, guestId, {
+        isDevGuestSession: hasDevGuestActive,
+      })
       balance = result.balance
     } catch {
       const { getGuestBalanceFromCookie } = await import('@/lib/tokens/guest-tokens-cookie')
@@ -90,7 +107,7 @@ export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
   const userAgent = request.headers.get('user-agent') ?? null
   const acceptLanguage = request.headers.get('accept-language') ?? null
-  if (!user && !isDevGuest(guestId)) {
+  if (!user && !isDevGuestWithActiveSession(guestId, hasDevGuestActive)) {
     try {
       const allowedByAbuseCap = await canUseFreeGeneration(supabase, ip, userAgent, acceptLanguage)
       if (!allowedByAbuseCap) {
@@ -146,18 +163,35 @@ export async function POST(request: NextRequest) {
   }
 
   let deducted: boolean
-  let cookieBalanceAfterDeduct: number | null = null
   if (user && isDevUser(user.email)) {
     deducted = true
   } else if (user) {
-    deducted = await deductUserToken(supabase, user.id)
+    try {
+      deducted = await deductUserToken(supabase, user.id)
+    } catch (e) {
+      console.error('deductUserToken failed:', e)
+      return NextResponse.json(
+        { error: 'Unable to process. Please try again.', code: 'DEDUCT_FAILED' },
+        { status: 503 }
+      )
+    }
   } else {
     try {
-      deducted = await deductGuestToken(supabase, guestId)
-    } catch {
-      const result = deductGuestTokenCookie(cookieStore)
-      deducted = result.success
-      if (result.success) cookieBalanceAfterDeduct = result.newBalance
+      deducted = await deductGuestToken(supabase, guestId, {
+        isDevGuestSession: hasDevGuestActive,
+      })
+    } catch (e) {
+      console.error('deductGuestToken failed:', e)
+      return NextResponse.json(
+        { error: 'Unable to process. Please try again.', code: 'DEDUCT_FAILED' },
+        { status: 503 }
+      )
+    }
+    if (!deducted) {
+      return NextResponse.json(
+        { error: INSUFFICIENT_CREDITS_MESSAGE, code: 'INSUFFICIENT_CREDITS' },
+        { status: 403 }
+      )
     }
   }
 
@@ -257,9 +291,6 @@ export async function POST(request: NextRequest) {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
       })
-    }
-    if (!user && cookieBalanceAfterDeduct !== null) {
-      setGuestBalanceCookie(res, cookieBalanceAfterDeduct)
     }
     return res
   } catch (e) {

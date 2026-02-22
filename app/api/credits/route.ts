@@ -9,7 +9,17 @@ import {
   setGuestBalanceCookie,
   setGuestIdCookie,
 } from '@/lib/tokens/guest-tokens-cookie'
-import { GUEST_ID_COOKIE, GUEST_TOKENS_INITIAL, isDevGuest, isDevUser, DEV_CREDITS_BALANCE, DEV_USER_CREDITS } from '@/lib/tokens/constants'
+import {
+  GUEST_ID_COOKIE,
+  GUEST_TOKENS_INITIAL,
+  isDevGuest,
+  isDevGuestWithActiveSession,
+  isDevUser,
+  DEV_CREDITS_BALANCE,
+  DEV_USER_CREDITS,
+  DEV_GUEST_ACTIVE_COOKIE,
+  POST_LOGOUT_COOKIE,
+} from '@/lib/tokens/constants'
 
 /**
  * GET /api/credits – return current token balance.
@@ -42,13 +52,24 @@ export async function GET() {
   }
 
   const cookieStore = await cookies()
+
+  // Post-logout: return 0, do NOT create new guest. Prevents "2 credits back" after logout.
+  if (cookieStore.get(POST_LOGOUT_COOKIE)?.value === '1') {
+    return NextResponse.json({
+      balance: 0,
+      isGuest: true,
+      isNewGuest: false,
+    })
+  }
+
   let guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
   const isNewGuest = !guestId
   if (!guestId) {
     guestId = crypto.randomUUID()
   }
 
-  if (isDevGuest(guestId)) {
+  const hasDevGuestActive = cookieStore.get(DEV_GUEST_ACTIVE_COOKIE)?.value === '1'
+  if (isDevGuestWithActiveSession(guestId, hasDevGuestActive)) {
     return NextResponse.json({
       balance: DEV_CREDITS_BALANCE,
       isGuest: true,

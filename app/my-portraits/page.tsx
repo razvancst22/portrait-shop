@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
@@ -52,6 +53,15 @@ export default function MyPortraitsPage() {
   useEffect(() => {
     loadCredits()
     loadGenerations()
+  }, [loadCredits, loadGenerations])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadCredits()
+      loadGenerations()
+    })
+    return () => subscription.unsubscribe()
   }, [loadCredits, loadGenerations])
 
   const unpurchasedCount = generations.filter((g) => g.status === 'completed' && !g.is_purchased).length

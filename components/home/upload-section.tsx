@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
 import { StyleSelector } from '@/components/style-selector'
@@ -89,12 +90,24 @@ export function UploadSection() {
     }
   }, [uploadedImageUrl, router])
 
-  useEffect(() => {
+  const fetchCredits = useCallback(() => {
     fetch('/api/credits', { credentials: 'include' })
       .then((r) => r.json())
       .then((d) => setTokens(d.balance ?? null))
       .catch(() => setTokens(null))
   }, [])
+
+  useEffect(() => {
+    fetchCredits()
+  }, [fetchCredits])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchCredits()
+    })
+    return () => subscription.unsubscribe()
+  }, [fetchCredits])
 
   const handleFile = useCallback(
     async (file: File | null) => {

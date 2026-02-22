@@ -9,13 +9,14 @@ export type GuestBalanceResult = {
 
 /**
  * Get current token balance for a guest. If no row exists, balance = GUEST_TOKENS_INITIAL.
- * Dev guest (DEV_GUEST_ID) always gets unlimited balance.
+ * Dev guest gets unlimited only when isDevGuestSession is true (requires dev_guest_active cookie).
  */
 export async function getGuestBalance(
   supabase: SupabaseClient,
-  guestId: string
+  guestId: string,
+  opts?: { isDevGuestSession: boolean }
 ): Promise<{ balance: number; tokensUsed: number }> {
-  if (isDevGuest(guestId)) {
+  if (opts?.isDevGuestSession && isDevGuest(guestId)) {
     return { balance: DEV_CREDITS_BALANCE, tokensUsed: 0 }
   }
 
@@ -33,13 +34,14 @@ export async function getGuestBalance(
 /**
  * Deduct one token for the guest. Returns true if deduction succeeded (had balance), false otherwise.
  * Creates row if not exists (first use).
- * Dev guest (DEV_GUEST_ID) never deducts; always returns true.
+ * Dev guest never deducts when isDevGuestSession is true; always returns true.
  */
 export async function deductGuestToken(
   supabase: SupabaseClient,
-  guestId: string
+  guestId: string,
+  opts?: { isDevGuestSession: boolean }
 ): Promise<boolean> {
-  if (isDevGuest(guestId)) return true
+  if (opts?.isDevGuestSession && isDevGuest(guestId)) return true
 
   // Upsert: insert with tokens_used=1 if missing, or update tokens_used = tokens_used + 1 where tokens_used < 2
   const { data: existing } = await supabase
@@ -60,11 +62,14 @@ export async function deductGuestToken(
     return false
   }
 
-  const { error: updateErr } = await supabase
+  // Optimistic lock: update only if tokens_used still matches. Verify row was actually updated
+  // to prevent race where two requests both read 0, one updates, the other's update matches 0 rows.
+  const { data: updated, error: updateErr } = await supabase
     .from('guest_token_usage')
     .update({ tokens_used: existing.tokens_used + 1 })
     .eq('guest_id', guestId)
     .eq('tokens_used', existing.tokens_used)
+    .select('id')
 
-  return !updateErr
+  return !updateErr && Array.isArray(updated) && updated.length === 1
 }

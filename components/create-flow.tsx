@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/primitives/button'
 import { Card, CardContent } from '@/components/primitives/card'
 import { Label } from '@/components/primitives/label'
@@ -186,6 +187,14 @@ export function CreateFlow({ category }: CreateFlowProps) {
   useEffect(() => {
     if (step === 'upload') fetchCredits()
   }, [step, fetchCredits])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchCredits()
+    })
+    return () => subscription.unsubscribe()
+  }, [fetchCredits])
 
   const startGeneration = useCallback(async () => {
     if (!selectedStyle) return
