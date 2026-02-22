@@ -30,7 +30,7 @@ export default function HomePage() {
         </div>
         {/* Portrait gallery */}
         <section
-          className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-0"
+          className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-0 px-4 md:px-6 box-border"
           style={{ height: '600px' }}
           aria-label="Portrait gallery"
         >
