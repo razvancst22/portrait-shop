@@ -406,9 +406,10 @@ class App {
   }
 
   onTouchDown(e: MouseEvent | TouchEvent) {
+    if ('touches' in e) e.preventDefault();
     this.isDown = true;
     this.scroll.position = this.scroll.current;
-    this.start = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    this.start = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
   }
 
   onTouchMove(e: MouseEvent | TouchEvent) {
@@ -481,10 +482,10 @@ class App {
     window.addEventListener('mousedown', this.boundOnTouchDown);
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
-    this.container.addEventListener('touchstart', this.boundOnTouchDown);
-    this.container.addEventListener('touchmove', this.boundOnTouchMove, { passive: false });
-    this.container.addEventListener('touchend', this.boundOnTouchUp);
-    this.container.addEventListener('touchcancel', this.boundOnTouchCancel);
+    this.container.addEventListener('touchstart', this.boundOnTouchDown, { passive: false, capture: true });
+    this.container.addEventListener('touchmove', this.boundOnTouchMove, { passive: false, capture: true });
+    this.container.addEventListener('touchend', this.boundOnTouchUp, { capture: true });
+    this.container.addEventListener('touchcancel', this.boundOnTouchCancel, { capture: true });
   }
 
   destroy() {
@@ -495,10 +496,10 @@ class App {
     window.removeEventListener('mousedown', this.boundOnTouchDown);
     window.removeEventListener('mousemove', this.boundOnTouchMove);
     window.removeEventListener('mouseup', this.boundOnTouchUp);
-    this.container.removeEventListener('touchstart', this.boundOnTouchDown);
-    this.container.removeEventListener('touchmove', this.boundOnTouchMove);
-    this.container.removeEventListener('touchend', this.boundOnTouchUp);
-    this.container.removeEventListener('touchcancel', this.boundOnTouchCancel);
+    this.container.removeEventListener('touchstart', this.boundOnTouchDown, true);
+    this.container.removeEventListener('touchmove', this.boundOnTouchMove, true);
+    this.container.removeEventListener('touchend', this.boundOnTouchUp, true);
+    this.container.removeEventListener('touchcancel', this.boundOnTouchCancel, true);
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }
@@ -537,7 +538,7 @@ export default function CircularGallery({
   return (
     <div
       className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
-      style={{ touchAction: 'pan-y' }}
+      style={{ touchAction: 'none' }}
       ref={containerRef}
     />
   );
