@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { CATEGORY_ROUTES } from '@/lib/prompts/artStyles'
+import { SITE_DOMAIN } from '@/lib/site-config'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://petportrait.shop'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || `https://${SITE_DOMAIN}`
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const categoryUrls = Object.values(CATEGORY_ROUTES).map((route) => ({

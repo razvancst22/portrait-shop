@@ -3,7 +3,7 @@ import { getButtonClassName } from '@/components/primitives/button'
 
 export const metadata = {
   title: 'Commercial License – Use Your Portrait for Business & Marketing',
-  description: 'Learn about commercial licensing options for petportrait.shop digital portraits. Use your classic art portrait for business, marketing, and merchandise.',
+  description: 'Learn about commercial licensing options for Portret digital portraits. Use your classic art portrait for business, marketing, and merchandise.',
 }
 
 export default function CommercialPage() {
@@ -20,7 +20,7 @@ export default function CommercialPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">1. Personal vs Commercial Use</h2>
           <p>
-            By default, when you purchase a digital portrait from petportrait.shop, you receive a non-exclusive license
+            By default, when you purchase a digital portrait from Portret, you receive a non-exclusive license
             to use the delivered files for <strong className="text-foreground">personal, non-commercial use</strong> only.
             This includes use at home, as gifts, on personal social media (non-promotional), and similar private uses.
           </p>
@@ -38,7 +38,7 @@ export default function CommercialPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">3. Commercial Use Requires Permission</h2>
           <p>
-            If you wish to use your petportrait.shop portrait for any commercial purpose, you must obtain our prior
+            If you wish to use your Portret portrait for any commercial purpose, you must obtain our prior
             written permission. Contact us via the Contact page with: your order number, a short description of the
             intended use (e.g. “print on mugs to sell in my shop”), and the scope (e.g. territory, duration). We may
             grant a commercial license subject to terms and possibly an additional fee.
@@ -49,7 +49,7 @@ export default function CommercialPage() {
           <h2 className="text-foreground font-semibold mt-6 mb-2">4. What You May Not Do</h2>
           <p>
             You may not, without our written permission: resell or sublicense the portrait; use it to train AI or machine-learning
-            models; use it in a way that suggests endorsement by petportrait.shop; or use it for any illegal or
+            models; use it in a way that suggests endorsement by Portret; or use it for any illegal or
             defamatory purpose. Unauthorized commercial use may result in revocation of your license and possible
             legal action.
           </p>

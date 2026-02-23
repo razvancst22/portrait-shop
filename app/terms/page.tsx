@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 
 export const metadata = {
-  title: 'Terms of Service – petportrait.shop',
-  description: 'Terms of Service for petportrait.shop',
+  title: 'Terms of Service – Portret',
+  description: 'Terms of Service for Portret',
 }
 
 export default function TermsPage() {
@@ -20,7 +20,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">1. Agreement to Terms</h2>
           <p>
-            By accessing or using petportrait.shop (“we”, “us”, “our”), you agree to be bound by these Terms of Service.
+            By accessing or using Portret (“we”, “us”, “our”), you agree to be bound by these Terms of Service.
             If you do not agree, do not use our service. We provide AI-generated pet portraits and digital downloads.
           </p>
         </section>
@@ -28,7 +28,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">2. Description of Service</h2>
           <p>
-            petportrait.shop allows you to upload a photo of your pet, choose an art style, and receive an AI-generated
+            Portret allows you to upload a photo of your pet, choose an art style, and receive an AI-generated
             portrait. You may preview the result with a watermark and, upon purchase, receive a digital bundle (high-resolution
             image and additional formats) by email. No physical prints are included unless otherwise stated.
           </p>

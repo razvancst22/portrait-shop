@@ -27,7 +27,7 @@ function SuccessContent() {
   }, [sessionId])
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
       <div className="max-w-md text-center">
         <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Thank you!</h1>
         <p className="text-muted-foreground mb-6">

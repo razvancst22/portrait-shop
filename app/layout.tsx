@@ -28,7 +28,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "petportrait.shop – AI Pet Portraits",
+  title: "Portret – AI Pet Portraits",
   description: "Turn your pet into a classic portrait. Choose a style and upload a photo.",
 };
 

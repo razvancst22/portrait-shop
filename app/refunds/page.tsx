@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 
 export const metadata = {
-  title: 'Refund Policy – petportrait.shop',
-  description: 'Refund policy for digital goods at petportrait.shop',
+  title: 'Refund Policy – Portret',
+  description: 'Refund policy for digital goods at Portret',
 }
 
 export default function RefundsPage() {
@@ -20,7 +20,7 @@ export default function RefundsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">1. Digital Products</h2>
           <p>
-            petportrait.shop sells digital products only: AI-generated pet portraits delivered as a digital bundle (high-resolution
+            Portret sells digital products only: AI-generated pet portraits delivered as a digital bundle (high-resolution
             image and additional formats) via email. Once you have received your download link and downloaded the files,
             the product has been delivered.
           </p>

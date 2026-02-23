@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Your preview – petportrait.shop',
+  title: 'Your preview – Portret',
   description: 'Your pet portrait preview is ready. Purchase your full digital bundle to get high-res and wallpaper formats.',
 }
 

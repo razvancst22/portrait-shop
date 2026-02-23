@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Sparkles, Download, RefreshCw, Package, Palette } from 'lucide-react'
+import { Sparkles, Download, Package, Palette, Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { Button } from '@/components/primitives/button'
@@ -11,6 +11,8 @@ import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { AddCreditsModal } from '@/components/add-credits-modal'
+import { OrderLookupModal } from '@/components/order-lookup-modal'
 import { ToastContainer } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 
@@ -53,6 +55,8 @@ export function AccountDashboard() {
   const [orders, setOrders] = useState<MyOrderItem[]>([])
   const [generations, setGenerations] = useState<MyGenerationItem[]>([])
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
+  const [addCreditsModalOpen, setAddCreditsModalOpen] = useState(false)
+  const [orderLookupModalOpen, setOrderLookupModalOpen] = useState(false)
 
   const loadBalance = useCallback(() => {
     setLoadingBalance(true)
@@ -111,13 +115,23 @@ export function AccountDashboard() {
 
   return (
     <div className="w-full max-w-3xl mx-auto text-left space-y-8">
-      <div>
-        <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
-          My Account
-        </h1>
-        <p className="text-muted-foreground">
-          Manage your plan, portrait credits, and order history.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
+            My Account
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your plan, portrait credits, and order history.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAddCreditsModalOpen(true)}
+          className="glass-red inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold"
+        >
+          <Plus className="size-4" />
+          Add Credits
+        </button>
       </div>
 
       {/* Credits cards - glassmorphism */}
@@ -187,7 +201,7 @@ export function AccountDashboard() {
         </div>
       </div>
 
-      {/* My Portraits */}
+      {/* My Portraits – unpurchased first */}
       <div
         className={cn(
           'glass-liquid glass-liquid-soft glass-liquid-hover p-6 rounded-2xl',
@@ -220,20 +234,52 @@ export function AccountDashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-            {generations.map((gen) => (
-              <PortraitActionCard
-                key={gen.id}
-                generationId={gen.id}
-                imageUrl={gen.preview_image_url}
-                imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                status={gen.status}
-                isPurchased={gen.is_purchased}
-                buttonsLayout="row"
-                onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
-              />
-            ))}
-          </div>
+          <>
+            {/* Unpurchased first */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
+              {generations
+                .filter((gen) => !gen.is_purchased)
+                .map((gen) => (
+                  <PortraitActionCard
+                    key={gen.id}
+                    generationId={gen.id}
+                    imageUrl={gen.preview_image_url}
+                    imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
+                    status={gen.status}
+                    isPurchased={false}
+                    buttonsLayout="row"
+                    onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
+                  />
+                ))}
+            </div>
+
+            {/* Purchased section */}
+            {generations.some((gen) => gen.is_purchased) && (
+              <div className="mt-8">
+                <h3 className="font-heading text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <span className="flex size-2 rounded-full bg-emerald-500" aria-hidden />
+                  Purchased
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
+                  {generations
+                    .filter((gen) => gen.is_purchased)
+                    .map((gen) => (
+                      <PortraitActionCard
+                        key={gen.id}
+                        generationId={gen.id}
+                        imageUrl={gen.preview_image_url}
+                        imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
+                        status={gen.status}
+                        isPurchased={true}
+                        buttonsLayout="row"
+                        className="ring-2 ring-emerald-500 ring-offset-2 ring-offset-background"
+                        onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -244,10 +290,20 @@ export function AccountDashboard() {
           'border border-border/50'
         )}
       >
-        <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Package className="size-5" />
-          Order History
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+            <Package className="size-5" />
+            Order History
+          </h2>
+          <button
+            type="button"
+            onClick={() => setOrderLookupModalOpen(true)}
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0"
+          >
+            <Search className="size-4" />
+            Order lookup
+          </button>
+        </div>
         {loadingOrders ? (
           <div className="space-y-3">
             <div className="h-14 rounded-xl bg-muted/30 animate-pulse" />
@@ -258,12 +314,6 @@ export function AccountDashboard() {
             <p className="text-sm text-muted-foreground">
               Orders placed while logged in, or with the same email, will appear here.
             </p>
-            <Link
-              href="/order-lookup"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Look up an order by order number and email →
-            </Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -300,48 +350,23 @@ export function AccountDashboard() {
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            loadBalance()
-            loadOrders()
-            loadGenerations()
-          }}
-          disabled={loadingBalance || loadingOrders || loadingGenerations}
-        >
-          <RefreshCw className={cn('size-4', (loadingBalance || loadingOrders || loadingGenerations) && 'animate-spin')} />
-          Refresh
-        </Button>
-        <Link
-          href="/my-portraits"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          View all portraits →
-        </Link>
-        <Link
-          href="/pricing"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Buy more credits →
-        </Link>
-        <Link
-          href="/order-lookup"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Order lookup →
-        </Link>
-      </div>
-
       <PreviewPackageModal
         open={packageModal !== null}
         onClose={() => setPackageModal(null)}
         variant={packageModal?.variant ?? 'portrait-pack'}
         generationId={packageModal?.generationId ?? ''}
         isPurchased={packageModal ? generations.find(g => g.id === packageModal.generationId)?.is_purchased ?? false : false}
+      />
+      <AddCreditsModal
+        open={addCreditsModalOpen}
+        onClose={() => setAddCreditsModalOpen(false)}
+        isLoggedIn={true}
+        onCreditsAdded={loadBalance}
+      />
+      <OrderLookupModal
+        open={orderLookupModalOpen}
+        onClose={() => setOrderLookupModalOpen(false)}
+        onSuccess={loadOrders}
       />
       <ToastContainer />
 

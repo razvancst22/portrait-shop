@@ -18,7 +18,7 @@ export default function ContactPage() {
         <Link href="/order-lookup" className="text-primary underline hover:no-underline">
           Order lookup
         </Link>{' '}
-        page to get a new download link. For other inquiries, email support at your domain (e.g. support@petportrait.shop).
+        page to get a new download link. For other inquiries, email support at your domain (e.g. support@portret.com).
       </p>
       <Link href="/" className={getButtonClassName('outline', 'sm', 'rounded-full')}>
         Back to home

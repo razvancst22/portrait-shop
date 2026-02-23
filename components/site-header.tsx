@@ -10,6 +10,7 @@ import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User as Use
 import { cn } from '@/lib/utils'
 import { AddCreditsModal } from '@/components/add-credits-modal'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
+import { SITE_NAME } from '@/lib/site-config'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import type { User } from '@supabase/supabase-js'
@@ -143,9 +144,9 @@ export function SiteHeader() {
                     closeDrawer()
                     router.push('/')
                   }}
-                  title={user?.email ?? 'petportrait.shop'}
+                  title={user?.email ?? SITE_NAME}
                 >
-                  {user?.email ?? 'petportrait.shop'}
+                  {user?.email ?? SITE_NAME}
                 </Link>
                 <div className="text-xs text-muted-foreground shrink-0">
                   Navigation
@@ -351,7 +352,7 @@ export function SiteHeader() {
             aria-label="Go to home"
             title="Go to home"
           >
-            petportrait.shop
+            {SITE_NAME}
           </Link>
 
           <div className="flex items-center gap-2">

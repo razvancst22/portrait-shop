@@ -27,7 +27,7 @@ export default function PricingPage() {
       </section>
 
       {/* Hero */}
-      <section className="text-center px-4 pt-12 pb-10 md:pt-16 md:pb-14">
+      <section className="text-center px-4 pt-8 pb-10 md:pt-12 md:pb-14">
         <h1 className="font-heading text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-3">
           Create Unlimited Classic Art Portraits
         </h1>

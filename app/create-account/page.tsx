@@ -14,7 +14,7 @@ export default async function CreateAccountPage({
   const { redirect } = await searchParams
   const redirectUrl = redirect && redirect.startsWith('/') ? redirect : undefined
   return (
-    <div className="flex flex-col items-center px-4 py-16 md:py-24 bg-generating">
+    <div className="flex flex-col items-center px-4 py-8 md:py-12 bg-generating">
       <main className="max-w-md w-full text-center">
         <h1 className="font-heading text-3xl font-semibold text-foreground mb-3">
           Create account

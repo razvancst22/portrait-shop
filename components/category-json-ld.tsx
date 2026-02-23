@@ -1,7 +1,8 @@
 import type { SubjectTypeId } from '@/lib/prompts/artStyles'
 import { CATEGORY_ROUTES } from '@/lib/prompts/artStyles'
+import { SITE_NAME, SITE_DOMAIN } from '@/lib/site-config'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://petportrait.shop'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || `https://${SITE_DOMAIN}`
 
 type CategoryJsonLdProps = {
   category: SubjectTypeId
@@ -14,7 +15,7 @@ export function CategoryJsonLd({ category }: CategoryJsonLdProps) {
   const webPage = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: `${route.title} | petportrait.shop`,
+    name: `${route.title} | ${SITE_NAME}`,
     description: `Turn your ${category} photo into a classic portrait. Renaissance, Baroque, Victorian styles. Free preview, one fixed price.`,
     url,
   }

@@ -7,11 +7,11 @@ import CircularGallery from '@/components/CircularGallery'
 import { GALLERY_IMAGES, getOptimalImageUrl } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'Classic Portraits for Pets, Family, Couples & More | petportrait.shop',
+  title: 'Classic Portraits for Pets, Family, Couples & More | Portret',
   description:
     'Turn your photos into Renaissance, Baroque, and Victorian masterpieces. Pet portraits, family portraits, couple portraits, children, and self-portraits. Free preview, one price.',
   openGraph: {
-    title: 'Classic Portraits for Pets, Family, Couples & More | petportrait.shop',
+    title: 'Classic Portraits for Pets, Family, Couples & More | Portret',
     description: 'Turn your photos into Renaissance, Baroque, and Victorian masterpieces. Pet, family, couple, children, self-portraits.',
     url: '/',
   },

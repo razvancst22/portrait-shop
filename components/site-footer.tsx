@@ -1,11 +1,19 @@
 import Link from 'next/link'
 import { Separator } from '@/components/primitives/separator'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
+import { SITE_NAME, BRANDING_MESSAGE } from '@/lib/site-config'
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-background mt-auto">
       <div className="container max-w-4xl mx-auto px-4 py-10">
+        {/* Branding block with logo */}
+        <div className="flex flex-col items-center gap-2 mb-8">
+          <Link href="/" className="font-heading text-xl font-semibold text-foreground hover:text-primary transition-colors">
+            {SITE_NAME}
+          </Link>
+          <p className="text-sm text-muted-foreground">{BRANDING_MESSAGE}</p>
+        </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground" aria-label="Footer">
           {SUBJECT_TYPE_IDS.map((id) => (
             <Link key={id} href={CATEGORY_ROUTES[id].path} className="hover:text-primary transition-colors duration-200">
@@ -39,7 +47,7 @@ export function SiteFooter() {
         </nav>
         <Separator className="my-6" />
         <p className="text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} petportrait.shop
+          © {new Date().getFullYear()} {SITE_NAME}
         </p>
       </div>
     </footer>

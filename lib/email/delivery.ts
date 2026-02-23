@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { SITE_NAME } from '@/lib/site-config'
 
 const TOKEN_EXPIRY_DAYS = 7
 
@@ -101,7 +102,7 @@ export async function sendDeliveryEmail(orderId: string): Promise<void> {
         <p>Your digital portrait bundle is ready. Order number: <strong>${order.order_number}</strong>.</p>
         <p><a href="${downloadUrl}">Download your portrait bundle</a></p>
         <p>This link expires in ${TOKEN_EXPIRY_DAYS} days. If you need a new link, use our <a href="${baseUrl}/order-lookup">order lookup</a> page.</p>
-        <p>— petportrait.shop</p>
+        <p>— ${SITE_NAME}</p>
       `,
     })
     if (error) {

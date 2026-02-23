@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 
 export const metadata = {
-  title: 'Privacy Policy – petportrait.shop',
-  description: 'Privacy Policy for petportrait.shop',
+  title: 'Privacy Policy – Portret',
+  description: 'Privacy Policy for Portret',
 }
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">1. Who We Are</h2>
           <p>
-            petportrait.shop (“we”, “us”) operates the pet portrait service. This Privacy Policy explains how we collect,
+            Portret (“we”, “us”) operates the pet portrait service. This Privacy Policy explains how we collect,
             use, and protect your information when you use our website and services.
           </p>
         </section>
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
             We use your information to: provide the portrait service (generation, preview, delivery); process payments;
             send order and download links by email; respond to support requests; improve our service; and comply with
             legal obligations. We may use your email to send transactional messages and, where permitted, occasional
-            updates about petportrait.shop; you can opt out of marketing at any time.
+            updates about Portret; you can opt out of marketing at any time.
           </p>
         </section>
 

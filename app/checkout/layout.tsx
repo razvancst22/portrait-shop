@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Checkout – petportrait.shop',
+  title: 'Checkout – Portret',
   description: 'Complete your purchase securely. Enter your email to continue to payment.',
 }
 

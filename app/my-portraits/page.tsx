@@ -67,7 +67,7 @@ export default function MyPortraitsPage() {
   const unpurchasedCount = generations.filter((g) => g.status === 'completed' && !g.is_purchased).length
 
   return (
-    <div className="px-4 py-12 md:py-16">
+    <div className="px-4 py-8 md:py-12">
       <main className="w-full max-w-3xl mx-auto text-left">
         <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
           My Portraits
