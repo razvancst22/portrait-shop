@@ -5,14 +5,6 @@ import { useEffect, useRef } from 'react';
 
 type GL = Renderer['gl'];
 
-function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
-  let timeout: number;
-  return function (this: any, ...args: Parameters<T>) {
-    window.clearTimeout(timeout);
-    timeout = window.setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
 function lerp(p1: number, p2: number, t: number): number {
   return p1 + (p2 - p1) * t;
 }
@@ -60,7 +52,6 @@ class Media {
   width!: number;
   widthTotal!: number;
   x!: number;
-  speed: number = 0;
   isBefore: boolean = false;
   isAfter: boolean = false;
 
@@ -181,6 +172,10 @@ class Media {
     const x = this.plane.position.x;
     const H = this.viewport.width / 2;
 
+    const speed = scroll.current - scroll.last;
+    this.program.uniforms.uTime.value += 0.04;
+    this.program.uniforms.uSpeed.value = speed;
+
     if (this.bend === 0) {
       this.plane.position.y = 0;
       this.plane.rotation.z = 0;
@@ -198,10 +193,6 @@ class Media {
         this.plane.rotation.z = Math.sign(x) * Math.asin(effectiveX / R);
       }
     }
-
-    this.speed = scroll.current - scroll.last;
-    this.program.uniforms.uTime.value += 0.04;
-    this.program.uniforms.uSpeed.value = this.speed;
 
     const planeOffset = this.plane.scale.x / 2;
     const viewportOffset = this.viewport.width / 2;
@@ -239,13 +230,12 @@ interface AppConfig {
   items?: { image: string; text?: string }[];
   bend?: number;
   borderRadius?: number;
-  scrollSpeed?: number;
   scrollEase?: number;
+  intervalMs?: number;
 }
 
 class App {
   container: HTMLElement;
-  scrollSpeed: number;
   scroll: {
     ease: number;
     current: number;
@@ -253,7 +243,8 @@ class App {
     last: number;
     position?: number;
   };
-  onCheckDebounce: (...args: any[]) => void;
+  intervalId: number = 0;
+  currentIndex: number = 0;
   renderer!: Renderer;
   gl!: GL;
   camera!: Camera;
@@ -266,13 +257,6 @@ class App {
   raf: number = 0;
 
   boundOnResize!: () => void;
-  boundOnWheel!: (e: Event) => void;
-  boundOnTouchDown!: (e: MouseEvent | TouchEvent) => void;
-  boundOnTouchMove!: (e: MouseEvent | TouchEvent) => void;
-  boundOnTouchUp!: () => void;
-
-  isDown: boolean = false;
-  start: number = 0;
 
   constructor(
     container: HTMLElement,
@@ -280,23 +264,32 @@ class App {
       items,
       bend = 1,
       borderRadius = 0,
-      scrollSpeed = 2,
-      scrollEase = 0.05
+      scrollEase = 0.08,
+      intervalMs = 3000
     }: AppConfig
   ) {
     document.documentElement.classList.remove('no-js');
     this.container = container;
-    this.scrollSpeed = scrollSpeed;
     this.scroll = { ease: scrollEase, current: 0, target: 0, last: 0 };
-    this.onCheckDebounce = debounce(this.onCheck.bind(this), 200);
     this.createRenderer();
     this.createCamera();
     this.createScene();
     this.onResize();
     this.createGeometry();
     this.createMedias(items, bend, borderRadius);
+    this.startAutoAdvance(intervalMs);
     this.update();
     this.addEventListeners();
+  }
+
+  startAutoAdvance(intervalMs: number) {
+    this.intervalId = window.setInterval(() => {
+      if (!this.medias?.length) return;
+      const width = this.medias[0].width;
+      const uniqueCount = this.mediasImages.length / 2;
+      this.currentIndex = (this.currentIndex + 1) % uniqueCount;
+      this.scroll.target = width * this.currentIndex;
+    }, intervalMs) as unknown as number;
   }
 
   createRenderer() {
@@ -366,39 +359,6 @@ class App {
     );
   }
 
-  onTouchDown(e: MouseEvent | TouchEvent) {
-    this.isDown = true;
-    this.scroll.position = this.scroll.current;
-    this.start = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-  }
-
-  onTouchMove(e: MouseEvent | TouchEvent) {
-    if (!this.isDown) return;
-    const x = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-    const distance = (this.start - x) * (this.scrollSpeed * 0.025);
-    this.scroll.target = (this.scroll.position ?? 0) + distance;
-  }
-
-  onTouchUp() {
-    this.isDown = false;
-    this.onCheck();
-  }
-
-  onWheel(e: Event) {
-    const wheelEvent = e as WheelEvent;
-    const delta = wheelEvent.deltaY || (wheelEvent as any).wheelDelta || (wheelEvent as any).detail;
-    this.scroll.target += (delta > 0 ? this.scrollSpeed : -this.scrollSpeed) * 0.2;
-    this.onCheckDebounce();
-  }
-
-  onCheck() {
-    if (!this.medias || !this.medias[0]) return;
-    const width = this.medias[0].width;
-    const itemIndex = Math.round(Math.abs(this.scroll.target) / width);
-    const item = width * itemIndex;
-    this.scroll.target = this.scroll.target < 0 ? -item : item;
-  }
-
   onResize() {
     this.screen = {
       width: this.container.clientWidth,
@@ -412,8 +372,12 @@ class App {
     const height = 2 * Math.tan(fov / 2) * this.camera.position.z;
     const width = height * this.camera.aspect;
     this.viewport = { width, height };
-    if (this.medias) {
+    if (this.medias?.length) {
       this.medias.forEach((media) => media.onResize({ screen: this.screen, viewport: this.viewport }));
+      const width = this.medias[0].width;
+      this.scroll.target = width * this.currentIndex;
+      this.scroll.current = this.scroll.target;
+      this.scroll.last = this.scroll.current;
     }
   }
 
@@ -430,32 +394,13 @@ class App {
 
   addEventListeners() {
     this.boundOnResize = this.onResize.bind(this);
-    this.boundOnWheel = this.onWheel.bind(this);
-    this.boundOnTouchDown = this.onTouchDown.bind(this);
-    this.boundOnTouchMove = this.onTouchMove.bind(this);
-    this.boundOnTouchUp = this.onTouchUp.bind(this);
     window.addEventListener('resize', this.boundOnResize);
-    window.addEventListener('mousewheel', this.boundOnWheel);
-    window.addEventListener('wheel', this.boundOnWheel);
-    window.addEventListener('mousedown', this.boundOnTouchDown);
-    window.addEventListener('mousemove', this.boundOnTouchMove);
-    window.addEventListener('mouseup', this.boundOnTouchUp);
-    window.addEventListener('touchstart', this.boundOnTouchDown);
-    window.addEventListener('touchmove', this.boundOnTouchMove);
-    window.addEventListener('touchend', this.boundOnTouchUp);
   }
 
   destroy() {
     window.cancelAnimationFrame(this.raf);
+    window.clearInterval(this.intervalId);
     window.removeEventListener('resize', this.boundOnResize);
-    window.removeEventListener('mousewheel', this.boundOnWheel);
-    window.removeEventListener('wheel', this.boundOnWheel);
-    window.removeEventListener('mousedown', this.boundOnTouchDown);
-    window.removeEventListener('mousemove', this.boundOnTouchMove);
-    window.removeEventListener('mouseup', this.boundOnTouchUp);
-    window.removeEventListener('touchstart', this.boundOnTouchDown);
-    window.removeEventListener('touchmove', this.boundOnTouchMove);
-    window.removeEventListener('touchend', this.boundOnTouchUp);
     if (this.renderer?.gl?.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }
@@ -466,16 +411,16 @@ interface CircularGalleryProps {
   items?: { image: string; text?: string }[];
   bend?: number;
   borderRadius?: number;
-  scrollSpeed?: number;
   scrollEase?: number;
+  intervalMs?: number;
 }
 
 export default function CircularGallery({
   items,
   bend = 3,
   borderRadius = 0.05,
-  scrollSpeed = 2,
-  scrollEase = 0.05
+  scrollEase = 0.08,
+  intervalMs = 3000
 }: CircularGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -484,14 +429,14 @@ export default function CircularGallery({
       items,
       bend,
       borderRadius,
-      scrollSpeed,
-      scrollEase
+      scrollEase,
+      intervalMs
     });
     return () => app.destroy();
-  }, [items, bend, borderRadius, scrollSpeed, scrollEase]);
+  }, [items, bend, borderRadius, scrollEase, intervalMs]);
   return (
     <div
-      className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
+      className="w-full h-full overflow-hidden"
       ref={containerRef}
     />
   );

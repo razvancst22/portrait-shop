@@ -38,8 +38,8 @@ export default function HomePage() {
             items={GALLERY_IMAGES.map((g) => ({ image: getOptimalImageUrl(g) }))}
             bend={0}
             borderRadius={0.05}
-            scrollSpeed={0.8}
             scrollEase={0.08}
+            intervalMs={3000}
           />
         </section>
         <section className="mt-10">
