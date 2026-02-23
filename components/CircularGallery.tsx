@@ -425,7 +425,8 @@ class App {
 
   onTouchUp() {
     this.isDown = false;
-    this.onCheck();
+    // Use debounced check for touch to allow smooth transitions
+    this.onCheckDebounce();
   }
 
   onWheel(e: Event) {
