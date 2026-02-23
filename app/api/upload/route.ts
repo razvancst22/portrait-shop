@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClientIfConfigured } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 import { serverErrorResponse } from '@/lib/api-error'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/request-utils'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -15,6 +17,24 @@ const UPLOAD_SIGNED_URL_EXPIRY_SECONDS = 7200 // 2 hours
  * The returned imageUrl expires in UPLOAD_SIGNED_URL_EXPIRY_SECONDS; use it for generate within that time.
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const ip = getClientIp(request)
+  const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Too many upload attempts. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimitResult.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitResult.retryAfterSeconds.toString(),
+        },
+      }
+    )
+  }
   try {
     const formData = await request.formData()
     const file = formData.get('file') ?? formData.get('image')

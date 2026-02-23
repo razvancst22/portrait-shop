@@ -23,6 +23,8 @@ import { canUseFreeGeneration, recordFreeGenerationUseFromRequest } from '@/lib/
 import { getClientIp } from '@/lib/request-utils'
 import { serverErrorResponse } from '@/lib/api-error'
 import { isOpenAIProvider } from '@/lib/image-provider'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { DEFAULT_COOKIE_OPTIONS } from '@/lib/cookie-utils'
 
 const INSUFFICIENT_CREDITS_MESSAGE =
   "You've used your 2 free portraits. Sign in to get more, or buy Portrait Generations."
@@ -39,6 +41,24 @@ const SUPABASE_REQUIRED_MESSAGE =
  * Without Supabase: returns 503 (no token deducted).
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting (in addition to credit-based limiting)
+  const ip = getClientIp(request)
+  const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Too many generation attempts. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimitResult.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitResult.retryAfterSeconds.toString(),
+        },
+      }
+    )
+  }
   const sizeError = checkJsonBodySize(request)
   if (sizeError) return sizeError
 
@@ -285,11 +305,8 @@ export async function POST(request: NextRequest) {
     })
     if (!user && isNewGuest) {
       res.cookies.set(GUEST_ID_COOKIE, guestId, {
-        httpOnly: true,
-        sameSite: 'lax',
+        ...DEFAULT_COOKIE_OPTIONS,
         maxAge: GUEST_ID_COOKIE_MAX_AGE,
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
       })
     }
     return res

@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import { toFile } from 'openai/uploads'
+import { validateUrlForFetch, getAllowedImageDomains } from '@/lib/url-validator'
 
 const MODEL = 'gpt-image-1.5'
 
@@ -14,6 +15,13 @@ export async function generatePortraitFromReference(
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set')
+  }
+
+  // Validate URL to prevent SSRF attacks
+  const allowedDomains = getAllowedImageDomains()
+  const validation = validateUrlForFetch(referenceImageUrl, allowedDomains)
+  if (!validation.valid) {
+    throw new Error(`Invalid reference image URL: ${validation.error}`)
   }
 
   const response = await fetch(referenceImageUrl)

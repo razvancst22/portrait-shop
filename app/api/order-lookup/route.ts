@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { sendDeliveryEmail } from '@/lib/email/delivery'
 import { checkJsonBodySize } from '@/lib/api-limits'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/request-utils'
 
 const GENERIC_MESSAGE =
   "If that order exists, we've sent a new download link to the email you provided."
@@ -12,6 +14,16 @@ const GENERIC_MESSAGE =
  * Always returns 200 with generic message (no information leak).
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const ip = getClientIp(request)
+  const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
+  if (!rateLimitResult.allowed) {
+    // Return generic response to avoid information disclosure
+    return NextResponse.json({
+      success: true,
+      message: GENERIC_MESSAGE,
+    })
+  }
   const sizeError = checkJsonBodySize(request)
   if (sizeError) return sizeError
   let body: { orderNumber?: string; email?: string }

@@ -8,6 +8,8 @@ import { checkJsonBodySize } from '@/lib/api-limits'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
 import { serverErrorResponse } from '@/lib/api-error'
 import { checkoutBodySchema, validationErrorResponse } from '@/lib/api-schemas'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/request-utils'
 
 function generateOrderNumber(): string {
   const t = Date.now().toString(36).slice(-6)
@@ -23,6 +25,25 @@ const PENDING_EMAIL_PLACEHOLDER = 'pending@stripe'
  * Returns: { checkoutUrl } or error if Stripe not configured.
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const ip = getClientIp(request)
+  const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Too many checkout attempts. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: rateLimitResult.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitResult.retryAfterSeconds.toString(),
+        },
+      }
+    )
+  }
+
   const sizeError = checkJsonBodySize(request)
   if (sizeError) return sizeError
   try {

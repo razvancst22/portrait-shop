@@ -486,10 +486,6 @@ class App {
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
     const canvas = this.renderer.gl.canvas as HTMLCanvasElement;
-    this.container.addEventListener('touchstart', this.boundOnTouchDown, { passive: false, capture: true });
-    this.container.addEventListener('touchmove', this.boundOnTouchMove, { passive: false, capture: true });
-    this.container.addEventListener('touchend', this.boundOnTouchUp, { capture: true });
-    this.container.addEventListener('touchcancel', this.boundOnTouchCancel, { capture: true });
     canvas.addEventListener('touchstart', this.boundOnTouchDown, { passive: false, capture: true });
     canvas.addEventListener('touchmove', this.boundOnTouchMove, { passive: false, capture: true });
     canvas.addEventListener('touchend', this.boundOnTouchUp, { capture: true });
@@ -505,10 +501,6 @@ class App {
     window.removeEventListener('mousemove', this.boundOnTouchMove);
     window.removeEventListener('mouseup', this.boundOnTouchUp);
     const canvas = this.renderer?.gl?.canvas as HTMLCanvasElement | undefined;
-    this.container.removeEventListener('touchstart', this.boundOnTouchDown, true);
-    this.container.removeEventListener('touchmove', this.boundOnTouchMove, true);
-    this.container.removeEventListener('touchend', this.boundOnTouchUp, true);
-    this.container.removeEventListener('touchcancel', this.boundOnTouchCancel, true);
     if (canvas) {
       canvas.removeEventListener('touchstart', this.boundOnTouchDown, true);
       canvas.removeEventListener('touchmove', this.boundOnTouchMove, true);

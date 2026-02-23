@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BUCKET_DELIVERABLES, BUCKET_UPLOADS } from '@/lib/constants'
 import { upscaleImage, isUpscaleConfigured } from '@/lib/ai/upscale'
 import { ensureStorageBuckets } from '@/lib/supabase/storage'
+import { validateUrlForFetch, getAllowedImageDomains } from '@/lib/url-validator'
 
 /**
  * Generate a single 4K PNG from generation.final_image_url using Replicate upscale,
@@ -13,6 +14,7 @@ export async function generateAndStoreBundle(
   generationId: string
 ): Promise<{ delivered: boolean; error?: string }> {
   const supabase = createClient()
+  const allowedDomains = getAllowedImageDomains()
 
   const { data: gen, error: genError } = await supabase
     .from('generations')
@@ -50,7 +52,17 @@ export async function generateAndStoreBundle(
       upscaledUrl = data.signedUrl
     }
     
+    // Validate URL before fetching
+    const validation = validateUrlForFetch(upscaledUrl, allowedDomains)
+    if (!validation.valid) {
+      return { delivered: false, error: `Invalid upscaled image URL: ${validation.error}` }
+    }
+
     // Download existing upscaled image
+    const validation = validateUrlForFetch(upscaledUrl, allowedDomains)
+    if (!validation.valid) {
+      return { delivered: false, error: `Invalid upscaled image URL: ${validation.error}` }
+    }
     const response = await fetch(upscaledUrl)
     if (!response.ok) {
       return { delivered: false, error: 'Failed to fetch existing upscaled image' }
@@ -122,6 +134,11 @@ export async function generateAndStoreBundle(
       finalBuffer = upscaledBuffer
     } else {
       console.log('Replicate upscale failed, using original image')
+      // Validate URL before fetching
+      const validation = validateUrlForFetch(sourceImageUrl, allowedDomains)
+      if (!validation.valid) {
+        return { delivered: false, error: `Invalid source image URL: ${validation.error}` }
+      }
       // Fallback: download original image
       const response = await fetch(sourceImageUrl)
       if (!response.ok) {
@@ -131,6 +148,11 @@ export async function generateAndStoreBundle(
     }
   } else {
     console.log('Replicate not configured, using original image')
+    // Validate URL before fetching
+    const validation = validateUrlForFetch(sourceImageUrl, allowedDomains)
+    if (!validation.valid) {
+      return { delivered: false, error: `Invalid source image URL: ${validation.error}` }
+    }
     // Fallback: download original image
     const response = await fetch(sourceImageUrl)
     if (!response.ok) {

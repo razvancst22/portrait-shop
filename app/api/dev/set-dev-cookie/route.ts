@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
   const devId = process.env.DEV_GUEST_ID?.trim()
   if (process.env.NODE_ENV !== 'development' || !devId) {
     return NextResponse.json(
-      { error: 'Dev cookie only available in development with DEV_GUEST_ID set.' },
-      { status: 403 }
+      { error: 'Not found' },
+      { status: 404 }
     )
   }
 

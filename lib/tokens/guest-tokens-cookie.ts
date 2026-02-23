@@ -8,13 +8,11 @@ import {
   POST_LOGOUT_COOKIE,
   POST_LOGOUT_MAX_AGE,
 } from './constants'
+import { DEFAULT_COOKIE_OPTIONS, EXPIRE_COOKIE_OPTIONS } from '@/lib/cookie-utils'
 
 const COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
+  ...DEFAULT_COOKIE_OPTIONS,
   maxAge: GUEST_ID_COOKIE_MAX_AGE,
-  path: '/' as const,
-  secure: process.env.NODE_ENV === 'production',
 }
 
 /**
@@ -60,21 +58,12 @@ export function setGuestIdCookie(
 }
 
 /** Cookie options to expire/delete a cookie (maxAge: 0). */
-const EXPIRE_COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  maxAge: 0,
-  path: '/' as const,
-  secure: process.env.NODE_ENV === 'production',
-}
+// Re-using EXPIRE_COOKIE_OPTIONS from cookie-utils.ts
 
 /** Post-logout cookie: 1h expiry so credits API returns 0 instead of creating new guest. */
 const POST_LOGOUT_COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
+  ...DEFAULT_COOKIE_OPTIONS,
   maxAge: POST_LOGOUT_MAX_AGE,
-  path: '/' as const,
-  secure: process.env.NODE_ENV === 'production',
 }
 
 /**
