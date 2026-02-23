@@ -73,9 +73,9 @@ const POST_LOGOUT_COOKIE_OPTS = {
 export function clearGuestCookies(
   res: { cookies: { set: (name: string, value: string, opts: object) => void } }
 ) {
-  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTS)
-  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTS)
-  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
+  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
+  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
   res.cookies.set(POST_LOGOUT_COOKIE, '1', POST_LOGOUT_COOKIE_OPTS)
 }
 
@@ -86,8 +86,8 @@ export function clearGuestCookies(
 export function expireGuestAndPostLogoutCookies(
   res: { cookies: { set: (name: string, value: string, opts: object) => void } }
 ) {
-  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTS)
-  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTS)
-  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTS)
-  res.cookies.set(POST_LOGOUT_COOKIE, '', EXPIRE_COOKIE_OPTS)
+  res.cookies.set(GUEST_ID_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
+  res.cookies.set(GUEST_BALANCE_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
+  res.cookies.set(DEV_GUEST_ACTIVE_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
+  res.cookies.set(POST_LOGOUT_COOKIE, '', EXPIRE_COOKIE_OPTIONS)
 }

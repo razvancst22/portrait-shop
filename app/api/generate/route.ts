@@ -42,8 +42,8 @@ const SUPABASE_REQUIRED_MESSAGE =
  */
 export async function POST(request: NextRequest) {
   // Apply rate limiting (in addition to credit-based limiting)
-  const ip = getClientIp(request)
-  const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
+  const clientIp = getClientIp(request)
+  const rateLimitResult = checkRateLimit(clientIp, request.nextUrl.pathname)
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       {
@@ -124,12 +124,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const ip = getClientIp(request)
   const userAgent = request.headers.get('user-agent') ?? null
   const acceptLanguage = request.headers.get('accept-language') ?? null
   if (!user && !isDevGuestWithActiveSession(guestId, hasDevGuestActive)) {
     try {
-      const allowedByAbuseCap = await canUseFreeGeneration(supabase, ip, userAgent, acceptLanguage)
+      const allowedByAbuseCap = await canUseFreeGeneration(supabase, clientIp, userAgent, acceptLanguage)
       if (!allowedByAbuseCap) {
         return NextResponse.json(
           { error: ABUSE_CAP_MESSAGE, code: 'FREE_CAP_30_DAYS' },
@@ -293,7 +292,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       try {
-        await recordFreeGenerationUseFromRequest(supabase, ip, userAgent, acceptLanguage)
+        await recordFreeGenerationUseFromRequest(supabase, clientIp, userAgent, acceptLanguage)
       } catch (e) {
         console.error('Abuse prevention record failed (non-blocking):', e)
       }

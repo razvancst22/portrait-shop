@@ -103,7 +103,7 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
 export const generateBodySchema = z.object({
   imageUrl: z.string().min(1, 'Missing or invalid imageUrl').refine(
     (url) => validateImageUrl(url).valid,
-    (url) => ({ message: validateImageUrl(url).error || 'Invalid imageUrl' })
+    'Invalid imageUrl. Must be a valid HTTPS URL from allowed domains.'
   ),
   idempotencyKey: z.string().min(1).max(255).optional(),
   artStyle: z.enum(ART_STYLE_IDS, {

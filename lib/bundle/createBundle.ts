@@ -58,11 +58,6 @@ export async function generateAndStoreBundle(
       return { delivered: false, error: `Invalid upscaled image URL: ${validation.error}` }
     }
 
-    // Download existing upscaled image
-    const validation = validateUrlForFetch(upscaledUrl, allowedDomains)
-    if (!validation.valid) {
-      return { delivered: false, error: `Invalid upscaled image URL: ${validation.error}` }
-    }
     const response = await fetch(upscaledUrl)
     if (!response.ok) {
       return { delivered: false, error: 'Failed to fetch existing upscaled image' }
