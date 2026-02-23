@@ -3,13 +3,13 @@ import { CreateFlow } from '@/components/create-flow'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 
 export const metadata: Metadata = {
-  title: 'Dog Portraits in Classic Art Styles | petportrait.shop',
+  title: 'AI Dog Portraits – Create Renaissance & Victorian Art From Your Dog Photo',
   description:
-    'Turn your dog into a Renaissance, Baroque, or Victorian masterpiece. AI-generated dog portraits. Free preview, one fixed price for your digital bundle.',
+    'Transform your dog photo into a museum-worthy Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • High-resolution download • Perfect for gifts & keepsakes.',
   openGraph: {
-    title: 'Dog Portraits in Classic Art Styles | petportrait.shop',
+    title: 'AI Dog Portraits – Create Renaissance & Victorian Art From Your Dog Photo',
     description:
-      'Turn your dog into a Renaissance, Baroque, or Victorian masterpiece. AI-generated dog portraits.',
+      'Transform your dog photo into a museum-worthy Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • High-resolution download.',
     url: '/dog-portraits',
   },
 }

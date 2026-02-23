@@ -3,12 +3,13 @@ import { CreateFlow } from '@/components/create-flow'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 
 export const metadata: Metadata = {
-  title: 'Family Portraits in Classic Art Styles | petportrait.shop',
+  title: 'AI Family Portraits – Heirloom Renaissance & Victorian Group Art',
   description:
-    'Turn your family photo into a Renaissance or Baroque group portrait. AI-generated family portraits. Free preview, one fixed price for your digital bundle.',
+    'Create a timeless family heirloom from your photo in Renaissance, Baroque, or Victorian style. Free preview • Perfect for generations • One fixed price.',
   openGraph: {
-    title: 'Family Portraits in Classic Art Styles | petportrait.shop',
-    description: 'Turn your family photo into a Renaissance or Baroque group portrait. AI-generated family portraits.',
+    title: 'AI Family Portraits – Heirloom Renaissance & Victorian Group Art',
+    description:
+      'Create a timeless family heirloom from your photo in Renaissance, Baroque, or Victorian style. Free preview • One fixed price.',
     url: '/family-portraits',
   },
 }

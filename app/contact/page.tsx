@@ -3,8 +3,8 @@ import { getButtonClassName } from '@/components/primitives/button'
 import { PageContainer } from '@/components/layout/page-container'
 
 export const metadata = {
-  title: 'Contact – petportrait.shop',
-  description: 'Contact petportrait.shop',
+  title: 'Contact Support – Get Help With Your Classic Portrait Order',
+  description: 'Need help with your portrait order? Contact our support team or use order lookup to retrieve your download link. Fast, friendly assistance.',
 }
 
 export default function ContactPage() {

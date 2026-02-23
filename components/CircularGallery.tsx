@@ -277,6 +277,8 @@ class App {
 
   isDown: boolean = false;
   start: number = 0;
+  // Track if this was triggered by wheel (for snap logic)
+  fromWheel: boolean = false;
 
   constructor(
     container: HTMLElement,
@@ -314,6 +316,7 @@ class App {
     const canvas = this.renderer.gl.canvas as HTMLCanvasElement;
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;';
     this.container.style.position = 'relative';
+    this.container.style.overscrollBehavior = 'contain';
     this.container.appendChild(canvas);
   }
 
@@ -409,6 +412,7 @@ class App {
   }
 
   onTouchDown(e: MouseEvent | TouchEvent) {
+    this.fromWheel = false;
     if ('touches' in e) e.preventDefault();
     this.isDown = true;
     this.scroll.position = this.scroll.current;
@@ -425,23 +429,28 @@ class App {
 
   onTouchUp() {
     this.isDown = false;
-    // Use debounced check for touch to allow smooth transitions
-    this.onCheckDebounce();
+    this.fromWheel = false;
+    // Snap to nearest item on touch release so a photo stays centered
+    this.onCheck(true);
   }
 
   onWheel(e: Event) {
     const wheelEvent = e as WheelEvent;
     const delta = wheelEvent.deltaY || (wheelEvent as any).wheelDelta || (wheelEvent as any).detail;
     this.scroll.target += (delta > 0 ? this.scrollSpeed : -this.scrollSpeed) * 0.2;
+    this.fromWheel = true;
     this.onCheckDebounce();
   }
 
-  onCheck() {
+  onCheck(forceSnap?: boolean) {
     if (!this.medias || !this.medias[0]) return;
     const width = this.medias[0].width;
     const itemIndex = Math.round(Math.abs(this.scroll.target) / width);
     const item = width * itemIndex;
-    this.scroll.target = this.scroll.target < 0 ? -item : item;
+    // Snap when from wheel (debounced) or explicitly on touch release
+    if (forceSnap ?? this.fromWheel) {
+      this.scroll.target = this.scroll.target < 0 ? -item : item;
+    }
   }
 
   onResize() {
@@ -487,10 +496,15 @@ class App {
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
     const canvas = this.renderer.gl.canvas as HTMLCanvasElement;
-    canvas.addEventListener('touchstart', this.boundOnTouchDown, { passive: false, capture: true });
-    canvas.addEventListener('touchmove', this.boundOnTouchMove, { passive: false, capture: true });
+    const touchOpts = { passive: false, capture: true };
+    canvas.addEventListener('touchstart', this.boundOnTouchDown, touchOpts);
+    canvas.addEventListener('touchmove', this.boundOnTouchMove, touchOpts);
     canvas.addEventListener('touchend', this.boundOnTouchUp, { capture: true });
     canvas.addEventListener('touchcancel', this.boundOnTouchCancel, { capture: true });
+    this.container.addEventListener('touchstart', this.boundOnTouchDown, touchOpts);
+    this.container.addEventListener('touchmove', this.boundOnTouchMove, touchOpts);
+    this.container.addEventListener('touchend', this.boundOnTouchUp, { capture: true });
+    this.container.addEventListener('touchcancel', this.boundOnTouchCancel, { capture: true });
   }
 
   destroy() {
@@ -508,6 +522,10 @@ class App {
       canvas.removeEventListener('touchend', this.boundOnTouchUp, true);
       canvas.removeEventListener('touchcancel', this.boundOnTouchCancel, true);
     }
+    this.container.removeEventListener('touchstart', this.boundOnTouchDown, true);
+    this.container.removeEventListener('touchmove', this.boundOnTouchMove, true);
+    this.container.removeEventListener('touchend', this.boundOnTouchUp, true);
+    this.container.removeEventListener('touchcancel', this.boundOnTouchCancel, true);
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }

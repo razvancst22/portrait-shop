@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'My Portraits | petportrait.shop',
-  description: 'View your created portraits and purchase high-resolution downloads.',
+  title: 'My Portraits – Access Your Classic Art Creations',
+  description: 'View and download your AI-generated Renaissance, Baroque, and Victorian portraits. Access your high-resolution artwork anytime.',
 }
 
 export default function MyPortraitsLayout({

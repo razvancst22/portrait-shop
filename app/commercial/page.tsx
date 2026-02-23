@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 
 export const metadata = {
-  title: 'Commercial Use – petportrait.shop',
-  description: 'Commercial use terms for petportrait.shop digital portraits',
+  title: 'Commercial License – Use Your Portrait for Business & Marketing',
+  description: 'Learn about commercial licensing options for petportrait.shop digital portraits. Use your classic art portrait for business, marketing, and merchandise.',
 }
 
 export default function CommercialPage() {

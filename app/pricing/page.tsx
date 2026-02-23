@@ -6,16 +6,16 @@ import { Check } from 'lucide-react'
 import { PricingPlanCards } from '@/components/pricing/pricing-plan-cards'
 
 export const metadata: Metadata = {
-  title: 'Pricing – Choose Your Package | petportrait.shop',
-  description: 'Unlock premium styles and create unlimited masterpieces. Pay per portrait or get art prints.',
+  title: 'Pricing – Create Unlimited Classic Art Portraits From Your Photos',
+  description: 'Create stunning Renaissance, Baroque, and Victorian portraits from your photos. Free preview available • One price for everything • High-resolution downloads.',
 }
 
 const PAY_PER_PORTRAIT = [
-  { title: 'Pet Portrait', description: 'Single pet image upload', price: 20, badge: null },
-  { title: 'Family Portrait', description: 'Family & multi-image uploads', price: 20, badge: null },
-  { title: 'Children Portrait', description: 'Child portrait from your photo', price: 20, badge: null },
-  { title: 'Couple Portrait', description: 'Two people, one portrait', price: 20, badge: null },
-  { title: 'Self Portrait', description: 'Your own classic portrait', price: 20, badge: null },
+  { title: 'Pet Portrait', description: 'Transform your beloved pet into a masterpiece', price: 20, badge: null },
+  { title: 'Family Portrait', description: 'Create a timeless family heirloom', price: 20, badge: null },
+  { title: 'Children Portrait', description: 'Turn your child into a little prince/princess', price: 20, badge: null },
+  { title: 'Couple Portrait', description: 'Capture your love forever in classic art', price: 20, badge: null },
+  { title: 'Self Portrait', description: 'Become part of art history', price: 20, badge: null },
 ]
 
 const ART_PRINT_SIZES = [
@@ -51,10 +51,10 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="text-center px-4 pt-12 pb-10 md:pt-16 md:pb-14">
         <h1 className="font-heading text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-3">
-          Choose Your Package
+          Create Unlimited Classic Art Portraits
         </h1>
         <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto">
-          Unlock premium styles and create unlimited masterpieces
+          Choose from 19 stunning art styles. Free preview • High-resolution downloads • No subscription required.
         </p>
       </section>
 
@@ -66,10 +66,10 @@ export default function PricingPage() {
       {/* Pay-Per-Portrait */}
       <section className="px-4 pb-14 md:pb-20">
         <h2 className="font-heading text-xl md:text-2xl font-semibold text-foreground mb-2 text-center">
-          Pay-Per-Portrait
+          Pay-Per-Portrait – No Commitment
         </h2>
         <p className="text-muted-foreground text-center text-sm md:text-base mb-8 max-w-lg mx-auto">
-          Don&apos;t need a pack? Purchase individual portraits at these prices.
+          Just need one portrait? Get exactly what you want with no subscription or commitment required.
         </p>
         <div className="max-w-4xl mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PAY_PER_PORTRAIT.map((item) => (
@@ -104,11 +104,10 @@ export default function PricingPage() {
       {/* Art Print Pricing */}
       <section className="px-4 pb-14 md:pb-20">
         <h2 className="font-heading text-xl md:text-2xl font-semibold text-foreground mb-2 text-center">
-          Art Print Pricing
+          Museum-Quality Art Prints
         </h2>
         <p className="text-muted-foreground text-center text-sm md:text-base mb-8 max-w-2xl mx-auto">
-          Museum-quality archival prints on premium matte art paper using fade-resistant inks. Not photo prints — these
-          are fine art reproductions built to last generations.
+          Order archival prints on premium matte art paper using fade-resistant inks. These are museum-quality fine art reproductions built to last generations – not ordinary photo prints.
         </p>
         <div className="max-w-4xl mx-auto grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ART_PRINT_SIZES.map(({ size, price }) => (

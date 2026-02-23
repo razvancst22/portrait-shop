@@ -3,12 +3,13 @@ import { CreateFlow } from '@/components/create-flow'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 
 export const metadata: Metadata = {
-  title: 'Self Portrait in Classic Art Styles | petportrait.shop',
+  title: 'AI Self Portraits – Become Art in Renaissance & Victorian Style',
   description:
-    'Turn your photo into a Renaissance, Baroque, or Victorian self-portrait. AI-generated classic portraits. Free preview, one fixed price for your digital bundle.',
+    'Transform your photo into a museum-worthy Renaissance, Baroque, or Victorian self-portrait. See your preview in minutes • Stand out on social media.',
   openGraph: {
-    title: 'Self Portrait in Classic Art Styles | petportrait.shop',
-    description: 'Turn your photo into a Renaissance, Baroque, or Victorian self-portrait. AI-generated classic portraits.',
+    title: 'AI Self Portraits – Become Art in Renaissance & Victorian Style',
+    description:
+      'Transform your photo into a museum-worthy Renaissance, Baroque, or Victorian self-portrait. See your preview in minutes.',
     url: '/self-portrait',
   },
 }

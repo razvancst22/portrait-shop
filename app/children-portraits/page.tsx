@@ -3,12 +3,13 @@ import { CreateFlow } from '@/components/create-flow'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 
 export const metadata: Metadata = {
-  title: 'Children Portraits in Classic Art Styles | petportrait.shop',
+  title: 'AI Children Portraits – Little Prince & Princess Renaissance Art',
   description:
-    'Turn your child\'s photo into a Renaissance or Victorian portrait. AI-generated children portraits. Free preview, one fixed price for your digital bundle.',
+    'Transform your child photo into a beautiful Renaissance or Victorian portrait. See your preview instantly • Perfect keepsake for parents & grandparents.',
   openGraph: {
-    title: 'Children Portraits in Classic Art Styles | petportrait.shop',
-    description: 'Turn your child\'s photo into a Renaissance or Victorian portrait. AI-generated children portraits.',
+    title: 'AI Children Portraits – Little Prince & Princess Renaissance Art',
+    description:
+      'Transform your child photo into a beautiful Renaissance or Victorian portrait. See your preview instantly • Perfect keepsake.',
     url: '/children-portraits',
   },
 }

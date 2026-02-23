@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { AuthForm } from '@/components/auth/auth-form'
 
 export const metadata: Metadata = {
-  title: 'Log in | petportrait.shop',
-  description: 'Sign in to your account to buy more Portrait Generations and manage your portraits.',
+  title: 'Sign In – Create More Classic Art Portraits',
+  description: 'Sign in to access unlimited portrait generations, manage your artwork, and get exclusive discounts. Start creating more Renaissance, Baroque, and Victorian masterpieces.',
 }
 
 export default function LoginPage() {

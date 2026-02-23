@@ -3,12 +3,13 @@ import { CreateFlow } from '@/components/create-flow'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 
 export const metadata: Metadata = {
-  title: 'Couple Portraits in Classic Art Styles | petportrait.shop',
+  title: 'AI Couple Portraits – Romantic Renaissance & Victorian Double Portraits',
   description:
-    'Turn your couple photo into a Renaissance or Baroque double portrait. AI-generated couple portraits. Free preview, one fixed price for your digital bundle.',
+    'Capture your love forever with a stunning Renaissance or Baroque double portrait. Upload your photo, get a free preview • Perfect anniversary & wedding gifts.',
   openGraph: {
-    title: 'Couple Portraits in Classic Art Styles | petportrait.shop',
-    description: 'Turn your couple photo into a Renaissance or Baroque double portrait. AI-generated couple portraits.',
+    title: 'AI Couple Portraits – Romantic Renaissance & Victorian Double Portraits',
+    description:
+      'Capture your love forever with a stunning Renaissance or Baroque double portrait. Upload your photo, get a free preview.',
     url: '/couple-portraits',
   },
 }
