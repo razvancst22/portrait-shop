@@ -31,7 +31,7 @@ export default function HomePage() {
         {/* Portrait gallery */}
         <section
           className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-10 px-4 md:px-6 box-border"
-          style={{ height: '380px' }}
+          style={{ height: '440px' }}
           aria-label="Portrait gallery"
         >
           <CircularGallery
