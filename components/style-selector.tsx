@@ -44,14 +44,14 @@ export function StyleSelector({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          'inline-flex items-center justify-center gap-2 rounded-xl px-4 h-8 text-sm font-medium',
+          'inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-4 h-8 text-sm font-medium whitespace-nowrap shrink-0',
           'glass-red shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200',
           'disabled:opacity-50 disabled:pointer-events-none disabled:hover:translate-y-0',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
         )}
         title="Pick style"
       >
-        <Palette className="size-4" />
+        <Palette className="size-4 shrink-0" />
         <span>Pick Style</span>
       </button>
 

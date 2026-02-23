@@ -106,7 +106,7 @@ export function UploadPhotoArea({
     : subtitle
 
   const containerClass = cn(
-    'flex flex-col min-h-[200px] w-full p-6 transition-all duration-300 ease-out',
+    'flex flex-col min-h-[200px] w-full p-4 sm:p-6 transition-all duration-300 ease-out',
     'glass-liquid glass-liquid-soft glass-liquid-hover',
     'outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isDragOver && '!bg-primary/20 !border-primary/40 scale-[1.02] shadow-[0_0_0_2px_var(--primary)]',
@@ -142,8 +142,8 @@ export function UploadPhotoArea({
   const inner = (
     <>
       {/* Top row: tokens left, pick style right */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-h-[1.5rem]">
+      <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-4">
+        <div className="flex items-center gap-1 sm:gap-1.5 text-sm text-muted-foreground min-h-[1.5rem] min-w-0 flex-1">
           {creditsCount === 0 && onAddCredits && showAddCreditsButton ? (
             <button
               type="button"
@@ -165,7 +165,7 @@ export function UploadPhotoArea({
               <Sparkles className="size-4 text-primary/80 shrink-0" aria-hidden />
               <span
                 key={`credits-${creditsCount ?? 'loading'}`}
-                className="font-medium text-foreground animate-in fade-in duration-300"
+                className="font-medium text-foreground animate-in fade-in duration-300 break-words"
               >
                 {creditsCount !== null
                   ? `${creditsCount} ${creditsCount === 1 ? creditsLabel : creditsLabel + 's'}`
@@ -174,7 +174,7 @@ export function UploadPhotoArea({
             </>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {styleSelector ? (
             <div
               onClick={(e) => {
@@ -187,10 +187,10 @@ export function UploadPhotoArea({
           ) : pickStyleHref ? (
             <a
               href={pickStyleHref}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
               onClick={(e) => e.stopPropagation()}
             >
-              <Palette className="size-4 text-primary/80" aria-hidden />
+              <Palette className="size-4 shrink-0 text-primary/80" aria-hidden />
               <span className="font-medium">{pickStyleLabel}</span>
             </a>
           ) : onPickStyle ? (
@@ -200,14 +200,14 @@ export function UploadPhotoArea({
                 e.stopPropagation()
                 onPickStyle()
               }}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
             >
-              <Palette className="size-4 text-primary/80" aria-hidden />
+              <Palette className="size-4 shrink-0 text-primary/80" aria-hidden />
               <span className="font-medium">{pickStyleLabel}</span>
             </button>
           ) : pickStyleLabel ? (
-            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Palette className="size-4 text-primary/80" aria-hidden />
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
+              <Palette className="size-4 shrink-0 text-primary/80" aria-hidden />
               <span className="font-medium">{pickStyleLabel}</span>
             </span>
           ) : null}
@@ -216,7 +216,7 @@ export function UploadPhotoArea({
 
       {/* Center: upload icon, title, subtitle */}
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="relative mb-3">
+        <div className="relative mb-2 sm:mb-3">
           <div className="flex items-center justify-center size-16 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-xl border border-white/30 dark:border-white/15 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_8px_-2px_rgba(0,0,0,0.3)]">
             <ImagePlus className="size-8" aria-hidden strokeWidth={1.5} />
           </div>
