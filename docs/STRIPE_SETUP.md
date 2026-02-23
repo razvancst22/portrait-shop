@@ -83,9 +83,22 @@ For local and staging, use only **test** keys and test webhook secrets so no rea
 - Upload, style selection, generation, and preview (with watermarked image) work without Stripe.
 - The **Purchase** button on the preview page goes to checkout; if Stripe is not configured, the checkout API returns an error and the checkout page can show “Stripe not configured yet” (see implementation).
 
+## Supported products (4 digital)
+
+All four use dynamic Stripe pricing (no pre-created products required):
+
+| Product | Price | Flow |
+|---------|-------|------|
+| **Get your Portrait** | $14.99 ($9.99 with 1h discount) | `/checkout?generationId=...` |
+| **Starter Pack** | $19.99 | `/checkout?pack=starter` (sign-in required) |
+| **Creator Pack** | $49.99 | `/checkout?pack=creator` (sign-in required) |
+| **Artist Pack** | $139.99 | `/checkout?pack=artist` (sign-in required) |
+
+**Art Print Pack** (physical prints) will use Print on Demand API later.
+
 ## App behaviour
 
-- **Checkout:** `/checkout?generationId=...` → enter email → redirect to Stripe Checkout ($10).
+- **Checkout:** `/checkout?generationId=...` → enter email → redirect to Stripe Checkout.
 - **After payment:** Stripe redirects to `/order/success?session_id=...`.
 - **Webhook:** `POST /api/webhooks/stripe` receives `checkout.session.completed`, updates the order and generation, and will trigger bundle generation (Task 16).
 

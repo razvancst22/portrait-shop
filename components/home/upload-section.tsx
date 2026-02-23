@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
-import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
+import { AddCreditsModal } from '@/components/add-credits-modal'
 import { StyleSelector } from '@/components/style-selector'
 import { Button } from '@/components/primitives/button'
 
@@ -28,13 +29,14 @@ export function UploadSection() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [tokens, setTokens] = useState<number | null>(null)
-  const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false)
+  const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [user, setUser] = useState<{ id: string } | null>(null)
 
   const handleChangePhoto = useCallback(() => {
     setUploadedImageUrl(null)
@@ -72,7 +74,7 @@ export function UploadSection() {
         const err = await res.json().catch(() => ({}))
         if (res.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
           setGenerateError(err.error ?? "You've used your free portraits. Sign in or buy Portrait Generations.")
-          setShowOutOfCreditsModal(true)
+          setShowAddCreditsModal(true)
         } else {
           setGenerateError(err.error || `Generation failed: ${res.status}`)
         }
@@ -91,7 +93,7 @@ export function UploadSection() {
   }, [uploadedImageUrl, router])
 
   const fetchCredits = useCallback(() => {
-    fetch('/api/credits', { credentials: 'include' })
+    fetch('/api/credits', { credentials: 'include', cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => setTokens(d.balance ?? null))
       .catch(() => setTokens(null))
@@ -103,11 +105,23 @@ export function UploadSection() {
 
   useEffect(() => {
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
       fetchCredits()
     })
     return () => subscription.unsubscribe()
   }, [fetchCredits])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchCredits()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchCredits])
+
+  useCreditsUpdateListener(fetchCredits)
 
   const handleFile = useCallback(
     async (file: File | null) => {
@@ -184,13 +198,23 @@ export function UploadSection() {
       />
       {uploadedImageUrl ? (
         <div className="flex flex-col items-center text-center animate-fade-in">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4 rounded-full -mt-2"
+            onClick={handleChangePhoto}
+            disabled={generating}
+            type="button"
+          >
+            ← Back
+          </Button>
           <p className="text-sm font-medium text-foreground mb-2">
             {generating ? 'Creating your portrait...' : 'Photo uploaded. Pick a style to create your portrait.'}
           </p>
-          <div className="relative aspect-[4/5] w-40 rounded-xl overflow-hidden bg-muted mb-3">
+          <div className="relative aspect-[4/5] w-40 rounded-2xl overflow-hidden bg-muted/50 border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_16px_rgba(0,0,0,0.3)] mb-3">
             <Image src={uploadedImageUrl} alt="Your upload" fill className="object-cover object-center" unoptimized />
             {generating && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-md">
                 <span className="text-sm font-medium">Creating…</span>
               </div>
             )}
@@ -227,13 +251,14 @@ export function UploadSection() {
           subtitle={subtitle}
           subtitleRotateIntervalMs={0}
           as="button"
-          onClick={() => setShowOutOfCreditsModal(true)}
+          onClick={() => setShowAddCreditsModal(true)}
+          onAddCredits={() => setShowAddCreditsModal(true)}
           disabled={false}
           styleSelector={
             <StyleSelector
               selectedStyle={selectedStyle || undefined}
               onStyleSelect={handleStyleSelect}
-              disabled={true}
+              disabled={false}
             />
           }
         />
@@ -264,7 +289,15 @@ export function UploadSection() {
           {uploadError}
         </p>
       )}
-      <OutOfCreditsModal open={showOutOfCreditsModal} onClose={() => setShowOutOfCreditsModal(false)} />
+      <AddCreditsModal
+        open={showAddCreditsModal}
+        onClose={() => {
+          setShowAddCreditsModal(false)
+          fetchCredits()
+        }}
+        isLoggedIn={!!user}
+        onCreditsAdded={fetchCredits}
+      />
     </section>
   )
 }

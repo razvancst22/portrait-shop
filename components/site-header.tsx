@@ -2,14 +2,16 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AddCreditsModal } from '@/components/add-credits-modal'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { createClient } from '@/lib/supabase/client'
+import { useCreditsUpdateListener } from '@/lib/credits-events'
 import type { User } from '@supabase/supabase-js'
 
 const FOCUSABLE = 'a[href], button:not([disabled])'
@@ -18,18 +20,36 @@ export function SiteHeader() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
+  const [credits, setCredits] = useState<number | null>(null)
   const [createExpanded, setCreateExpanded] = useState(true)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const fetchCredits = useCallback(() => {
+    fetch('/api/credits', { credentials: 'include', cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => setCredits(d.balance ?? null))
+      .catch(() => setCredits(null))
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      fetchCredits()
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchCredits])
+
+  useEffect(() => {
+    fetchCredits()
+  }, [fetchCredits])
+
+  useCreditsUpdateListener(fetchCredits)
 
   const handleSignOut = async () => {
     closeDrawer()
@@ -90,9 +110,13 @@ export function SiteHeader() {
   }, [drawerOpen])
 
   const closeDrawer = () => setDrawerOpen(false)
+  const openAddCredits = () => {
+    setShowAddCreditsModal(true)
+    closeDrawer()
+  }
 
   const drawerContent =
-    drawerOpen && typeof document !== 'undefined'
+    mounted && drawerOpen
       ? createPortal(
           <>
             <div
@@ -103,7 +127,7 @@ export function SiteHeader() {
             <div
               ref={panelRef}
               className={cn(
-                'fixed inset-y-0 right-0 z-[100] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-xl',
+                'fixed inset-y-0 right-0 z-[101] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-xl',
                 'animate-in slide-in-from-right duration-300'
               )}
               role="dialog"
@@ -114,7 +138,11 @@ export function SiteHeader() {
                 <Link
                   href="/"
                   className="font-heading text-lg font-semibold text-foreground truncate max-w-[180px]"
-                  onClick={closeDrawer}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    closeDrawer()
+                    router.push('/')
+                  }}
                   title={user?.email ?? 'petportrait.shop'}
                 >
                   {user?.email ?? 'petportrait.shop'}
@@ -149,50 +177,60 @@ export function SiteHeader() {
                     <div className="ml-8 mt-1 space-y-1">
                       <Link
                         href="/dog-portraits"
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
-                        )}
-                        onClick={closeDrawer}
+                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeDrawer()
+                          router.push('/dog-portraits')
+                        }}
                       >
                         <Heart className="size-4" />
                         <span>Pet Portraits</span>
                       </Link>
                       <Link
                         href="/family-portraits"
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
-                        )}
-                        onClick={closeDrawer}
+                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeDrawer()
+                          router.push('/family-portraits')
+                        }}
                       >
                         <Users className="size-4" />
                         <span>Family Portraits</span>
                       </Link>
                       <Link
                         href="/children-portraits"
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
-                        )}
-                        onClick={closeDrawer}
+                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeDrawer()
+                          router.push('/children-portraits')
+                        }}
                       >
                         <Baby className="size-4" />
                         <span>Children's Portraits</span>
                       </Link>
                       <Link
                         href="/couple-portraits"
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
-                        )}
-                        onClick={closeDrawer}
+                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeDrawer()
+                          router.push('/couple-portraits')
+                        }}
                       >
                         <Heart className="size-4" />
                         <span>Couple Portraits</span>
                       </Link>
                       <Link
                         href="/self-portrait"
-                        className={cn(
-                          'flex items-center gap-3 p-2 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors'
-                        )}
-                        onClick={closeDrawer}
+                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeDrawer()
+                          router.push('/self-portrait')
+                        }}
                       >
                         <UserIcon className="size-4" />
                         <span>Self-Portraits</span>
@@ -201,13 +239,34 @@ export function SiteHeader() {
                   )}
                 </div>
 
+                {/* Add Credits (when credits > 0, only in menu – red glass, floats on top) */}
+                {credits !== null && credits > 0 && (
+                  <div className="relative z-10 my-2 -mx-1">
+                    <button
+                      type="button"
+                      className={cn(
+                        'glass-red flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-semibold',
+                        'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
+                      )}
+                      onClick={openAddCredits}
+                    >
+                      <Sparkles className="size-5" />
+                      <span>Add Credits</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* My Portraits */}
                 <Link
                   href="/my-portraits"
                   className={cn(
                     'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
                   )}
-                  onClick={closeDrawer}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    closeDrawer()
+                    router.push('/my-portraits')
+                  }}
                 >
                   <Clock className="size-5" />
                   <span>My Portraits</span>
@@ -219,7 +278,11 @@ export function SiteHeader() {
                   className={cn(
                     'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
                   )}
-                  onClick={closeDrawer}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    closeDrawer()
+                    router.push('/pricing')
+                  }}
                 >
                   <DollarSign className="size-5" />
                   <span>Pricing</span>
@@ -232,7 +295,11 @@ export function SiteHeader() {
                     className={cn(
                       'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
                     )}
-                    onClick={closeDrawer}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/account')
+                    }}
                   >
                     <Settings className="size-5" />
                     <span>My Account</span>
@@ -256,7 +323,11 @@ export function SiteHeader() {
                     className={cn(
                       'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
                     )}
-                    onClick={closeDrawer}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/login')
+                    }}
                   >
                     <UserIcon className="size-5" />
                     <span>Sign In</span>
@@ -277,12 +348,26 @@ export function SiteHeader() {
           <Link
             href="/"
             className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors duration-200"
+            aria-label="Go to home"
+            title="Go to home"
           >
             petportrait.shop
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* Menu: all nav options are inside the drawer. Icon can be replaced later. */}
+            {credits === 0 && (
+              <button
+                type="button"
+                className={cn(
+                  'glass-red flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm',
+                  'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
+                )}
+                onClick={() => setShowAddCreditsModal(true)}
+              >
+                <Sparkles className="size-5" />
+                <span>Add Credits</span>
+              </button>
+            )}
             <Button
               ref={menuButtonRef}
               variant="ghost"
@@ -297,6 +382,12 @@ export function SiteHeader() {
         </div>
       </header>
       {drawerContent}
+      <AddCreditsModal
+        open={showAddCreditsModal}
+        onClose={() => setShowAddCreditsModal(false)}
+        isLoggedIn={!!user}
+        onCreditsAdded={fetchCredits}
+      />
     </>
   )
 }

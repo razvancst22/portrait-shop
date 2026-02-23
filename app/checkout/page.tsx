@@ -2,26 +2,47 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { getButtonClassName } from '@/components/primitives/button'
 
 function CheckoutRedirect() {
   const searchParams = useSearchParams()
   const generationId = searchParams.get('generationId')
-  const [status, setStatus] = useState<'redirecting' | 'error' | 'stripe_not_configured' | 'missing'>('redirecting')
+  const useDiscount = searchParams.get('useDiscount') === 'true'
+  const pack = searchParams.get('pack')
+  const print = searchParams.get('print')
+
+  const hasGenerationFlow = !!generationId
+  const hasPackFlow = pack === 'starter' || pack === 'creator' || pack === 'artist'
+
+  const [status, setStatus] = useState<'redirecting' | 'error' | 'stripe_not_configured' | 'missing' | 'sign_in_required'>('redirecting')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  const initiatedRef = useRef<string | null>(null)
+
   useEffect(() => {
-    if (!generationId) {
+    if (!hasGenerationFlow && !hasPackFlow) {
       setStatus('missing')
       return
     }
 
+    const requestKey = hasPackFlow ? `pack-${pack}` : `gen-${generationId}-${print ?? ''}-${useDiscount}`
+    if (initiatedRef.current === requestKey) return
+    initiatedRef.current = requestKey
+
     let cancelled = false
+    const body: Record<string, unknown> = hasPackFlow
+      ? { pack }
+      : {
+          generationId,
+          useDiscount,
+          ...(print && { print }),
+        }
     fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ generationId }),
+      body: JSON.stringify(body),
+      credentials: 'include',
     })
       .then((res) => res.json().catch(() => ({})))
       .then((data) => {
@@ -30,9 +51,18 @@ function CheckoutRedirect() {
           setStatus('stripe_not_configured')
           return
         }
-        if (data.bypass && data.downloadUrl) {
-          // Bypass mode - redirect directly to download
-          window.location.href = data.downloadUrl
+        if (data.code === 'SIGN_IN_REQUIRED') {
+          setStatus('sign_in_required')
+          return
+        }
+        if (data.bypass) {
+          if (data.downloadUrl) {
+            window.location.href = data.downloadUrl
+          } else if (hasPackFlow) {
+            window.location.href = '/account'
+          } else {
+            window.location.href = '/order/success'
+          }
           return
         }
         if (data.checkoutUrl) {
@@ -51,18 +81,38 @@ function CheckoutRedirect() {
     return () => {
       cancelled = true
     }
-  }, [generationId])
+  }, [generationId, useDiscount, pack, print, hasGenerationFlow, hasPackFlow])
 
-  if (!generationId || status === 'missing') {
+  if (status === 'sign_in_required') {
+    const returnUrl = `/checkout?pack=${pack ?? ''}`
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4">
         <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
-          <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Missing portrait</h1>
+          <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Sign in required</h1>
           <p className="text-muted-foreground mb-6">
-            Please start from your portrait preview or cart to purchase.
+            Digital Packs require an account. Sign in to continue your purchase.
           </p>
-          <Link href="/my-portraits" className={getButtonClassName('default', 'lg', 'rounded-full')}>
-            My portraits
+          <Link
+            href={`/login?redirect=${encodeURIComponent(returnUrl)}`}
+            className={getButtonClassName('default', 'lg', 'rounded-full')}
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'missing') {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-4">
+        <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
+          <h1 className="font-heading text-xl font-semibold text-foreground mb-2">Missing product</h1>
+          <p className="text-muted-foreground mb-6">
+            Please start from the pricing page or your portrait preview to purchase.
+          </p>
+          <Link href="/pricing" className={getButtonClassName('default', 'lg', 'rounded-full')}>
+            View pricing
           </Link>
         </div>
       </div>
@@ -84,8 +134,11 @@ function CheckoutRedirect() {
             See <strong className="text-foreground">petportrait/docs/STRIPE_SETUP.md</strong> in the project for
             step-by-step instructions.
           </p>
-          <Link href={`/preview/${generationId}`} className={getButtonClassName('default', 'lg', 'rounded-full')}>
-            Back to preview
+          <Link
+            href={generationId ? `/preview/${generationId}` : '/pricing'}
+            className={getButtonClassName('default', 'lg', 'rounded-full')}
+          >
+            {generationId ? 'Back to preview' : 'Back to pricing'}
           </Link>
         </div>
       </div>
@@ -100,8 +153,11 @@ function CheckoutRedirect() {
           <p className="text-muted-foreground mb-6" role="alert">
             {errorMessage}
           </p>
-          <Link href={`/preview/${generationId}`} className={getButtonClassName('default', 'lg', 'rounded-full')}>
-            Back to preview
+          <Link
+            href={generationId ? `/preview/${generationId}` : '/pricing'}
+            className={getButtonClassName('default', 'lg', 'rounded-full')}
+          >
+            {generationId ? 'Back to preview' : 'Back to pricing'}
           </Link>
         </div>
       </div>
@@ -113,10 +169,12 @@ function CheckoutRedirect() {
       <div className="max-w-md w-full text-center rounded-xl border border-border bg-card p-6">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-primary mx-auto mb-4" />
         <h1 className="font-heading text-xl font-semibold text-foreground mb-2">
-          Redirecting to Stripe…
+          {hasPackFlow ? 'Preparing your pack…' : 'Redirecting to payment…'}
         </h1>
         <p className="text-muted-foreground text-sm">
-          You’ll enter your email and payment details on Stripe’s secure page.
+          {hasPackFlow
+            ? 'Adding credits or redirecting to secure checkout.'
+            : "You'll enter your email and payment details on our secure payment page."}
         </p>
       </div>
     </div>

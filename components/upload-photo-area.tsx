@@ -38,6 +38,8 @@ export type UploadPhotoAreaProps = {
   isDragOver?: boolean
   /** Accessibility: disabled when no Portrait Generations */
   disabled?: boolean
+  /** When creditsCount is 0, called when user clicks Add Credits. Enables alternating slot. */
+  onAddCredits?: () => void
   children?: React.ReactNode
 }
 
@@ -51,6 +53,20 @@ function useRotatingMessage(messages: string[], intervalMs: number): string {
     return () => clearInterval(id)
   }, [messages.length, intervalMs])
   return messages[index] ?? ''
+}
+
+const ADD_CREDITS_ALTERNATE_INTERVAL_MS = 3000
+
+function useAlternatingSlot(active: boolean): boolean {
+  const [showButton, setShowButton] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const id = setInterval(() => {
+      setShowButton((prev) => !prev)
+    }, ADD_CREDITS_ALTERNATE_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [active])
+  return showButton
 }
 
 export function UploadPhotoArea({
@@ -73,9 +89,13 @@ export function UploadPhotoArea({
   className,
   isDragOver = false,
   disabled = false,
+  onAddCredits,
   children,
   styleSelector,
 }: UploadPhotoAreaProps) {
+  const showAddCreditsButton = useAlternatingSlot(
+    creditsCount === 0 && !!onAddCredits
+  )
   const subtitleMessages = Array.isArray(subtitle) ? subtitle : [subtitle]
   const rotatingSubtitle = useRotatingMessage(
     subtitleMessages,
@@ -86,11 +106,11 @@ export function UploadPhotoArea({
     : subtitle
 
   const containerClass = cn(
-    'flex flex-col min-h-[200px] w-full rounded-2xl border-2 border-dashed p-6 transition-all duration-200',
-    'border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/10 hover:shadow-lg hover:-translate-y-0.5',
-    'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-    isDragOver && 'border-primary bg-primary/15',
-    disabled && 'opacity-80 cursor-not-allowed hover:translate-y-0',
+    'flex flex-col min-h-[200px] w-full p-6 transition-all duration-300 ease-out',
+    'glass-liquid glass-liquid-soft glass-liquid-hover',
+    'outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    isDragOver && '!bg-primary/20 !border-primary/40 scale-[1.02] shadow-[0_0_0_2px_var(--primary)]',
+    disabled && 'opacity-70 cursor-not-allowed hover:translate-y-0 hover:!scale-100',
     className
   )
 
@@ -105,7 +125,17 @@ export function UploadPhotoArea({
       ...(onClick && { onClick }),
       ...(onKeyDown && { onKeyDown }),
     }),
-    ...(as === 'button' && { type: 'button' as const, onClick, role: 'button' as const, tabIndex: 0 }),
+    ...(as === 'button' && {
+      role: 'button' as const,
+      tabIndex: 0,
+      onClick,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault()
+          ;(onClick as (e: React.MouseEvent) => void)(e as unknown as React.MouseEvent)
+        }
+      },
+    }),
     ...(as === 'link' && { href, role: 'link' as const }),
   }
 
@@ -113,17 +143,45 @@ export function UploadPhotoArea({
     <>
       {/* Top row: tokens left, pick style right */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Sparkles className="size-4 text-primary/80" aria-hidden />
-          <span className="font-medium text-foreground">
-            {creditsCount !== null
-              ? `${creditsCount} ${creditsCount === 1 ? creditsLabel : creditsLabel + 's'}`
-              : '…'}
-          </span>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-h-[1.5rem]">
+          {creditsCount === 0 && onAddCredits && showAddCreditsButton ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onAddCredits()
+              }}
+              className={cn(
+                'glass-red inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold',
+                'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in duration-300'
+              )}
+            >
+              <Sparkles className="size-5 shrink-0" aria-hidden />
+              <span>Add Credits</span>
+            </button>
+          ) : (
+            <>
+              <Sparkles className="size-4 text-primary/80 shrink-0" aria-hidden />
+              <span
+                key={`credits-${creditsCount ?? 'loading'}`}
+                className="font-medium text-foreground animate-in fade-in duration-300"
+              >
+                {creditsCount !== null
+                  ? `${creditsCount} ${creditsCount === 1 ? creditsLabel : creditsLabel + 's'}`
+                  : '…'}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {styleSelector ? (
-            <div onClick={(e) => e.stopPropagation()}>
+            <div
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
               {styleSelector}
             </div>
           ) : pickStyleHref ? (
@@ -159,11 +217,11 @@ export function UploadPhotoArea({
       {/* Center: upload icon, title, subtitle */}
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         <div className="relative mb-3">
-          <div className="flex items-center justify-center size-14 rounded-xl bg-muted/80 text-muted-foreground">
-            <ImagePlus className="size-7" aria-hidden />
+          <div className="flex items-center justify-center size-16 rounded-2xl bg-white/20 dark:bg-white/10 backdrop-blur-xl border border-white/30 dark:border-white/15 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_8px_-2px_rgba(0,0,0,0.3)]">
+            <ImagePlus className="size-8" aria-hidden strokeWidth={1.5} />
           </div>
           <span
-            className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold"
+            className="absolute -top-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-bold shadow-lg shadow-primary/30 border border-white/20"
             aria-hidden
           >
             +
@@ -187,7 +245,7 @@ export function UploadPhotoArea({
     return <label {...wrapperProps}>{inner}</label>
   }
   if (as === 'button') {
-    return <button {...wrapperProps}>{inner}</button>
+    return <div {...wrapperProps}>{inner}</div>
   }
   if (as === 'link') {
     return <a {...wrapperProps}>{inner}</a>

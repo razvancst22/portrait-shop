@@ -23,7 +23,7 @@ type OrderRow = {
 }
 
 /**
- * GET /api/my-orders – list delivered orders for the logged-in user.
+ * GET /api/my-orders – list paid and delivered orders for the logged-in user.
  * Matches by user_id (when logged in at checkout) or customer_email (guest/legacy).
  * Resilient when user_id column is missing (migration not applied).
  */
@@ -45,7 +45,7 @@ export async function GET() {
   const { data: userIdRows, error: errByUser } = await supabase
     .from('orders')
     .select('id, order_number, created_at, status, total_usd, customer_email')
-    .eq('status', 'delivered')
+    .in('status', ['paid', 'delivered'])
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -56,11 +56,11 @@ export async function GET() {
     console.error('my-orders (user_id) error:', errByUser)
   }
 
-  // Fallback: query all delivered (no user_id - works when column missing)
+  // Fallback: query all paid/delivered (no user_id - works when column missing)
   const { data: allRows, error: errAll } = await supabase
     .from('orders')
     .select('id, order_number, created_at, status, total_usd, customer_email')
-    .eq('status', 'delivered')
+    .in('status', ['paid', 'delivered'])
     .order('created_at', { ascending: false })
     .limit(100)
 

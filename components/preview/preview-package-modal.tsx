@@ -6,13 +6,8 @@ import Link from 'next/link'
 import { getButtonClassName } from '@/components/primitives/button'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const ART_PRINT_OPTIONS = [
-  { dimensions: '8×10"', price: 89 },
-  { dimensions: '12×16"', price: 119 },
-  { dimensions: '18×24"', price: 199 },
-  { dimensions: '24×36"', price: 299 },
-] as const
+import { ART_PRINT_OPTIONS } from '@/lib/pricing/constants'
+import { CountdownOfferBanner } from './countdown-offer-banner'
 
 export type PreviewPackageVariant = 'portrait-pack' | 'art-print-pack'
 
@@ -22,21 +17,37 @@ type PreviewPackageModalProps = {
   variant: PreviewPackageVariant
   generationId: string
   isPurchased?: boolean
+  /** Price for Get your Portrait (full or discounted) */
+  getYourPortraitPrice?: number
+  /** Whether 1-hour discount is active */
+  discountActive?: boolean
+  /** When discount expires (ms timestamp) - show countdown in modal */
+  discountExpiresAt?: number
   className?: string
 }
 
 /**
- * Modal that shows the singular package CTA: either Portrait Pack (for Download 4K)
- * or Art Print Pack (for Order Print). Content matches pricing page.
+ * Modal that shows Get your Portrait (for Download 4K) or Art Print Pack (for Order Print).
+ * Content matches pricing page.
  */
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
+
 export function PreviewPackageModal({
   open,
   onClose,
   variant,
   generationId,
   isPurchased = false,
+  getYourPortraitPrice = 14.99,
+  discountActive = false,
+  discountExpiresAt,
   className,
 }: PreviewPackageModalProps) {
+  const mounted = useMounted()
   const [artPrintOption, setArtPrintOption] = useState<(typeof ART_PRINT_OPTIONS)[number]>(
     ART_PRINT_OPTIONS[0]
   )
@@ -56,28 +67,35 @@ export function PreviewPackageModal({
 
   if (!open) return null
 
+  const checkoutUrl = new URL('/checkout', window.location.origin)
+  checkoutUrl.searchParams.set('generationId', generationId)
+  if (discountActive) checkoutUrl.searchParams.set('useDiscount', 'true')
+
   const portraitPackContent = (
     <>
       <h2 id="preview-package-modal-title" className="font-heading text-xl font-semibold text-foreground pr-8">
-        Portrait Pack
+        Get your Portrait
       </h2>
+      {discountExpiresAt != null && discountActive && (
+        <CountdownOfferBanner expiresAt={discountExpiresAt} onExpired={onClose} className="mb-2" />
+      )}
       <div className="mt-2 text-center">
         <p className="text-3xl font-heading font-semibold tabular-nums">
-          <span className="text-lg align-top">$</span>20
+          <span className="text-lg align-top">$</span>
+          {getYourPortraitPrice.toFixed(2)}
         </p>
+        {discountActive && (
+          <p className="text-xs text-muted-foreground mt-1">33% off limited time offer</p>
+        )}
       </div>
       <ul className="space-y-2 text-sm text-foreground">
         <li className="flex gap-2">
           <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-          <span>5 Portrait Generations</span>
+          <span>Upgrade to 4K</span>
         </li>
         <li className="flex gap-2">
           <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-          <span>1 High Res Download ready to print</span>
-        </li>
-        <li className="flex gap-2">
-          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-          <span>Lifetime access to your portrait</span>
+          <span>No watermark</span>
         </li>
       </ul>
       {isPurchased ? (
@@ -87,10 +105,10 @@ export function PreviewPackageModal({
         </div>
       ) : (
         <Link
-          href={`/checkout?generationId=${encodeURIComponent(generationId)}`}
+          href={checkoutUrl.toString()}
           className={getButtonClassName('default', 'lg', 'w-full rounded-xl')}
         >
-          Get Portrait Pack
+          Get your Portrait
         </Link>
       )}
     </>
@@ -116,7 +134,7 @@ export function PreviewPackageModal({
         >
           {ART_PRINT_OPTIONS.map((opt) => (
             <option key={opt.dimensions} value={opt.dimensions}>
-              {opt.dimensions} – ${opt.price}
+              {opt.dimensions}
             </option>
           ))}
         </select>
@@ -128,7 +146,15 @@ export function PreviewPackageModal({
       <ul className="space-y-2 text-sm text-foreground">
         <li className="flex gap-2">
           <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
-          <span>10 Portrait Generations – Creator pack included</span>
+          <span>Museum quality print</span>
+        </li>
+        <li className="flex gap-2">
+          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+          <span>Last over 100 years</span>
+        </li>
+        <li className="flex gap-2">
+          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+          <span>Free shipping worldwide</span>
         </li>
       </ul>
       <Link
@@ -171,5 +197,5 @@ export function PreviewPackageModal({
     </div>
   )
 
-  return typeof document !== 'undefined' ? createPortal(modal, document.body) : null
+  return mounted ? createPortal(modal, document.body) : null
 }

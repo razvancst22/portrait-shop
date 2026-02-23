@@ -286,8 +286,7 @@ class App {
     this.intervalId = window.setInterval(() => {
       if (!this.medias?.length) return;
       const width = this.medias[0].width;
-      const uniqueCount = this.mediasImages.length / 2;
-      this.currentIndex = (this.currentIndex + 1) % uniqueCount;
+      this.currentIndex += 1;
       this.scroll.target = width * this.currentIndex;
     }, intervalMs) as unknown as number;
   }

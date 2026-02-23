@@ -4,6 +4,7 @@ import { createClientIfConfigured } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { getGuestBalance } from '@/lib/tokens/guest-tokens'
 import { getUserBalance } from '@/lib/tokens/user-tokens'
+import { getPackBalance } from '@/lib/pack-credits'
 import {
   getGuestBalanceFromCookie,
   setGuestBalanceCookie,
@@ -30,21 +31,26 @@ export async function GET() {
   const user = await getOptionalUser()
   if (user) {
     if (isDevUser(user.email)) {
-      return NextResponse.json({
-        balance: DEV_USER_CREDITS,
-        isGuest: false,
-        isNewGuest: false,
-      })
+      return NextResponse.json(
+        { balance: DEV_USER_CREDITS, isGuest: false, isNewGuest: false },
+        { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+      )
     }
     const supabase = createClientIfConfigured()
     if (supabase) {
       try {
-        const result = await getUserBalance(supabase, user.id)
-        return NextResponse.json({
-          balance: result.balance,
-          isGuest: false,
-          isNewGuest: false,
-        })
+        const [userResult, packResult] = await Promise.all([
+          getUserBalance(supabase, user.id),
+          getPackBalance(supabase, user.id),
+        ])
+        return NextResponse.json(
+          {
+            balance: userResult.balance + packResult.generationsRemaining,
+            isGuest: false,
+            isNewGuest: false,
+          },
+          { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+        )
       } catch {
         // fall through to guest path if user_token_usage fails
       }
@@ -55,11 +61,10 @@ export async function GET() {
 
   // Post-logout: return 0, do NOT create new guest. Prevents "2 credits back" after logout.
   if (cookieStore.get(POST_LOGOUT_COOKIE)?.value === '1') {
-    return NextResponse.json({
-      balance: 0,
-      isGuest: true,
-      isNewGuest: false,
-    })
+    return NextResponse.json(
+      { balance: 0, isGuest: true, isNewGuest: false },
+      { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+    )
   }
 
   let guestId = cookieStore.get(GUEST_ID_COOKIE)?.value
@@ -70,11 +75,10 @@ export async function GET() {
 
   const hasDevGuestActive = cookieStore.get(DEV_GUEST_ACTIVE_COOKIE)?.value === '1'
   if (isDevGuestWithActiveSession(guestId, hasDevGuestActive)) {
-    return NextResponse.json({
-      balance: DEV_CREDITS_BALANCE,
-      isGuest: true,
-      isNewGuest: false,
-    })
+    return NextResponse.json(
+      { balance: DEV_CREDITS_BALANCE, isGuest: true, isNewGuest: false },
+      { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+    )
   }
 
   const supabase = createClientIfConfigured()
@@ -91,11 +95,10 @@ export async function GET() {
     balance = getGuestBalanceFromCookie(cookieStore)
   }
 
-  const res = NextResponse.json({
-    balance,
-    isGuest: true,
-    isNewGuest,
-  })
+  const res = NextResponse.json(
+    { balance, isGuest: true, isNewGuest },
+    { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+  )
 
   if (isNewGuest) {
     setGuestIdCookie(res, guestId)

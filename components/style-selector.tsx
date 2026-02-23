@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Palette, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/primitives/button'
 import { getArtStylesWithColors, type ArtStyleWithColors } from '@/lib/prompts/artStyles'
 
@@ -13,12 +14,19 @@ interface StyleSelectorProps {
   className?: string
 }
 
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
+
 export function StyleSelector({ 
   selectedStyle, 
   onStyleSelect, 
   disabled = false,
   className = "" 
 }: StyleSelectorProps) {
+  const mounted = useMounted()
   const [isOpen, setIsOpen] = useState(false)
   const [styles, setStyles] = useState<ArtStyleWithColors[]>([])
 
@@ -31,20 +39,24 @@ export function StyleSelector({
   return (
     <div className={`relative ${className}`}>
       {/* Style Pick Button */}
-      <Button
-        variant="ghost"
-        size="sm"
+      <button
+        type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="gap-2 text-muted-foreground hover:text-foreground"
+        className={cn(
+          'inline-flex items-center justify-center gap-2 rounded-xl px-4 h-8 text-sm font-medium',
+          'glass-red shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200',
+          'disabled:opacity-50 disabled:pointer-events-none disabled:hover:translate-y-0',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
+        )}
         title="Pick style"
       >
         <Palette className="size-4" />
         <span>Pick Style</span>
-      </Button>
+      </button>
 
       {/* Style Selector Modal */}
-      {isOpen && typeof document !== 'undefined' && createPortal(
+      {mounted && isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           role="dialog"

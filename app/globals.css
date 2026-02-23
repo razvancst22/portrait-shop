@@ -168,4 +168,203 @@
     background-color: var(--background);
     background-image: radial-gradient(ellipse 80% 50% at 50% 0%, var(--muted) 0%, transparent 60%);
   }
+
+  /* iOS 26 Liquid Glass / glassmorphism – frosted translucency + primary tint */
+  .glass-liquid {
+    /* Layered: frosted base (see-through) + very light primary wash */
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 8%, rgba(255, 255, 255, 0.25)) 0%,
+      color-mix(in oklch, var(--primary) 5%, rgba(255, 255, 255, 0.12)) 50%,
+      color-mix(in oklch, var(--primary) 10%, rgba(255, 255, 255, 0.08)) 100%
+    );
+    backdrop-filter: blur(40px) saturate(200%) contrast(1.05);
+    -webkit-backdrop-filter: blur(40px) saturate(200%) contrast(1.05);
+    border: 1px solid color-mix(in oklch, var(--primary) 35%, rgba(255, 255, 255, 0.3));
+    /* Specular highlight (light catching top edge) + inner depth + outer shadow */
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 0 0 rgba(255, 255, 255, 0.08),
+      inset 0 2px 8px -4px rgba(0, 0, 0, 0.1),
+      0 8px 40px -8px color-mix(in oklch, var(--primary) 15%, transparent),
+      0 4px 16px -4px rgba(0, 0, 0, 0.15);
+    border-radius: 24px;
+  }
+  .dark .glass-liquid {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 12%, rgba(255, 255, 255, 0.06)) 0%,
+      color-mix(in oklch, var(--primary) 8%, rgba(255, 255, 255, 0.04)) 50%,
+      color-mix(in oklch, var(--primary) 10%, rgba(0, 0, 0, 0.2)) 100%
+    );
+    border: 1px solid color-mix(in oklch, var(--primary) 40%, rgba(255, 255, 255, 0.12));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.2),
+      inset 0 2px 12px -4px rgba(0, 0, 0, 0.3),
+      0 8px 40px -8px color-mix(in oklch, var(--primary) 20%, black),
+      0 4px 20px -4px rgba(0, 0, 0, 0.4);
+  }
+  .glass-liquid-hover {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-liquid-hover:hover {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 12%, rgba(255, 255, 255, 0.3)) 0%,
+      color-mix(in oklch, var(--primary) 8%, rgba(255, 255, 255, 0.18)) 50%,
+      color-mix(in oklch, var(--primary) 12%, rgba(255, 255, 255, 0.1)) 100%
+    );
+    border-color: color-mix(in oklch, var(--primary) 45%, rgba(255, 255, 255, 0.35));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+      inset 0 -1px 0 0 rgba(255, 255, 255, 0.1),
+      inset 0 2px 12px -4px rgba(0, 0, 0, 0.08),
+      0 16px 48px -12px color-mix(in oklch, var(--primary) 20%, transparent),
+      0 8px 24px -8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+  }
+  .dark .glass-liquid-hover:hover {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 18%, rgba(255, 255, 255, 0.08)) 0%,
+      color-mix(in oklch, var(--primary) 12%, rgba(255, 255, 255, 0.05)) 50%,
+      color-mix(in oklch, var(--primary) 14%, rgba(0, 0, 0, 0.15)) 100%
+    );
+    border-color: color-mix(in oklch, var(--primary) 50%, rgba(255, 255, 255, 0.18));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.25),
+      inset 0 2px 16px -4px rgba(0, 0, 0, 0.35),
+      0 16px 48px -12px color-mix(in oklch, var(--primary) 25%, black),
+      0 8px 28px -8px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+  }
+  .glass-liquid-soft {
+    border-radius: 20px;
+    backdrop-filter: blur(32px) saturate(180%) contrast(1.05);
+    -webkit-backdrop-filter: blur(32px) saturate(180%) contrast(1.05);
+  }
+
+  /* Inputs inside glass – readable on frosted background */
+  .glass-input {
+    background: color-mix(in oklch, var(--background) 40%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: color-mix(in oklch, var(--border) 80%, rgba(255, 255, 255, 0.2));
+  }
+  .dark .glass-input {
+    background: color-mix(in oklch, var(--background) 35%, transparent);
+    border-color: color-mix(in oklch, var(--border) 70%, rgba(255, 255, 255, 0.08));
+  }
+
+  /* Glassmorphism button – white text, frosted background */
+  .glass-button {
+    color: white !important;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.15) 100%
+    ) !important;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+      0 2px 8px -2px rgba(0, 0, 0, 0.15);
+    transition: all 0.25s ease;
+  }
+  .glass-button:hover:not(:disabled) {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(255, 255, 255, 0.2) 100%
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+      0 4px 12px -2px rgba(0, 0, 0, 0.2);
+  }
+  .dark .glass-button {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+      0 2px 8px -2px rgba(0, 0, 0, 0.3);
+  }
+  .dark .glass-button:hover:not(:disabled) {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.08) 100%
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+      0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Red glassmorphism – Add Credits button in hamburger menu */
+  .glass-red {
+    color: white !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--destructive) 85%, rgba(255, 255, 255, 0.25)) 0%,
+      color-mix(in oklch, var(--destructive) 70%, rgba(255, 255, 255, 0.15)) 50%,
+      color-mix(in oklch, var(--destructive) 75%, rgba(0, 0, 0, 0.15)) 100%
+    ) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid color-mix(in oklch, var(--destructive) 60%, rgba(255, 255, 255, 0.35)) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
+      0 8px 24px -4px color-mix(in oklch, var(--destructive) 40%, transparent);
+    transition: all 0.25s ease;
+  }
+  .glass-red:hover {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--destructive) 90%, rgba(255, 255, 255, 0.2)) 0%,
+      color-mix(in oklch, var(--destructive) 78%, rgba(255, 255, 255, 0.12)) 50%,
+      color-mix(in oklch, var(--destructive) 80%, rgba(0, 0, 0, 0.1)) 100%
+    ) !important;
+    border-color: color-mix(in oklch, var(--destructive) 70%, rgba(255, 255, 255, 0.45)) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
+      0 12px 32px -6px color-mix(in oklch, var(--destructive) 45%, transparent);
+  }
+  .dark .glass-red {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--destructive) 75%, rgba(255, 255, 255, 0.1)) 0%,
+      color-mix(in oklch, var(--destructive) 60%, rgba(0, 0, 0, 0.25)) 50%,
+      color-mix(in oklch, var(--destructive) 65%, rgba(0, 0, 0, 0.35)) 100%
+    ) !important;
+    border-color: color-mix(in oklch, var(--destructive) 50%, rgba(255, 255, 255, 0.15)) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+      0 8px 24px -4px color-mix(in oklch, var(--destructive) 50%, black);
+  }
+  .dark .glass-red:hover {
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--destructive) 80%, rgba(255, 255, 255, 0.08)) 0%,
+      color-mix(in oklch, var(--destructive) 68%, rgba(0, 0, 0, 0.2)) 50%,
+      color-mix(in oklch, var(--destructive) 70%, rgba(0, 0, 0, 0.3)) 100%
+    ) !important;
+    border-color: color-mix(in oklch, var(--destructive) 55%, rgba(255, 255, 255, 0.2)) !important;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+      0 12px 32px -6px color-mix(in oklch, var(--destructive) 55%, black);
+  }
 }

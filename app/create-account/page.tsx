@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import { AuthForm } from '@/components/auth/auth-form'
 
 export const metadata: Metadata = {
-  title: 'Sign In – Create More Classic Art Portraits',
-  description: 'Sign in to access unlimited portrait generations, manage your artwork, and get exclusive discounts. Start creating more Renaissance, Baroque, and Victorian masterpieces.',
+  title: 'Create Account – Pet Portrait Shop',
+  description: 'Create an account to buy Digital Packs, save your portraits, and access high-res downloads.',
 }
 
-export default async function LoginPage({
+export default async function CreateAccountPage({
   searchParams,
 }: {
   searchParams: Promise<{ redirect?: string }>
@@ -17,13 +17,13 @@ export default async function LoginPage({
     <div className="flex flex-col items-center px-4 py-16 md:py-24 bg-generating">
       <main className="max-w-md w-full text-center">
         <h1 className="font-heading text-3xl font-semibold text-foreground mb-3">
-          Log in
+          Create account
         </h1>
         <p className="text-muted-foreground mb-8">
-          Sign in to buy more Portrait Generations and see your portraits.
+          Create an account to purchase Digital Packs and manage your portraits.
         </p>
         <div className="text-left">
-          <AuthForm redirectUrl={redirectUrl} />
+          <AuthForm redirectUrl={redirectUrl} initialMode="signup" />
         </div>
       </main>
     </div>

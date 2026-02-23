@@ -34,7 +34,7 @@ export default function MyPortraitsPage() {
 
   const loadCredits = useCallback(() => {
     setLoadingCredits(true)
-    fetch('/api/credits', { credentials: 'include' })
+    fetch('/api/credits', { credentials: 'include', cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => setCredits(d.balance ?? null))
       .catch(() => setCredits(null))

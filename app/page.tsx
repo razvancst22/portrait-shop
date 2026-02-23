@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center px-4 py-16 md:py-24">
+    <div className="flex flex-col items-center px-4 pt-6 md:pt-10 pb-16 md:pb-24">
       <main className="max-w-3xl w-full text-center">
         <div className="relative z-10">
           <HeroSection />

@@ -116,9 +116,15 @@ export const generateBodySchema = z.object({
 export type GenerateBody = z.infer<typeof generateBodySchema>
 
 export const checkoutBodySchema = z.object({
-  generationId: z.string().uuid('Invalid generationId'),
+  generationId: z.string().uuid('Invalid generationId').optional(),
   /** Optional: if omitted, Stripe Checkout collects email; we set it from the webhook. */
   email: z.string().trim().email('Invalid email address').optional().default(''),
+  /** Apply 1-hour discount for Get your Portrait (validated server-side) */
+  useDiscount: z.boolean().optional().default(false),
+  /** Digital Pack: starter | creator | artist */
+  pack: z.enum(['starter', 'creator', 'artist']).optional(),
+  /** Art Print Pack: print size e.g. "8×10\"" */
+  print: z.string().min(1).optional(),
 })
 
 export type CheckoutBody = z.infer<typeof checkoutBodySchema>

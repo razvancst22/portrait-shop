@@ -28,6 +28,12 @@ export type StylesModalProps = {
  * Modal that lists all available portrait styles. When imageUrl is provided,
  * selecting a style runs generation and redirects via onGenerateSuccess.
  */
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
+
 export function StylesModal({
   open,
   onClose,
@@ -35,6 +41,7 @@ export function StylesModal({
   imageUrl,
   onGenerateSuccess,
 }: StylesModalProps) {
+  const mounted = useMounted()
   const [styles, setStyles] = useState<StyleItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -210,5 +217,5 @@ export function StylesModal({
     </div>
   )
 
-  return typeof document !== 'undefined' ? createPortal(modal, document.body) : null
+  return mounted ? createPortal(modal, document.body) : null
 }

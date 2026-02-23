@@ -20,6 +20,7 @@ import {
   POST_LOGOUT_COOKIE,
 } from '@/lib/tokens/constants'
 import { canUseFreeGeneration, recordFreeGenerationUseFromRequest } from '@/lib/tokens/guest-abuse-prevention'
+import { getPackBalance, deductPackGeneration } from '@/lib/pack-credits'
 import { getClientIp } from '@/lib/request-utils'
 import { serverErrorResponse } from '@/lib/api-error'
 import { isOpenAIProvider } from '@/lib/image-provider'
@@ -88,8 +89,11 @@ export async function POST(request: NextRequest) {
     balance = DEV_USER_CREDITS
   } else if (user && supabase) {
     try {
-      const result = await getUserBalance(supabase, user.id)
-      balance = result.balance
+      const [userResult, packResult] = await Promise.all([
+        getUserBalance(supabase, user.id),
+        getPackBalance(supabase, user.id),
+      ])
+      balance = userResult.balance + packResult.generationsRemaining
     } catch {
       balance = 0
     }
@@ -187,8 +191,11 @@ export async function POST(request: NextRequest) {
   } else if (user) {
     try {
       deducted = await deductUserToken(supabase, user.id)
+      if (!deducted) {
+        deducted = await deductPackGeneration(supabase, user.id)
+      }
     } catch (e) {
-      console.error('deductUserToken failed:', e)
+      console.error('Token/pack deduct failed:', e)
       return NextResponse.json(
         { error: 'Unable to process. Please try again.', code: 'DEDUCT_FAILED' },
         { status: 503 }

@@ -117,10 +117,12 @@ export async function GET(
         }
       }
 
+      const completedAt = new Date().toISOString()
       await supabase
         .from('generations')
         .update({
           status: 'completed',
+          completed_at: completedAt,
           final_image_url: finalPath,
           upscaled_image_url: upscaledPath ?? finalPath,
         })
@@ -171,10 +173,12 @@ export async function GET(
   if (jobId?.startsWith('stub-')) {
     if (elapsed > 2 && gen.status === 'generating') {
       const finalUrl = gen.original_image_url
+      const completedAt = new Date().toISOString()
       await supabase
         .from('generations')
         .update({
           status: 'completed',
+          completed_at: completedAt,
           final_image_url: finalUrl,
           upscaled_image_url: finalUrl,
         })
@@ -244,10 +248,12 @@ export async function GET(
   const finalUrl = apiData.url ?? apiData.upscaled_urls?.[0]
 
   if (apiStatus === 'completed' && finalUrl) {
+    const completedAt = new Date().toISOString()
     await supabase
       .from('generations')
       .update({
         status: 'completed',
+        completed_at: completedAt,
         final_image_url: finalUrl,
         upscaled_image_url: finalUrl,
       })

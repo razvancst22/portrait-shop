@@ -6,7 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/primitives/button'
+import { useCreditsUpdateListener } from '@/lib/credits-events'
+import { Button, getButtonClassName } from '@/components/primitives/button'
 import { Card, CardContent } from '@/components/primitives/card'
 import { Label } from '@/components/primitives/label'
 import { Skeleton } from '@/components/primitives/skeleton'
@@ -14,7 +15,7 @@ import { Input } from '@/components/primitives/input'
 import { cn } from '@/lib/utils'
 import type { SubjectTypeId } from '@/lib/prompts/artStyles'
 import { CREATE_FLOW_COPY } from '@/lib/create-flow-config'
-import { OutOfCreditsModal } from '@/components/out-of-credits-modal'
+import { AddCreditsModal } from '@/components/add-credits-modal'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { StyleSelector } from '@/components/style-selector'
 
@@ -68,7 +69,8 @@ export function CreateFlow({ category }: CreateFlowProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [tokenBalance, setTokenBalance] = useState<number | null>(null)
   const [insufficientCredits, setInsufficientCredits] = useState(false)
-  const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false)
+  const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
+  const [user, setUser] = useState<{ id: string } | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // If we landed here with ?imageUrl=... (e.g. from home page upload), go straight to preview
@@ -84,7 +86,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
   const validateAndSetFile = useCallback((f: File | null) => {
     if (!f) return
     if (tokenBalance === 0) {
-      setShowOutOfCreditsModal(true)
+      setShowAddCreditsModal(true)
       return
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
@@ -141,7 +143,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
     try {
       const [stylesRes, creditsRes] = await Promise.all([
         fetch(`/api/styles?category=${category}`),
-        fetch('/api/credits', { credentials: 'include' }),
+        fetch('/api/credits', { credentials: 'include', cache: 'no-store' }),
       ])
       if (!stylesRes.ok) throw new Error('Failed to load styles')
       const data = await stylesRes.json()
@@ -174,7 +176,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
 
   const fetchCredits = useCallback(async () => {
     try {
-      const res = await fetch('/api/credits', { credentials: 'include' })
+      const res = await fetch('/api/credits', { credentials: 'include', cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setTokenBalance(data.balance ?? null)
@@ -190,11 +192,23 @@ export function CreateFlow({ category }: CreateFlowProps) {
 
   useEffect(() => {
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
       fetchCredits()
     })
     return () => subscription.unsubscribe()
   }, [fetchCredits])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchCredits()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchCredits])
+
+  useCreditsUpdateListener(fetchCredits)
 
   const startGeneration = useCallback(async () => {
     if (!selectedStyle) return
@@ -340,6 +354,12 @@ export function CreateFlow({ category }: CreateFlowProps) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16 md:py-24">
         <main className="max-w-3xl text-center w-full">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 -mt-2 transition-colors"
+          >
+            ← Back to home
+          </Link>
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-3 animate-fade-in-up">
             {copy.headline}
           </h1>
@@ -361,13 +381,13 @@ export function CreateFlow({ category }: CreateFlowProps) {
             onKeyDown={(e) => {
               if (tokenBalance === 0 && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault()
-                setShowOutOfCreditsModal(true)
+                setShowAddCreditsModal(true)
               }
             }}
             onClick={(e) => {
               if (tokenBalance === 0) {
                 e.preventDefault()
-                setShowOutOfCreditsModal(true)
+                setShowAddCreditsModal(true)
               }
             }}
             onDrop={onDrop}
@@ -376,18 +396,27 @@ export function CreateFlow({ category }: CreateFlowProps) {
             isDragOver={isDragOver}
             disabled={tokenBalance === 0}
             className="animate-fade-in animate-fade-in-delay-2"
+            onAddCredits={tokenBalance === 0 ? () => setShowAddCreditsModal(true) : undefined}
             styleSelector={
               <StyleSelector
                 selectedStyle={selectedStyle || undefined}
                 onStyleSelect={handleStyleSelectFromUpload}
-                disabled={tokenBalance === 0}
+                disabled={false}
               />
             }
           />
           {error && (
             <p className="mt-4 text-sm text-destructive animate-fade-in" role="alert">{error}</p>
           )}
-          <OutOfCreditsModal open={showOutOfCreditsModal} onClose={() => setShowOutOfCreditsModal(false)} />
+          <AddCreditsModal
+            open={showAddCreditsModal}
+            onClose={() => {
+              setShowAddCreditsModal(false)
+              fetchCredits()
+            }}
+            isLoggedIn={!!user}
+            onCreditsAdded={fetchCredits}
+          />
         </main>
       </div>
     )
@@ -397,9 +426,14 @@ export function CreateFlow({ category }: CreateFlowProps) {
     return (
       <div className="py-8 px-4">
         <div className="container max-w-lg mx-auto text-center animate-fade-in">
-          <Button variant="ghost" size="sm" className="mb-6 rounded-full -ml-2" onClick={changePhoto}>
-            ← Back
-          </Button>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Button variant="ghost" size="sm" className="rounded-full -ml-2" onClick={changePhoto}>
+              ← Back
+            </Button>
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Back to home
+            </Link>
+          </div>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">{copy.previewTitle}</h1>
           <p className="text-muted-foreground mb-6">{copy.previewSubhead}</p>
           <div className="relative aspect-[4/5] w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-muted mb-6">
@@ -422,9 +456,14 @@ export function CreateFlow({ category }: CreateFlowProps) {
     return (
       <div className="py-8 px-4">
         <div className="container max-w-3xl mx-auto">
-          <Button variant="ghost" size="sm" className="mb-6 rounded-full -ml-2" onClick={() => setStep('preview')}>
-            ← Back
-          </Button>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="sm" className="rounded-full -ml-2" onClick={() => setStep('preview')}>
+              ← Back
+            </Button>
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Back to home
+            </Link>
+          </div>
           <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Choose a style</h1>
           <p className="text-muted-foreground mb-2">Select one – we'll generate your portrait in that style.</p>
           {tokenBalance !== null && (
@@ -570,7 +609,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
             <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-2 text-sm">{error}</div>
           )}
           {genStatus === 'failed' && (
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center">
               <Button onClick={() => { setError(null); setStep('styles'); }} variant="outline" className="rounded-full">
                 Try again
               </Button>
@@ -587,6 +626,9 @@ export function CreateFlow({ category }: CreateFlowProps) {
               >
                 Start over
               </Button>
+              <Link href="/" className={cn(getButtonClassName('ghost', 'default', 'rounded-full'), 'inline-flex')}>
+                Back to home
+              </Link>
             </div>
           )}
         </div>

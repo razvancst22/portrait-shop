@@ -1,10 +1,31 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { dispatchCreditsUpdated } from '@/lib/credits-events'
 import { getButtonClassName } from '@/components/primitives/button'
 
 function SuccessContent() {
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get('session_id')
+  const [orderId, setOrderId] = useState<string | null>(null)
+
+  useEffect(() => {
+    dispatchCreditsUpdated()
+  }, [])
+
+  useEffect(() => {
+    if (!sessionId) return
+    fetch(`/api/order-from-session?session_id=${encodeURIComponent(sessionId)}`, {
+      credentials: 'include',
+    })
+      .then((r) => r.json())
+      .then((d) => d.orderId && setOrderId(d.orderId))
+      .catch(() => {})
+  }, [sessionId])
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-16">
       <div className="max-w-md text-center">
@@ -15,11 +36,21 @@ function SuccessContent() {
         <p className="text-sm text-muted-foreground mb-8">
           You will receive an email with your download link once your bundle is ready.
         </p>
-        <p className="text-sm text-muted-foreground mb-6">
-          <Link href="/order-lookup" className="text-foreground underline hover:no-underline">
-            Lost your link? Get a new one
-          </Link>
-        </p>
+        <div className="flex flex-col gap-3 mb-6">
+          {orderId && (
+            <Link
+              href={`/account/orders/${orderId}`}
+              className={getButtonClassName('default', 'md', 'rounded-full')}
+            >
+              View your order
+            </Link>
+          )}
+          <p className="text-sm text-muted-foreground">
+            <Link href="/order-lookup" className="text-foreground underline hover:no-underline">
+              Lost your link? Get a new one
+            </Link>
+          </p>
+        </div>
         <Link href="/" className={getButtonClassName('default', 'lg', 'rounded-full')}>
           Back to home
         </Link>

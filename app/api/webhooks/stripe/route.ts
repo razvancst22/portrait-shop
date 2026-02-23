@@ -5,6 +5,7 @@ import { stripe } from '@/lib/stripe'
 import { generateAndStoreBundle } from '@/lib/bundle/createBundle'
 import { sendDeliveryEmail } from '@/lib/email/delivery'
 import { serverErrorResponse } from '@/lib/api-error'
+import { createPackPurchase } from '@/lib/pack-credits'
 
 const PENDING_EMAIL_PLACEHOLDER = 'pending@stripe'
 
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
   const session = event.data.object as Stripe.Checkout.Session
   const orderId = session.metadata?.order_id
   const generationId = session.metadata?.generation_id
+  const productType = session.metadata?.product_type as string | undefined
 
   if (!orderId) {
     console.error('Webhook: checkout.session.completed missing metadata.order_id')
@@ -91,6 +93,17 @@ export async function POST(request: NextRequest) {
     return serverErrorResponse(updateError, `Webhook: update order ${orderId}`)
   }
 
+  // Digital Pack: create pack purchase to grant credits
+  if (productType?.startsWith('digital_pack_')) {
+    const packType = productType.replace('digital_pack_', '') as 'starter' | 'creator' | 'artist'
+    if (packType === 'starter' || packType === 'creator' || packType === 'artist') {
+      const { data: order } = await supabase.from('orders').select('user_id').eq('id', orderId).single()
+      if (order?.user_id) {
+        await createPackPurchase(supabase, orderId, order.user_id, packType)
+      }
+    }
+  }
+
   if (generationId) {
     await supabase
       .from('generations')
@@ -102,7 +115,8 @@ export async function POST(request: NextRequest) {
       .eq('id', generationId)
   }
 
-  if (generationId) {
+  // Bundle only for Get your Portrait (generationId + no print / digital_bundle legacy)
+  if (generationId && productType !== 'art_print') {
     const result = await generateAndStoreBundle(orderId, generationId)
     if (!result.delivered) {
       return serverErrorResponse(

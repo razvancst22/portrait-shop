@@ -4,10 +4,12 @@ import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
-import { Button, getButtonClassName } from '@/components/primitives/button'
-import { Check, Download, Loader2, Printer } from 'lucide-react'
-import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { getButtonClassName } from '@/components/primitives/button'
+import { Check, Loader2 } from 'lucide-react'
+import { PreviewUpgradeOptions } from '@/components/preview/preview-upgrade-options'
+import { CountdownOfferBanner } from '@/components/preview/countdown-offer-banner'
 import { ToastContainer, showToast } from '@/components/ui/toast'
+import { GET_YOUR_PORTRAIT_PRICE_USD, GET_YOUR_PORTRAIT_DISCOUNT_PRICE_USD } from '@/lib/pricing/constants'
 
 const GENERATING_MESSAGES = [
   'Analyzing your photo…',
@@ -36,10 +38,13 @@ export default function PreviewPage() {
   const [displayProgress, setDisplayProgress] = useState(0)
   const [statusMessageIndex, setStatusMessageIndex] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [price, setPrice] = useState<number | null>(null)
-  const [packageModal, setPackageModal] = useState<PreviewPackageVariant | null>(null)
+  const [price, setPrice] = useState<number>(GET_YOUR_PORTRAIT_PRICE_USD)
+  const [discountActive, setDiscountActive] = useState<boolean>(false)
+  const [discountExpiresAt, setDiscountExpiresAt] = useState<number | undefined>()
   const [isPurchased, setIsPurchased] = useState<boolean>(false)
   const [isDownloading, setIsDownloading] = useState<boolean>(false)
+
+  const displayedPrice = discountActive ? GET_YOUR_PORTRAIT_DISCOUNT_PRICE_USD : price
   
   // Use final image for purchased items, preview for unpurchased
   const displayImageUrl = isPurchased && status === 'completed' 
@@ -90,11 +95,40 @@ export default function PreviewPage() {
   }, [status])
 
   useEffect(() => {
-    fetch('/api/pricing')
+    if (status !== 'completed') return
+    fetch(`/api/pricing?generationId=${encodeURIComponent(generationId)}`)
       .then((r) => r.json())
-      .then((d) => setPrice(d.digitalBundlePrice ?? 10))
-      .catch(() => setPrice(10))
-  }, [])
+      .then((d) => {
+        setPrice(d.getYourPortraitPrice ?? GET_YOUR_PORTRAIT_PRICE_USD)
+        setDiscountActive(!!d.discountActive)
+        if (d.expiresAt != null) setDiscountExpiresAt(d.expiresAt)
+      })
+      .catch(() => {})
+  }, [status, generationId])
+
+  const handleDownload = useCallback(() => {
+    if (!isPurchased || status !== 'completed') return
+    setIsDownloading(true)
+    showToast.loading('Preparing your portrait download...')
+    fetch(`/api/download/${generationId}`)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Download failed: ${response.status}`)
+        return response.json()
+      })
+      .then((data) => {
+        if (data.downloadUrl) {
+          showToast.success('Download ready! Redirecting...')
+          setTimeout(() => {
+            window.location.href = data.downloadUrl
+          }, 500)
+        }
+      })
+      .catch((error) => {
+        console.error(error)
+        showToast.error('Download failed. Please try again.')
+      })
+      .finally(() => setIsDownloading(false))
+  }, [generationId, isPurchased, status])
 
 
   if (status === 'failed') {
@@ -128,7 +162,7 @@ export default function PreviewPage() {
     }
     return (
       <div className="py-8 md:py-12 px-4">
-        <div className="container max-w-lg mx-auto animate-fade-in">
+        <div className="container max-w-2xl mx-auto animate-fade-in">
           <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
             ← Back
           </Link>
@@ -153,17 +187,20 @@ export default function PreviewPage() {
           </h1>
           <p className="text-muted-foreground mb-6">
             {isPurchased ? (
-              'Download your high-resolution portrait or order a print.'
+              'Download your high-resolution portrait or order a museum-quality print.'
             ) : (
               <>
-                Love it? Get the full bundle (high-res + wallpapers) for{' '}
-                <strong className="text-foreground">${price ?? 10}</strong>.
+                Love it? Upgrade to get the digital 4K file or order a premium print—see options below.
               </>
             )}
           </p>
 
-          {/* Single card: image + action buttons */}
-          <div className="rounded-2xl overflow-hidden bg-card text-card-foreground border border-border shadow-xl">
+          {!isPurchased && discountActive && discountExpiresAt != null && (
+            <CountdownOfferBanner expiresAt={discountExpiresAt} className="mb-4" />
+          )}
+
+          {/* Image card */}
+          <div className="mx-auto max-w-md rounded-2xl overflow-hidden bg-card text-card-foreground border border-border shadow-xl">
             <div
               className="relative aspect-[4/5] w-full select-none bg-muted/20"
               onContextMenu={(e) => e.preventDefault()}
@@ -179,67 +216,22 @@ export default function PreviewPage() {
                 draggable={false}
               />
             </div>
-            <div className="p-4 sm:p-5 flex flex-col gap-3">
-              <Button
-                size="lg"
-                className="w-full rounded-xl justify-center gap-3 h-12 shadow-md shadow-primary/25"
-                onClick={() => {
-                  if (isPurchased) {
-                    setIsDownloading(true)
-                    const toastId = showToast.loading('Preparing your portrait download...')
-                    
-                    fetch(`/api/download/${generationId}`)
-                      .then(response => {
-                        if (!response.ok) throw new Error(`Download failed: ${response.status}`)
-                        return response.json()
-                      })
-                      .then(data => {
-                        if (data.downloadUrl) {
-                          showToast.success('Download ready! Redirecting...')
-                          setTimeout(() => {
-                            window.location.href = data.downloadUrl
-                          }, 500)
-                        }
-                      })
-                      .catch(error => {
-                        console.error(error)
-                        showToast.error('Download failed. Please try again.')
-                      })
-                      .finally(() => setIsDownloading(false))
-                  } else {
-                    setPackageModal('portrait-pack')
-                  }
-                }}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <div className="size-5 animate-spin rounded-full border-2 border-background border-t-transparent shrink-0" />
-                ) : (
-                  <Download className="size-5 shrink-0" />
-                )}
-                <span>
-                  {isDownloading ? 'Preparing download...' : (isPurchased ? 'Download' : 'Download 4K')}
-                </span>
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full rounded-xl justify-center gap-3 h-12"
-                onClick={() => setPackageModal('art-print-pack')}
-              >
-                <Printer className="size-5 shrink-0" />
-                <span>Order Print</span>
-              </Button>
-            </div>
           </div>
 
-          <PreviewPackageModal
-            open={packageModal !== null}
-            onClose={() => setPackageModal(null)}
-            variant={packageModal ?? 'portrait-pack'}
-            generationId={generationId}
-            isPurchased={isPurchased}
-          />
+          {/* Upgrade options: Portrait (4K) + Print */}
+          <div className="mt-6">
+            <p className="text-sm font-medium text-muted-foreground mb-3">
+              Choose how you&apos;d like to enjoy your portrait
+            </p>
+            <PreviewUpgradeOptions
+              generationId={generationId}
+              isPurchased={isPurchased}
+              getYourPortraitPrice={displayedPrice}
+              discountActive={discountActive}
+              onDownload={handleDownload}
+              isDownloading={isDownloading}
+            />
+          </div>
           <ToastContainer />
         </div>
       </div>
