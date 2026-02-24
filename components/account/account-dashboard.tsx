@@ -2,33 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Sparkles, Download, Package, Palette, Plus, Search } from 'lucide-react'
+import { Sparkles, Download, Package, Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
-import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
-import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
-import type { ArtStyleId } from '@/lib/prompts/artStyles'
-import { PortraitActionCard } from '@/components/preview/portrait-action-card'
-import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { MyPortraitsContent } from '@/components/my-portraits-content'
 import { AddCreditsModal } from '@/components/add-credits-modal'
 import { OrderLookupModal } from '@/components/order-lookup-modal'
 import { ToastContainer } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
-
-type MyGenerationItem = {
-  id: string
-  art_style: string
-  status: string
-  preview_image_url: string | null
-  is_purchased: boolean
-  created_at: string
-}
-
-function styleDisplayName(artStyle: string): string {
-  const id = artStyle as ArtStyleId
-  return ART_STYLE_PROMPTS[id]?.name ?? artStyle
-}
 
 type BalanceBreakdown = {
   freeGenerationsRemaining: number
@@ -51,10 +33,7 @@ export function AccountDashboard() {
   const [balance, setBalance] = useState<BalanceBreakdown | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(true)
   const [loadingOrders, setLoadingOrders] = useState(true)
-  const [loadingGenerations, setLoadingGenerations] = useState(true)
   const [orders, setOrders] = useState<MyOrderItem[]>([])
-  const [generations, setGenerations] = useState<MyGenerationItem[]>([])
-  const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
   const [addCreditsModalOpen, setAddCreditsModalOpen] = useState(false)
   const [orderLookupModalOpen, setOrderLookupModalOpen] = useState(false)
 
@@ -84,29 +63,18 @@ export function AccountDashboard() {
       .finally(() => setLoadingOrders(false))
   }, [])
 
-  const loadGenerations = useCallback(() => {
-    setLoadingGenerations(true)
-    fetch('/api/my-generations', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((d) => setGenerations(d.generations ?? []))
-      .catch(() => setGenerations([]))
-      .finally(() => setLoadingGenerations(false))
-  }, [])
-
   useEffect(() => {
     loadBalance()
     loadOrders()
-    loadGenerations()
-  }, [loadBalance, loadOrders, loadGenerations])
+  }, [loadBalance, loadOrders])
 
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       loadBalance()
-      loadGenerations()
     })
     return () => subscription.unsubscribe()
-  }, [loadBalance, loadGenerations])
+  }, [loadBalance])
 
   useCreditsUpdateListener(loadBalance)
 
@@ -127,7 +95,7 @@ export function AccountDashboard() {
         <button
           type="button"
           onClick={() => setAddCreditsModalOpen(true)}
-          className="glass-red inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold"
+          className="glass-green inline-flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold"
         >
           <Plus className="size-4" />
           Add Credits
@@ -201,86 +169,14 @@ export function AccountDashboard() {
         </div>
       </div>
 
-      {/* My Portraits – unpurchased first */}
+      {/* My Portraits – shared with /my-portraits page */}
       <div
         className={cn(
           'glass-liquid glass-liquid-soft glass-liquid-hover p-6 rounded-2xl',
           'border border-border/50'
         )}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-            <Palette className="size-5" />
-            My Portraits
-          </h2>
-          <Link
-            href="/"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Create new portrait →
-          </Link>
-        </div>
-        {loadingGenerations ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="rounded-xl aspect-[4/5]" />
-            ))}
-          </div>
-        ) : generations.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center">
-            <p className="text-muted-foreground mb-4">No portraits yet.</p>
-            <Link href="/">
-              <Button className="rounded-full">Create your first portrait</Button>
-            </Link>
-          </div>
-        ) : (
-          <>
-            {/* Unpurchased first */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-              {generations
-                .filter((gen) => !gen.is_purchased)
-                .map((gen) => (
-                  <PortraitActionCard
-                    key={gen.id}
-                    generationId={gen.id}
-                    imageUrl={gen.preview_image_url}
-                    imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                    status={gen.status}
-                    isPurchased={false}
-                    buttonsLayout="row"
-                    onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
-                  />
-                ))}
-            </div>
-
-            {/* Purchased section */}
-            {generations.some((gen) => gen.is_purchased) && (
-              <div className="mt-8">
-                <h3 className="font-heading text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <span className="flex size-2 rounded-full bg-emerald-500" aria-hidden />
-                  Purchased
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-                  {generations
-                    .filter((gen) => gen.is_purchased)
-                    .map((gen) => (
-                      <PortraitActionCard
-                        key={gen.id}
-                        generationId={gen.id}
-                        imageUrl={gen.preview_image_url}
-                        imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                        status={gen.status}
-                        isPurchased={true}
-                        buttonsLayout="row"
-                        className="ring-2 ring-emerald-500 ring-offset-2 ring-offset-background"
-                        onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        <MyPortraitsContent variant="embedded" showCreateLink={true} />
       </div>
 
       {/* Order History */}
@@ -350,13 +246,6 @@ export function AccountDashboard() {
         )}
       </div>
 
-      <PreviewPackageModal
-        open={packageModal !== null}
-        onClose={() => setPackageModal(null)}
-        variant={packageModal?.variant ?? 'portrait-pack'}
-        generationId={packageModal?.generationId ?? ''}
-        isPurchased={packageModal ? generations.find(g => g.id === packageModal.generationId)?.is_purchased ?? false : false}
-      />
       <AddCreditsModal
         open={addCreditsModalOpen}
         onClose={() => setAddCreditsModalOpen(false)}

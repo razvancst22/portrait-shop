@@ -60,8 +60,8 @@
   --card-foreground: oklch(0.18 0.01 285);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.01 285);
-  /* Primary: burgundy / deep red (atelier accent) */
-  --primary: oklch(0.42 0.14 18);
+  /* Primary: emerald green accent */
+  --primary: oklch(0.45 0.17 155);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.965 0.006 85);
   --secondary-foreground: oklch(0.25 0.01 285);
@@ -72,20 +72,20 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.91 0.008 85);
   --input: oklch(0.91 0.008 85);
-  --ring: oklch(0.42 0.14 18);
-  --chart-1: oklch(0.42 0.14 18);
+  --ring: oklch(0.45 0.17 155);
+  --chart-1: oklch(0.45 0.17 155);
   --chart-2: oklch(0.55 0.1 250);
   --chart-3: oklch(0.5 0.08 180);
   --chart-4: oklch(0.65 0.15 85);
   --chart-5: oklch(0.6 0.12 25);
   --sidebar: oklch(0.99 0.002 85);
   --sidebar-foreground: oklch(0.18 0.01 285);
-  --sidebar-primary: oklch(0.42 0.14 18);
+  --sidebar-primary: oklch(0.45 0.17 155);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.96 0.005 85);
   --sidebar-accent-foreground: oklch(0.25 0.01 285);
   --sidebar-border: oklch(0.91 0.008 85);
-  --sidebar-ring: oklch(0.42 0.14 18);
+  --sidebar-ring: oklch(0.45 0.17 155);
   /* Typography: Playfair Display (heading) + DM Sans (body) wired in layout */
 }
 
@@ -96,8 +96,8 @@
   --card-foreground: oklch(0.96 0 0);
   --popover: oklch(0.19 0.01 285);
   --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.72 0.15 18);
-  --primary-foreground: oklch(0.2 0.02 18);
+  --primary: oklch(0.7 0.18 155);
+  --primary-foreground: oklch(0.2 0.02 155);
   --secondary: oklch(0.26 0.01 285);
   --secondary-foreground: oklch(0.96 0 0);
   --muted: oklch(0.26 0.01 285);
@@ -107,16 +107,16 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.3 0.01 285);
   --input: oklch(0.3 0.01 285);
-  --ring: oklch(0.72 0.15 18);
-  --chart-1: oklch(0.72 0.15 18);
+  --ring: oklch(0.7 0.18 155);
+  --chart-1: oklch(0.7 0.18 155);
   --chart-2: oklch(0.65 0.15 250);
   --chart-3: oklch(0.65 0.12 180);
   --chart-4: oklch(0.7 0.14 85);
   --chart-5: oklch(0.68 0.14 25);
   --sidebar: oklch(0.18 0.01 285);
   --sidebar-foreground: oklch(0.96 0 0);
-  --sidebar-primary: oklch(0.72 0.15 18);
-  --sidebar-primary-foreground: oklch(0.2 0.02 18);
+  --sidebar-primary: oklch(0.7 0.18 155);
+  --sidebar-primary-foreground: oklch(0.2 0.02 155);
   --sidebar-accent: oklch(0.26 0.01 285);
   --sidebar-accent-foreground: oklch(0.96 0 0);
   --sidebar-border: oklch(0.3 0.01 285);
@@ -312,59 +312,59 @@
       0 4px 12px -2px rgba(0, 0, 0, 0.4);
   }
 
-  /* Red glassmorphism – Add Credits button in hamburger menu */
-  .glass-red {
+  /* Green glassmorphism – Add Credits button, uses primary (emerald) */
+  .glass-green {
     color: white !important;
     background: linear-gradient(
       135deg,
-      color-mix(in oklch, var(--destructive) 85%, rgba(255, 255, 255, 0.25)) 0%,
-      color-mix(in oklch, var(--destructive) 70%, rgba(255, 255, 255, 0.15)) 50%,
-      color-mix(in oklch, var(--destructive) 75%, rgba(0, 0, 0, 0.15)) 100%
+      color-mix(in oklch, var(--primary) 85%, rgba(255, 255, 255, 0.25)) 0%,
+      color-mix(in oklch, var(--primary) 70%, rgba(255, 255, 255, 0.15)) 50%,
+      color-mix(in oklch, var(--primary) 75%, rgba(0, 0, 0, 0.15)) 100%
     ) !important;
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid color-mix(in oklch, var(--destructive) 60%, rgba(255, 255, 255, 0.35)) !important;
+    border: 1px solid color-mix(in oklch, var(--primary) 60%, rgba(255, 255, 255, 0.35)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
       inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
-      0 8px 24px -4px color-mix(in oklch, var(--destructive) 40%, transparent);
+      0 8px 24px -4px color-mix(in oklch, var(--primary) 40%, transparent);
     transition: all 0.25s ease;
   }
-  .glass-red:hover {
+  .glass-green:hover {
     background: linear-gradient(
       135deg,
-      color-mix(in oklch, var(--destructive) 90%, rgba(255, 255, 255, 0.2)) 0%,
-      color-mix(in oklch, var(--destructive) 78%, rgba(255, 255, 255, 0.12)) 50%,
-      color-mix(in oklch, var(--destructive) 80%, rgba(0, 0, 0, 0.1)) 100%
+      color-mix(in oklch, var(--primary) 90%, rgba(255, 255, 255, 0.2)) 0%,
+      color-mix(in oklch, var(--primary) 78%, rgba(255, 255, 255, 0.12)) 50%,
+      color-mix(in oklch, var(--primary) 80%, rgba(0, 0, 0, 0.1)) 100%
     ) !important;
-    border-color: color-mix(in oklch, var(--destructive) 70%, rgba(255, 255, 255, 0.45)) !important;
+    border-color: color-mix(in oklch, var(--primary) 70%, rgba(255, 255, 255, 0.45)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
       inset 0 -1px 0 0 rgba(0, 0, 0, 0.08),
-      0 12px 32px -6px color-mix(in oklch, var(--destructive) 45%, transparent);
+      0 12px 32px -6px color-mix(in oklch, var(--primary) 45%, transparent);
   }
-  .dark .glass-red {
+  .dark .glass-green {
     background: linear-gradient(
       135deg,
-      color-mix(in oklch, var(--destructive) 75%, rgba(255, 255, 255, 0.1)) 0%,
-      color-mix(in oklch, var(--destructive) 60%, rgba(0, 0, 0, 0.25)) 50%,
-      color-mix(in oklch, var(--destructive) 65%, rgba(0, 0, 0, 0.35)) 100%
+      color-mix(in oklch, var(--primary) 75%, rgba(255, 255, 255, 0.1)) 0%,
+      color-mix(in oklch, var(--primary) 60%, rgba(0, 0, 0, 0.25)) 50%,
+      color-mix(in oklch, var(--primary) 65%, rgba(0, 0, 0, 0.35)) 100%
     ) !important;
-    border-color: color-mix(in oklch, var(--destructive) 50%, rgba(255, 255, 255, 0.15)) !important;
+    border-color: color-mix(in oklch, var(--primary) 50%, rgba(255, 255, 255, 0.15)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-      0 8px 24px -4px color-mix(in oklch, var(--destructive) 50%, black);
+      0 8px 24px -4px color-mix(in oklch, var(--primary) 50%, black);
   }
-  .dark .glass-red:hover {
+  .dark .glass-green:hover {
     background: linear-gradient(
       135deg,
-      color-mix(in oklch, var(--destructive) 80%, rgba(255, 255, 255, 0.08)) 0%,
-      color-mix(in oklch, var(--destructive) 68%, rgba(0, 0, 0, 0.2)) 50%,
-      color-mix(in oklch, var(--destructive) 70%, rgba(0, 0, 0, 0.3)) 100%
+      color-mix(in oklch, var(--primary) 80%, rgba(255, 255, 255, 0.08)) 0%,
+      color-mix(in oklch, var(--primary) 68%, rgba(0, 0, 0, 0.2)) 50%,
+      color-mix(in oklch, var(--primary) 70%, rgba(0, 0, 0, 0.3)) 100%
     ) !important;
-    border-color: color-mix(in oklch, var(--destructive) 55%, rgba(255, 255, 255, 0.2)) !important;
+    border-color: color-mix(in oklch, var(--primary) 55%, rgba(255, 255, 255, 0.2)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-      0 12px 32px -6px color-mix(in oklch, var(--destructive) 55%, black);
+      0 12px 32px -6px color-mix(in oklch, var(--primary) 55%, black);
   }
 }

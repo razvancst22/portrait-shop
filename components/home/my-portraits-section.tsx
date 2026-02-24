@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
+import { Button } from '@/components/primitives/button'
 
 type MyGenerationItem = {
   id: string
@@ -59,14 +61,21 @@ export function MyPortraitsSection() {
   return (
     <section
       className="w-full max-w-3xl mx-auto mb-10 text-center"
-      aria-label="Your portraits"
+      aria-label="Artworks"
       data-section="my-portraits"
     >
-      <h2 className="font-heading text-xl font-semibold text-foreground mb-4">
-        My portraits
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-        {generations.map((gen) => (
+      <div className="flex flex-row items-center justify-between gap-4 mb-4">
+        <h2 className="font-heading text-xl font-semibold text-foreground">
+          Artworks
+        </h2>
+        <Link href="/my-portraits">
+          <Button variant="outline" size="sm" className="rounded-full shrink-0">
+            View all my portraits
+          </Button>
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 gap-4 items-start max-w-md mx-auto">
+        {generations.slice(0, 2).map((gen) => (
           <PortraitActionCard
             key={gen.id}
             generationId={gen.id}
@@ -79,9 +88,6 @@ export function MyPortraitsSection() {
           />
         ))}
       </div>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Love it? Get the high-res bundle or order a print for each portrait.
-      </p>
 
       <PreviewPackageModal
         open={packageModal !== null}

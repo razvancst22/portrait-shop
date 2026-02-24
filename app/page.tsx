@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { HeroSection } from '@/components/home/hero-section'
 import { MyPortraitsSection } from '@/components/home/my-portraits-section'
 import { UploadSection } from '@/components/home/upload-section'
-import { TrustLine } from '@/components/home/trust-line'
 import CircularGallery from '@/components/CircularGallery'
 import { GALLERY_IMAGES, getOptimalImageUrl } from '@/lib/gallery-images'
 
@@ -41,9 +40,6 @@ export default function HomePage() {
             scrollEase={0.08}
             intervalMs={3000}
           />
-        </section>
-        <section className="mt-10">
-          <TrustLine className="max-w-xl mx-auto text-center" />
         </section>
       </main>
     </div>

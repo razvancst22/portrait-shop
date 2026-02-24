@@ -153,7 +153,7 @@ export function UploadPhotoArea({
                 onAddCredits()
               }}
               className={cn(
-                'glass-red inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold',
+                'glass-green inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold',
                 'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in duration-300'
               )}
             >

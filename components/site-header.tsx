@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { AddCreditsModal } from '@/components/add-credits-modal'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { SITE_NAME } from '@/lib/site-config'
+import { Logo } from '@/components/logo'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import type { User } from '@supabase/supabase-js'
@@ -128,17 +129,17 @@ export function SiteHeader() {
             <div
               ref={panelRef}
               className={cn(
-                'fixed inset-y-0 right-0 z-[101] w-[280px] max-w-[85vw] flex flex-col gap-4 border-l border-border bg-background p-6 pt-8 shadow-xl',
-                'animate-in slide-in-from-right duration-300'
+                'fixed inset-y-0 left-0 z-[101] w-[280px] max-w-[85vw] flex flex-col gap-4 border-r border-border bg-background p-6 pt-8 shadow-xl',
+                'animate-in slide-in-from-left duration-300'
               )}
               role="dialog"
               aria-modal="true"
               aria-label="Menu"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="">
                 <Link
                   href="/"
-                  className="font-heading text-lg font-semibold text-foreground truncate max-w-[180px]"
+                  className="font-heading text-lg font-semibold text-foreground truncate max-w-[180px] block"
                   onClick={(e) => {
                     e.preventDefault()
                     closeDrawer()
@@ -148,12 +149,82 @@ export function SiteHeader() {
                 >
                   {user?.email ?? SITE_NAME}
                 </Link>
-                <div className="text-xs text-muted-foreground shrink-0">
-                  Navigation
-                </div>
+                {user ? (
+                  <button
+                    className={cn(
+                      'flex items-center justify-center gap-2 mt-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                    )}
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="size-4" />
+                    <span>Sign Out</span>
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    className={cn(
+                      'flex items-center justify-center gap-2 mt-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/login')
+                    }}
+                  >
+                    <UserIcon className="size-4" />
+                    <span>Sign In</span>
+                  </Link>
+                )}
+                {credits !== null && credits > 0 && (
+                  <button
+                    type="button"
+                    className={cn(
+                      'glass-green mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm',
+                      'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
+                    )}
+                    onClick={openAddCredits}
+                  >
+                    <Sparkles className="size-5" />
+                    <span>Add Credits</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
+                {/* Account (when logged in) */}
+                {user && (
+                  <Link
+                    href="/account"
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/account')
+                    }}
+                  >
+                    <Settings className="size-5" />
+                    <span>Account</span>
+                  </Link>
+                )}
+
+                {/* Portraits */}
+                <Link
+                  href="/my-portraits"
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    closeDrawer()
+                    router.push('/my-portraits')
+                  }}
+                >
+                  <Clock className="size-5" />
+                  <span>Portraits</span>
+                </Link>
+
                 {/* Create Section (Expandable) */}
                 <div>
                   <button
@@ -240,39 +311,6 @@ export function SiteHeader() {
                   )}
                 </div>
 
-                {/* Add Credits (when credits > 0, only in menu – red glass, floats on top) */}
-                {credits !== null && credits > 0 && (
-                  <div className="relative z-10 my-2 -mx-1">
-                    <button
-                      type="button"
-                      className={cn(
-                        'glass-red flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-semibold',
-                        'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
-                      )}
-                      onClick={openAddCredits}
-                    >
-                      <Sparkles className="size-5" />
-                      <span>Add Credits</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* My Portraits */}
-                <Link
-                  href="/my-portraits"
-                  className={cn(
-                    'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    closeDrawer()
-                    router.push('/my-portraits')
-                  }}
-                >
-                  <Clock className="size-5" />
-                  <span>My Portraits</span>
-                </Link>
-
                 {/* Pricing */}
                 <Link
                   href="/pricing"
@@ -289,51 +327,6 @@ export function SiteHeader() {
                   <span>Pricing</span>
                 </Link>
 
-                {/* My Account (only when logged in) */}
-                {user && (
-                  <Link
-                    href="/account"
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
-                    )}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      closeDrawer()
-                      router.push('/account')
-                    }}
-                  >
-                    <Settings className="size-5" />
-                    <span>My Account</span>
-                  </Link>
-                )}
-
-                {/* Sign Out / Sign In */}
-                {user ? (
-                  <button
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground text-left w-full'
-                    )}
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="size-5" />
-                    <span>Sign Out</span>
-                  </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
-                    )}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      closeDrawer()
-                      router.push('/login')
-                    }}
-                  >
-                    <UserIcon className="size-5" />
-                    <span>Sign In</span>
-                  </Link>
-                )}
               </div>
 
             </div>
@@ -345,30 +338,8 @@ export function SiteHeader() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-4xl mx-auto items-center justify-between px-4">
-          <Link
-            href="/"
-            className="font-heading text-lg font-semibold text-foreground hover:text-primary transition-colors duration-200"
-            aria-label="Go to home"
-            title="Go to home"
-          >
-            {SITE_NAME}
-          </Link>
-
-          <div className="flex items-center gap-2">
-            {credits === 0 && (
-              <button
-                type="button"
-                className={cn(
-                  'glass-red flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm',
-                  'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
-                )}
-                onClick={() => setShowAddCreditsModal(true)}
-              >
-                <Sparkles className="size-5" />
-                <span>Add Credits</span>
-              </button>
-            )}
+        <div className="container flex h-14 max-w-4xl mx-auto items-center px-4 flex-nowrap">
+          <div className="flex flex-1 items-center justify-start">
             <Button
               ref={menuButtonRef}
               variant="ghost"
@@ -379,6 +350,23 @@ export function SiteHeader() {
             >
               <Menu className="size-5" />
             </Button>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <Logo href="/" className="transition-opacity hover:opacity-80" height={36} />
+          </div>
+          <div className="flex flex-1 items-center justify-end gap-2">
+            {credits === 0 && (
+              <button
+                type="button"
+                className={cn(
+                  'glass-green flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm whitespace-nowrap shrink-0',
+                  'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
+                )}
+                onClick={() => setShowAddCreditsModal(true)}
+              >
+                Add Credits
+              </button>
+            )}
           </div>
         </div>
       </header>
