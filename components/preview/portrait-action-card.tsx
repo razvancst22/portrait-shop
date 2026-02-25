@@ -49,7 +49,7 @@ export function PortraitActionCard({
     >
       <a
         href={`/preview/${generationId}`}
-        className="relative block w-full aspect-[4/5] overflow-hidden bg-gradient-to-br from-muted/30 to-muted select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className={`relative block w-full overflow-hidden bg-gradient-to-br from-muted/30 to-muted select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${!(displayImageUrl && completed) ? 'aspect-[4/5]' : ''}`}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
       >
@@ -58,7 +58,7 @@ export function PortraitActionCard({
             <img
               src={displayImageUrl}
               alt={imageAlt}
-              className="absolute inset-0 size-full object-cover object-center pointer-events-none transition-all duration-700 group-hover:scale-105 group-hover:brightness-105"
+              className="block w-full h-auto pointer-events-none transition-all duration-700 group-hover:scale-105 group-hover:brightness-105"
               draggable={false}
             />
             {/* Subtle always-visible gradient */}

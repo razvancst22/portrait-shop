@@ -4,11 +4,11 @@ import fs from 'node:fs'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 
-/** Preview output is always 4:5 aspect ratio. */
-const PREVIEW_WIDTH = 1080
-const PREVIEW_HEIGHT = 1350 // 4:5
+/** Max dimensions for preview; aspect ratio is preserved (no cropping). */
+const PREVIEW_MAX_WIDTH = 1080
+const PREVIEW_MAX_HEIGHT = 1350
 
-/** Dense grid for full photo coverage - edge-to-edge, no margins. */
+/** Grid with spacing between logos. */
 const COLS = 8
 const ROWS = 10
 
@@ -16,9 +16,9 @@ const WATERMARK_TEXT = 'Portrait'
 const LOGO_FILENAME = 'Portraitz_white.png'
 
 /**
- * Download image from URL, resize to 4:5, apply watermark across the entire photo
- * (edge-to-edge, full coverage), return JPEG buffer.
- * Uses logo watermark when available; falls back to dense text grid.
+ * Download image from URL, resize to fit within max dimensions (preserves aspect ratio, no crop),
+ * apply watermark (grid with spacing), return JPEG buffer.
+ * Uses logo watermark when available; falls back to text grid.
  */
 export async function addWatermark(imageUrl: string): Promise<Buffer> {
   const response = await fetch(imageUrl)
@@ -27,16 +27,18 @@ export async function addWatermark(imageUrl: string): Promise<Buffer> {
   }
   const imageBuffer = Buffer.from(await response.arrayBuffer())
 
-  // Resize/crop to exactly 4:5 (center crop)
+  // Resize to fit inside max dimensions while preserving aspect ratio (no cropping)
   const resized = await sharp(imageBuffer)
-    .resize(PREVIEW_WIDTH, PREVIEW_HEIGHT, {
-      fit: 'cover',
-      position: 'center',
+    .resize(PREVIEW_MAX_WIDTH, PREVIEW_MAX_HEIGHT, {
+      fit: 'inside',
+      withoutEnlargement: true,
     })
     .toBuffer()
 
-  const width = PREVIEW_WIDTH
-  const height = PREVIEW_HEIGHT
+  const { width, height } = await sharp(resized).metadata()
+  if (typeof width !== 'number' || typeof height !== 'number') {
+    throw new Error('Could not get preview dimensions')
+  }
 
   const logoPath = path.join(process.cwd(), 'public', LOGO_FILENAME)
   const logoExists = fs.existsSync(logoPath)
@@ -49,7 +51,7 @@ export async function addWatermark(imageUrl: string): Promise<Buffer> {
 }
 
 /**
- * Apply logo watermark in a dense grid, edge-to-edge covering the entire image.
+ * Apply logo watermark in a grid with spacing between logos.
  */
 async function addLogoWatermark(
   resized: Buffer,
@@ -59,8 +61,8 @@ async function addLogoWatermark(
 ): Promise<Buffer> {
   const cellW = width / COLS
   const cellH = height / ROWS
-  // Logo slightly larger than cell (105%) for overlap and full coverage
-  const logoSize = Math.ceil(Math.max(cellW, cellH) * 1.05)
+  // Logo 82% of cell size with visible spacing between logos
+  const logoSize = Math.ceil(Math.min(cellW, cellH) * 0.82)
 
   const logoBuffer = await sharp(logoPath)
     .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -75,8 +77,8 @@ async function addLogoWatermark(
     for (let col = 0; col < COLS; col++) {
       composite.push({
         input: logoBuffer,
-        left: Math.round(col * cellW),
-        top: Math.round(row * cellH),
+        left: Math.round(col * cellW + (cellW - logoSize) / 2),
+        top: Math.round(row * cellH + (cellH - logoSize) / 2),
       })
     }
   }

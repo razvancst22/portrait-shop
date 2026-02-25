@@ -169,7 +169,7 @@ export default function OrderDetailPage() {
                     <img
                       src={`/api/generate/${item.generationId}/preview`}
                       alt=""
-                      className="size-full object-cover"
+                      className="size-full object-contain object-center"
                     />
                   </Link>
                 ) : (

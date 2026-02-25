@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { AddCreditsModal } from '@/components/add-credits-modal'
-import { StyleSelector } from '@/components/style-selector'
+import { CategoryDropdown } from '@/components/category-dropdown'
+import { StyleCardGrid } from '@/components/style-card-grid'
 import { Button } from '@/components/primitives/button'
+import { ART_STYLE_IDS, CATEGORY_ROUTES, SUBJECT_TYPE_IDS, type SubjectTypeId } from '@/lib/prompts/artStyles'
+import { CREATE_FLOW_COPY } from '@/lib/create-flow-config'
+import { compressImageForUpload } from '@/lib/image/compress-upload'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_MB = 10
@@ -25,8 +29,16 @@ const SUBTITLE_MESSAGES = (tokens: number) => [
  * user picks a style in the modal to generate; then redirect to preview page.
  * When 0 tokens, click opens sign-up / buy-Portrait-Generations modal.
  */
+function getCategoryFromPathname(pathname: string | null): SubjectTypeId {
+  if (!pathname) return 'pet'
+  const match = SUBJECT_TYPE_IDS.find((id) => CATEGORY_ROUTES[id].path === pathname)
+  return match ?? 'pet'
+}
+
 export function UploadSection() {
   const router = useRouter()
+  const pathname = usePathname()
+  const currentCategory = getCategoryFromPathname(pathname ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [tokens, setTokens] = useState<number | null>(null)
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
@@ -48,31 +60,28 @@ export function UploadSection() {
     }
   }, [])
 
-  const handleStyleSelect = useCallback(async (styleId: string) => {
-    if (!uploadedImageUrl) {
-      setSelectedStyle(styleId)
-      return
-    }
+  const handleStyleSelect = useCallback((styleId: string) => {
+    setSelectedStyle(styleId)
+  }, [])
 
+  const handleCreateArtwork = useCallback(async () => {
+    if (!uploadedImageUrl || !selectedStyle) return
     setGenerating(true)
     setGenerateError(null)
-    setSelectedStyle(styleId)
-    
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: uploadedImageUrl,
-          artStyle: styleId,
-          subjectType: 'pet',
+          artStyle: selectedStyle,
+          subjectType: currentCategory,
         }),
         credentials: 'include',
       })
-      
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        if (res.status === 403 && err.code === 'INSUFFICIENT_CREDITS') {
+        if (res.status === 403 && (err.code === 'INSUFFICIENT_CREDITS' || err.code === 'FREE_CAP_30_DAYS')) {
           setGenerateError(err.error ?? "You've used your free portraits. Sign in or buy Portrait Generations.")
           setShowAddCreditsModal(true)
         } else {
@@ -80,7 +89,6 @@ export function UploadSection() {
         }
         return
       }
-      
       const { generationId } = await res.json()
       setUploadedImageUrl(null)
       setSelectedStyle(null)
@@ -90,7 +98,7 @@ export function UploadSection() {
     } finally {
       setGenerating(false)
     }
-  }, [uploadedImageUrl, router])
+  }, [uploadedImageUrl, selectedStyle, currentCategory, router])
 
   const fetchCredits = useCallback(() => {
     fetch('/api/credits', { credentials: 'include', cache: 'no-store' })
@@ -123,6 +131,12 @@ export function UploadSection() {
 
   useCreditsUpdateListener(fetchCredits)
 
+  useEffect(() => {
+    if (uploadedImageUrl && !selectedStyle) {
+      setSelectedStyle(ART_STYLE_IDS[0])
+    }
+  }, [uploadedImageUrl, selectedStyle])
+
   const handleFile = useCallback(
     async (file: File | null) => {
       if (!file || tokens === 0) return
@@ -137,12 +151,17 @@ export function UploadSection() {
       setUploadError(null)
       setUploading(true)
       try {
+        const { file: fileToUpload } = await compressImageForUpload(file)
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', fileToUpload)
         const res = await fetch('/api/upload', { method: 'POST', body: formData })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
-          throw new Error(err.error || `Upload failed: ${res.status}`)
+          const message =
+            res.status === 413
+              ? 'Photo is too large. Please choose a smaller image or take a new photo.'
+              : (err.error || `Upload failed: ${res.status}`)
+          throw new Error(message)
         }
         const { imageUrl } = await res.json()
         setUploadedImageUrl(imageUrl)
@@ -197,21 +216,33 @@ export function UploadSection() {
         disabled={tokens === 0 || uploading}
       />
       {uploadedImageUrl ? (
-        <div className="flex flex-col items-center text-center animate-fade-in">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-4 rounded-full -mt-2"
-            onClick={handleChangePhoto}
-            disabled={generating}
-            type="button"
-          >
-            ← Back
-          </Button>
-          <p className="text-sm font-medium text-foreground mb-2">
-            {generating ? 'Creating your portrait...' : 'Photo uploaded. Pick a style to create your portrait.'}
+        <div className="flex flex-col w-full animate-fade-in">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full -ml-2"
+              onClick={handleChangePhoto}
+              disabled={generating}
+              type="button"
+            >
+              ← Back
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={handleChangePhoto}
+              disabled={generating}
+              type="button"
+            >
+              Change photo
+            </Button>
+          </div>
+          <p className="text-sm font-medium text-foreground mb-3 text-center">
+            {generating ? 'Creating your portrait…' : 'Choose a style, then create your artwork.'}
           </p>
-          <div className="relative aspect-[4/5] w-40 rounded-2xl overflow-hidden bg-muted/50 border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_16px_rgba(0,0,0,0.3)] mb-3">
+          <div className="relative aspect-[4/5] w-full max-w-[220px] mx-auto rounded-2xl overflow-hidden bg-muted/50 border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.12)] mb-6">
             <Image src={uploadedImageUrl} alt="Your upload" fill className="object-cover object-center" unoptimized />
             {generating && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-md">
@@ -219,24 +250,20 @@ export function UploadSection() {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-3 justify-center items-center">
-            <StyleSelector
-              selectedStyle={selectedStyle || undefined}
-              onStyleSelect={handleStyleSelect}
-              disabled={generating}
-              className="mb-0"
-            />
-            <Button
-              onClick={handleChangePhoto}
-              variant="outline"
-              className="rounded-full"
-              size="lg"
-              type="button"
-              disabled={generating}
-            >
-              Change photo
-            </Button>
-          </div>
+          <StyleCardGrid
+            selectedStyle={selectedStyle ?? undefined}
+            onStyleSelect={handleStyleSelect}
+            disabled={generating}
+            className="mb-4"
+          />
+          <Button
+            onClick={handleCreateArtwork}
+            disabled={!selectedStyle || generating}
+            className="w-full rounded-full"
+            size="lg"
+          >
+            Create your artwork
+          </Button>
           {generateError && (
             <p className="mt-3 text-sm text-destructive text-center" role="alert">
               {generateError}
@@ -247,7 +274,7 @@ export function UploadSection() {
         <UploadPhotoArea
           creditsCount={0}
           creditsLabel="Portrait Generation"
-          uploadTitle="Upload your photo"
+          uploadTitle={CREATE_FLOW_COPY[currentCategory].uploadLabel}
           subtitle={subtitle}
           subtitleRotateIntervalMs={0}
           as="button"
@@ -255,18 +282,16 @@ export function UploadSection() {
           onAddCredits={() => setShowAddCreditsModal(true)}
           disabled={false}
           styleSelector={
-            <StyleSelector
-              selectedStyle={selectedStyle || undefined}
-              onStyleSelect={handleStyleSelect}
-              disabled={false}
-            />
+            <CategoryDropdown currentCategory={currentCategory} disabled={false} />
           }
         />
       ) : (
         <UploadPhotoArea
           creditsCount={tokens}
           creditsLabel="Portrait Generation"
-          uploadTitle={uploading ? 'Uploading…' : 'Upload your photo'}
+          uploadTitle={
+            uploading ? 'Uploading…' : CREATE_FLOW_COPY[currentCategory].uploadLabel
+          }
           subtitle={uploading ? 'One moment…' : subtitle}
           subtitleRotateIntervalMs={uploading ? 0 : Array.isArray(subtitle) ? 4000 : 0}
           as="label"
@@ -276,11 +301,7 @@ export function UploadSection() {
           onDragLeave={onDragLeave}
           disabled={uploading}
           styleSelector={
-            <StyleSelector
-              selectedStyle={selectedStyle || undefined}
-              onStyleSelect={handleStyleSelect}
-              disabled={uploading}
-            />
+            <CategoryDropdown currentCategory={currentCategory} disabled={uploading} />
           }
         />
       )}

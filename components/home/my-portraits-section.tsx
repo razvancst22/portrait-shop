@@ -74,7 +74,7 @@ export function MyPortraitsSection() {
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-4 items-start max-w-md mx-auto">
+      <div className="grid grid-cols-2 gap-4 items-start w-full">
         {generations.slice(0, 2).map((gen) => (
           <PortraitActionCard
             key={gen.id}

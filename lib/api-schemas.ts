@@ -1,12 +1,5 @@
 import { z } from 'zod'
-
-const ART_STYLE_IDS = [
-  'renaissance',
-  'baroque',
-  'victorian',
-  'regal',
-  'belle_epoque',
-] as const
+import { ART_STYLE_IDS } from '@/lib/prompts/artStyles'
 
 const SUBJECT_TYPE_IDS = ['pet', 'dog', 'cat', 'family', 'children', 'couple', 'self'] as const
 const PET_TYPE_IDS = ['dog', 'cat'] as const
@@ -100,18 +93,50 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
   }
 }
 
-export const generateBodySchema = z.object({
-  imageUrl: z.string().min(1, 'Missing or invalid imageUrl').refine(
-    (url) => validateImageUrl(url).valid,
-    'Invalid imageUrl. Must be a valid HTTPS URL from allowed domains.'
-  ),
-  idempotencyKey: z.string().min(1).max(255).optional(),
-  artStyle: z.enum(ART_STYLE_IDS, {
-    message: 'Invalid artStyle. Allowed: renaissance, baroque, victorian, regal, belle_epoque',
-  }),
-  subjectType: z.enum(SUBJECT_TYPE_IDS).optional().default('pet'),
-  petType: z.enum(PET_TYPE_IDS).optional(),
-})
+const imageUrlSchema = z.string().min(1).refine(
+  (url) => validateImageUrl(url).valid,
+  'Invalid URL. Must be valid HTTPS from allowed domains.'
+)
+
+export const generateBodySchema = z
+  .object({
+    imageUrl: imageUrlSchema.optional(),
+    imageUrls: z.array(imageUrlSchema).min(2).max(6).optional(),
+    idempotencyKey: z.string().min(1).max(255).optional(),
+    artStyle: z.enum(ART_STYLE_IDS as [string, ...string[]], {
+      message: `Invalid artStyle. Allowed: ${ART_STYLE_IDS.join(', ')}`,
+    }),
+    subjectType: z.enum(SUBJECT_TYPE_IDS).optional().default('pet'),
+    petType: z.enum(PET_TYPE_IDS).optional(),
+  })
+  .refine(
+    (data) => {
+      const subject = data.subjectType ?? 'pet'
+      const singleImageTypes = ['pet', 'dog', 'cat', 'self', 'children']
+      if (singleImageTypes.includes(subject)) {
+        return !!(data.imageUrl && data.imageUrl.length > 0)
+      }
+      return (
+        (data.imageUrl && data.imageUrl.length > 0) ||
+        (data.imageUrls && data.imageUrls.length > 0)
+      )
+    },
+    {
+      message: 'Provide imageUrl for single-photo. For family/couple, provide imageUrls (2-6).',
+      path: ['imageUrl'],
+    }
+  )
+  .refine(
+    (data) => {
+      const urls = data.imageUrls
+      if (!urls || urls.length === 0) return true
+      const subject = data.subjectType ?? 'pet'
+      if (subject === 'couple') return urls.length === 2
+      if (subject === 'family') return urls.length >= 2 && urls.length <= 6
+      return true
+    },
+    { message: 'Couple requires 2 photos. Family requires 2-6 photos.', path: ['imageUrls'] }
+  )
 
 export type GenerateBody = z.infer<typeof generateBodySchema>
 

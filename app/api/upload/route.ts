@@ -11,13 +11,15 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 /** Signed URL expiry in seconds. Use the uploaded photo in create flow within this window or the generate step may fail to fetch the reference image. */
 const UPLOAD_SIGNED_URL_EXPIRY_SECONDS = 7200 // 2 hours
 
+const MAX_FILES_MULTI = 6
+
 /**
- * POST /api/upload – accept a pet photo, validate, upload to Storage, return imageUrl.
- * No generations row is created here (that happens in the generate API).
- * The returned imageUrl expires in UPLOAD_SIGNED_URL_EXPIRY_SECONDS; use it for generate within that time.
+ * POST /api/upload – accept one or more photos, validate, upload to Storage.
+ * Single file: send "file" or "image" → returns { imageUrl, path }
+ * Multiple files: send multiple "file" entries → returns { imageUrls, paths }
+ * Max 6 files (family); each file max 10MB.
  */
 export async function POST(request: NextRequest) {
-  // Apply rate limiting
   const ip = getClientIp(request)
   const rateLimitResult = checkRateLimit(ip, request.nextUrl.pathname)
   if (!rateLimitResult.allowed) {
@@ -37,25 +39,43 @@ export async function POST(request: NextRequest) {
   }
   try {
     const formData = await request.formData()
-    const file = formData.get('file') ?? formData.get('image')
-    if (!file || !(file instanceof File)) {
+    const allFiles = formData.getAll('file').filter((f): f is File => f instanceof File)
+    const singleFile = formData.get('file') ?? formData.get('image')
+    const files: File[] =
+      allFiles.length > 0
+        ? allFiles
+        : singleFile instanceof File
+          ? [singleFile]
+          : []
+
+    if (files.length === 0) {
       return NextResponse.json(
-        { error: 'Missing file. Send as form field "file" or "image".' },
+        { error: 'Missing file(s). Send as "file", "image", or multiple "file" entries.' },
         { status: 400 }
       )
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (files.length > MAX_FILES_MULTI) {
       return NextResponse.json(
-        { error: `Invalid type. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+        { error: `Maximum ${MAX_FILES_MULTI} files allowed.` },
         { status: 400 }
       )
     }
-    if (file.size > MAX_SIZE_BYTES) {
-      return NextResponse.json(
-        { error: `File too large. Max ${MAX_SIZE_BYTES / 1024 / 1024}MB` },
-        { status: 400 }
-      )
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        return NextResponse.json(
+          { error: `File ${i + 1}: Invalid type. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+          { status: 400 }
+        )
+      }
+      if (f.size > MAX_SIZE_BYTES) {
+        return NextResponse.json(
+          { error: `File ${i + 1}: Too large. Max ${MAX_SIZE_BYTES / 1024 / 1024}MB` },
+          { status: 400 }
+        )
+      }
     }
 
     const supabase = createClientIfConfigured()
@@ -66,29 +86,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const ext = file.name.split('.').pop() || 'jpg'
-    const path = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
+    const imageUrls: string[] = []
+    const paths: string[] = []
 
-    const { data, error } = await supabase.storage
-      .from(BUCKET_UPLOADS)
-      .upload(path, await file.arrayBuffer(), {
-        contentType: file.type,
-        upsert: false,
-      })
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${i}.${ext}`
 
-    if (error) {
-      return serverErrorResponse(error, 'Upload')
+      const { data, error } = await supabase.storage
+        .from(BUCKET_UPLOADS)
+        .upload(path, await file.arrayBuffer(), {
+          contentType: file.type,
+          upsert: false,
+        })
+
+      if (error) {
+        return serverErrorResponse(error, 'Upload')
+      }
+
+      const { data: signedData, error: signError } = await supabase.storage
+        .from(BUCKET_UPLOADS)
+        .createSignedUrl(data.path, UPLOAD_SIGNED_URL_EXPIRY_SECONDS)
+
+      if (signError || !signedData?.signedUrl) {
+        return serverErrorResponse(signError ?? new Error('No signed URL'), 'Upload signed URL')
+      }
+
+      imageUrls.push(signedData.signedUrl)
+      paths.push(data.path)
     }
 
-    const { data: signedData, error: signError } = await supabase.storage
-      .from(BUCKET_UPLOADS)
-      .createSignedUrl(data.path, UPLOAD_SIGNED_URL_EXPIRY_SECONDS)
-
-    if (signError || !signedData?.signedUrl) {
-      return serverErrorResponse(signError ?? new Error('No signed URL'), 'Upload signed URL')
+    if (imageUrls.length === 1) {
+      return NextResponse.json({ imageUrl: imageUrls[0], path: paths[0] })
     }
-
-    return NextResponse.json({ imageUrl: signedData.signedUrl, path: data.path })
+    return NextResponse.json({ imageUrls, paths })
   } catch (e) {
     return serverErrorResponse(e, 'Upload')
   }

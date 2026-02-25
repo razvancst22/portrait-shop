@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClientIfConfigured } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
-import { buildPrompt } from '@/lib/prompts/artStyles'
+import { buildPromptLegacy, type ArtStyleId } from '@/lib/prompts/artStyles'
 import { generateBodySchema, validationErrorResponse } from '@/lib/api-schemas'
 import { generatePortraitFromReference } from '@/lib/ai/gpt-image'
 import { checkJsonBodySize } from '@/lib/api-limits'
@@ -160,10 +160,20 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
-  const { imageUrl, artStyle, subjectType, petType, idempotencyKey: bodyKey } = parsed.data
+  const { imageUrl, imageUrls, artStyle, subjectType, petType, idempotencyKey: bodyKey } = parsed.data
   const idempotencyKey = bodyKey ?? request.headers.get('idempotency-key')?.trim()?.slice(0, 255) ?? null
   const dbSubjectType =
     subjectType === 'pet' && petType ? `pet_${petType}` : subjectType
+
+  // Resolve reference URLs: use imageUrls for multi-photo, else imageUrl
+  const referenceUrls = imageUrls && imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : []
+  const primaryImageUrl = referenceUrls[0]
+  if (!primaryImageUrl) {
+    return NextResponse.json(
+      { error: 'Missing imageUrl or imageUrls', code: 'VALIDATION_ERROR' },
+      { status: 400 }
+    )
+  }
 
   if (idempotencyKey) {
     const { data: existing } = await supabase
@@ -229,15 +239,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const prompt = buildPrompt(artStyle, subjectType, petType)
+    const prompt = buildPromptLegacy(
+      artStyle as ArtStyleId,
+      subjectType,
+      petType,
+      referenceUrls.length >= 2 ? referenceUrls.length : undefined
+    )
 
     const insertPayload: Record<string, unknown> = {
       session_id: sessionId,
-      original_image_url: imageUrl,
+      original_image_url: primaryImageUrl,
       art_style: artStyle,
       subject_type: dbSubjectType,
       prompt: prompt,
       status: 'pending',
+    }
+    if (referenceUrls.length >= 2) {
+      insertPayload.reference_image_urls = referenceUrls
     }
     if (idempotencyKey) insertPayload.idempotency_key = idempotencyKey
 

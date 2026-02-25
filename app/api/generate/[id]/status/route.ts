@@ -83,9 +83,15 @@ export async function GET(
     }
 
     try {
+      const refUrls = gen.reference_image_urls
+      const referenceUrls: string[] =
+        Array.isArray(refUrls) && refUrls.length > 0
+          ? refUrls
+          : [gen.original_image_url]
       const imageBuffer = await generatePortraitFromReference(
-        gen.original_image_url,
-        gen.prompt
+        referenceUrls.length > 1 ? referenceUrls : referenceUrls[0],
+        gen.prompt,
+        referenceUrls.length > 1 ? { inputFidelity: 'high' } : undefined
       )
       const finalPath = `${GPT_IMAGE_FINAL_PATH_PREFIX}/${id}_final.png`
       const { error: uploadError } = await supabase.storage

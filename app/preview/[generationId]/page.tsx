@@ -1,7 +1,6 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import { getButtonClassName } from '@/components/primitives/button'
@@ -199,20 +198,17 @@ export default function PreviewPage() {
             <CountdownOfferBanner expiresAt={discountExpiresAt} className="mb-4" />
           )}
 
-          {/* Image card */}
+          {/* Image card - image-driven layout, no cropping */}
           <div className="mx-auto max-w-md rounded-2xl overflow-hidden bg-card text-card-foreground border border-border shadow-xl">
             <div
-              className="relative aspect-[4/5] w-full select-none bg-muted/20"
+              className="relative w-full select-none bg-muted/20"
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
             >
-              <Image
-                src={displayImageUrl}
+              <img
+                src={displayImageUrl ?? ''}
                 alt={isPurchased ? "Your portrait" : "Your portrait preview"}
-                fill
-                className="object-cover pointer-events-none size-full"
-                sizes="(max-width: 640px) 100vw, 512px"
-                unoptimized
+                className="block w-full h-auto pointer-events-none"
                 draggable={false}
               />
             </div>
