@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
+import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { checkJsonBodySize } from '@/lib/api-limits'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
@@ -337,7 +338,7 @@ export async function POST(request: NextRequest) {
       subtotal_usd: total,
       ...(productType === 'art_print' && print && { print_dimensions: print }),
     })
-    const sessionConfig: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       ...(useStripeEmail ? {} : { customer_email: email! }),
       line_items: [{

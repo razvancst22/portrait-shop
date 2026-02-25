@@ -27,14 +27,14 @@ export type OrderItemWithGeneration = {
 }
 
 export type StripeShippingDetails = {
-  name?: string
+  name?: string | null
   address?: {
-    line1?: string
+    line1?: string | null
     line2?: string | null
-    city?: string
-    state?: string
-    postal_code?: string
-    country?: string
+    city?: string | null
+    state?: string | null
+    postal_code?: string | null
+    country?: string | null
   }
 }
 

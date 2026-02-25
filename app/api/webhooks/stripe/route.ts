@@ -161,13 +161,17 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      const shippingDetails = session.shipping_details ?? session.shipping_address
+      const shippingDetails =
+        session.collected_information?.shipping_details ??
+        (session.customer_details?.address
+          ? { name: session.customer_details.individual_name ?? '', address: session.customer_details.address }
+          : null)
 
       const result = await processPrintfulFulfillment(
         supabase,
         order,
         orderItems,
-        shippingDetails as Parameters<typeof processPrintfulFulfillment>[3],
+        shippingDetails,
         stripeEmail ?? null
       )
       if (!result.success) {
