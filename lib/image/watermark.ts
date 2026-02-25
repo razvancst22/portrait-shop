@@ -1,4 +1,6 @@
 import sharp from 'sharp'
+import path from 'node:path'
+import fs from 'node:fs'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 
@@ -6,12 +8,17 @@ import { BUCKET_UPLOADS } from '@/lib/constants'
 const PREVIEW_WIDTH = 1080
 const PREVIEW_HEIGHT = 1350 // 4:5
 
+/** Dense grid for full photo coverage - edge-to-edge, no margins. */
+const COLS = 8
+const ROWS = 10
+
 const WATERMARK_TEXT = 'Portrait'
+const LOGO_FILENAME = 'Portraitz_white.png'
 
 /**
- * Download image from URL, resize to 4:5, apply uniform repeated watermark, return JPEG buffer.
- * Watermark is tiled in rows and columns across the whole image so it covers the photo uniformly
- * without a single harsh block.
+ * Download image from URL, resize to 4:5, apply watermark across the entire photo
+ * (edge-to-edge, full coverage), return JPEG buffer.
+ * Uses logo watermark when available; falls back to dense text grid.
  */
 export async function addWatermark(imageUrl: string): Promise<Buffer> {
   const response = await fetch(imageUrl)
@@ -31,20 +38,77 @@ export async function addWatermark(imageUrl: string): Promise<Buffer> {
   const width = PREVIEW_WIDTH
   const height = PREVIEW_HEIGHT
 
-  // Grid: uniform rows and columns so watermark appears everywhere but stays readable
-  const cols = 4
-  const rows = 5
-  const stepX = width / (cols + 1)
-  const stepY = height / (rows + 1)
-  const fontSize = Math.min(Math.floor(width / 16), Math.floor(height / 20))
+  const logoPath = path.join(process.cwd(), 'public', LOGO_FILENAME)
+  const logoExists = fs.existsSync(logoPath)
+
+  if (logoExists) {
+    return addLogoWatermark(resized, width, height, logoPath)
+  }
+
+  return addTextWatermark(resized, width, height)
+}
+
+/**
+ * Apply logo watermark in a dense grid, edge-to-edge covering the entire image.
+ */
+async function addLogoWatermark(
+  resized: Buffer,
+  width: number,
+  height: number,
+  logoPath: string
+): Promise<Buffer> {
+  const cellW = width / COLS
+  const cellH = height / ROWS
+  // Logo slightly larger than cell (105%) for overlap and full coverage
+  const logoSize = Math.ceil(Math.max(cellW, cellH) * 1.05)
+
+  const logoBuffer = await sharp(logoPath)
+    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .ensureAlpha()
+    .linear([1, 1, 1, 0.45], [0, 0, 0, 0]) // scale alpha to 45% opacity
+    .png()
+    .toBuffer()
+
+  const composite: { input: Buffer; left: number; top: number }[] = []
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      composite.push({
+        input: logoBuffer,
+        left: Math.round(col * cellW),
+        top: Math.round(row * cellH),
+      })
+    }
+  }
+
+  const watermarked = await sharp(resized)
+    .composite(composite)
+    .jpeg({ quality: 85 })
+    .toBuffer()
+
+  return watermarked
+}
+
+/**
+ * Apply text watermark in a dense grid, edge-to-edge covering the entire image.
+ * Fallback when logo is not available.
+ */
+async function addTextWatermark(
+  resized: Buffer,
+  width: number,
+  height: number
+): Promise<Buffer> {
+  const cellW = width / COLS
+  const cellH = height / ROWS
+  const fontSize = Math.min(Math.floor(cellW / 2), Math.floor(cellH / 2), 72)
   const textOpacity = 0.52
   const strokeOpacity = 0.35
 
   const textElements: string[] = []
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = stepX * (col + 1)
-      const y = stepY * (row + 1)
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const x = col * cellW + cellW / 2
+      const y = row * cellH + cellH / 2
       textElements.push(
         `<text
           x="${x}" y="${y}"
@@ -90,11 +154,11 @@ export async function createAndUploadWatermark(
   generationId: string
 ): Promise<string> {
   const buffer = await addWatermark(finalImageUrl)
-  const path = `previews/${generationId}.jpg`
+  const storagePath = `previews/${generationId}.jpg`
   const supabase = createClient()
   const { error } = await supabase.storage
     .from(BUCKET_UPLOADS)
-    .upload(path, buffer, { contentType: 'image/jpeg', upsert: true })
+    .upload(storagePath, buffer, { contentType: 'image/jpeg', upsert: true })
   if (error) throw new Error(`Watermark upload failed: ${error.message}`)
-  return path
+  return storagePath
 }

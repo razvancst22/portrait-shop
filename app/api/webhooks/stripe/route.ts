@@ -6,6 +6,7 @@ import { generateAndStoreBundle } from '@/lib/bundle/createBundle'
 import { sendDeliveryEmail } from '@/lib/email/delivery'
 import { serverErrorResponse } from '@/lib/api-error'
 import { createPackPurchase } from '@/lib/pack-credits'
+import { processPrintfulFulfillment } from '@/lib/fulfillment/process-printful-order'
 
 const PENDING_EMAIL_PLACEHOLDER = 'pending@stripe'
 
@@ -128,6 +129,50 @@ export async function POST(request: NextRequest) {
       await sendDeliveryEmail(orderId)
     } catch (e) {
       console.error('Webhook: sendDeliveryEmail failed', orderId, e)
+    }
+  }
+
+  // Art Print: send to Printful fulfillment
+  if (productType === 'art_print') {
+    const printFromMeta = session.metadata?.print as string | undefined
+
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, order_number, customer_email')
+      .eq('id', orderId)
+      .single()
+
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('id, product_type, generation_id, print_dimensions')
+      .eq('order_id', orderId)
+
+    if (order && orderItems?.length) {
+      if (printFromMeta) {
+        const itemsWithoutPrint = orderItems.filter((i) => i.product_type === 'art_print' && !i.print_dimensions)
+        for (const item of itemsWithoutPrint) {
+          await supabase
+            .from('order_items')
+            .update({ print_dimensions: printFromMeta })
+            .eq('id', item.id)
+        }
+        orderItems.forEach((i) => {
+          if (i.product_type === 'art_print' && !i.print_dimensions) i.print_dimensions = printFromMeta
+        })
+      }
+
+      const shippingDetails = session.shipping_details ?? session.shipping_address
+
+      const result = await processPrintfulFulfillment(
+        supabase,
+        order,
+        orderItems,
+        shippingDetails as Parameters<typeof processPrintfulFulfillment>[3],
+        stripeEmail ?? null
+      )
+      if (!result.success) {
+        console.error('Printful fulfillment failed for order', orderId, result.error)
+      }
     }
   }
 

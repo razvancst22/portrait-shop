@@ -335,8 +335,9 @@ export async function POST(request: NextRequest) {
       unit_price_usd: total,
       quantity: 1,
       subtotal_usd: total,
+      ...(productType === 'art_print' && print && { print_dimensions: print }),
     })
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: Parameters<typeof stripe.checkout.sessions.create>[0] = {
       mode: 'payment',
       ...(useStripeEmail ? {} : { customer_email: email! }),
       line_items: [{
@@ -349,8 +350,22 @@ export async function POST(request: NextRequest) {
       }],
       success_url: `${baseUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/preview/${generationId}`,
-      metadata: { order_id: order.id, generation_id: generationId, product_type: productType },
-    })
+      metadata: {
+        order_id: order.id,
+        generation_id: generationId,
+        product_type: productType,
+        ...(productType === 'art_print' && print && { print }),
+      },
+    }
+    if (productType === 'art_print') {
+      sessionConfig.shipping_address_collection = {
+        allowed_countries: [
+          'US', 'GB', 'CA', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'IE',
+          'PT', 'PL', 'SE', 'DK', 'NO', 'FI', 'CH', 'NZ', 'JP', 'SG', 'HK',
+        ],
+      }
+    }
+    const session = await stripe.checkout.sessions.create(sessionConfig)
     return NextResponse.json({ checkoutUrl: session.url, orderId: order.id, orderNumber })
   } catch (e) {
     return serverErrorResponse(e, 'Checkout')
