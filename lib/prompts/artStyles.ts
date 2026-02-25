@@ -601,7 +601,9 @@ export function buildPromptLegacy(
       subjectType === 'family' ? FAMILY_COMPOSITION_HINTS[artStyle as ArtStyleId] : null
     const multiImagePrefix = [
       `REFERENCE IMAGES PROVIDED: ${refLines.join(' ')}`,
-      'Create a unified portrait preserving each person\'s exact likeness and facial features from their reference image.',
+      'Use the reference images ONLY for each person\'s face, likeness, and identity. Do NOT copy or preserve the clothing, outfits, or accessories from the reference photos.',
+      'Replace all clothing with period-appropriate attire as specified in the prompt below. Each figure must wear the historical costume described, not their original modern clothes.',
+      'Create a unified portrait preserving each person\'s exact facial features and likeness from their reference image.',
       compositionHint ? `Composition: ${compositionHint}` : null,
     ]
       .filter(Boolean)
