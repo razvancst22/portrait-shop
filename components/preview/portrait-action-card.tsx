@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/primitives/button'
 import { Check, Download, Printer } from 'lucide-react'
 import type { PreviewPackageVariant } from '@/components/preview/preview-package-modal'
@@ -12,8 +13,10 @@ type PortraitActionCardProps = {
   imageAlt: string
   status: string
   onOpenPackageModal: (variant: PreviewPackageVariant) => void
-  /** When true, use final image instead of watermarked preview */
+  /** When true, use final image instead of watermarked preview (only when useThumbnail=false) */
   isPurchased?: boolean
+  /** When true (default), use preview thumbnail for grid display; when false, use full final for purchased */
+  useThumbnail?: boolean
   /** 'stack' = buttons stacked vertically (default); 'row' = buttons on same row (e.g. My Portraits section). */
   buttonsLayout?: 'stack' | 'row'
   className?: string
@@ -24,6 +27,12 @@ type PortraitActionCardProps = {
  * Features a modern design with buttons positioned over the bottom of the photo,
  * creating an elegant Pinterest-like aesthetic. Used in My Portraits section and page.
  */
+function withThumbnailParam(url: string, width = 400): string {
+  if (!url) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}w=${width}`
+}
+
 export function PortraitActionCard({
   generationId,
   imageUrl,
@@ -31,24 +40,28 @@ export function PortraitActionCard({
   status,
   onOpenPackageModal,
   isPurchased = false,
+  useThumbnail = true,
   buttonsLayout = 'stack',
   className = '',
 }: PortraitActionCardProps) {
+  const router = useRouter()
   const [isDownloading, setIsDownloading] = useState(false)
   const completed = status === 'completed'
   const showButtons = completed
   
-  // Use final image for purchased items, preview for unpurchased
-  const displayImageUrl = isPurchased && completed 
-    ? `/api/generate/${generationId}/final` 
-    : imageUrl
+  // Grid (useThumbnail): use final (no watermark) for purchased, preview (watermarked) for unpurchased
+  // Detail (useThumbnail=false): same logic
+  const useFinal = isPurchased && completed
+  const displayImageUrl = useFinal
+    ? `/api/generate/${generationId}/final${useThumbnail ? '?w=400' : ''}`
+    : (imageUrl ? (useThumbnail ? withThumbnailParam(imageUrl) : imageUrl) : null)
 
   return (
     <article
       className={`relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-black/25 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 min-w-0 group cursor-pointer touch-manipulation ${className}`}
     >
       <a
-        href={`/preview/${generationId}`}
+        href={completed ? `/preview/${generationId}?completed=1&purchased=${isPurchased ? 1 : 0}` : `/preview/${generationId}`}
         className={`relative block w-full overflow-hidden bg-gradient-to-br from-muted/30 to-muted select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${!(displayImageUrl && completed) ? 'aspect-[4/5]' : ''}`}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
@@ -60,6 +73,8 @@ export function PortraitActionCard({
               alt={imageAlt}
               className="block w-full h-auto pointer-events-none transition-all duration-700 group-hover:scale-105 group-hover:brightness-105"
               draggable={false}
+              loading="lazy"
+              decoding="async"
             />
             {/* Subtle always-visible gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
@@ -159,7 +174,7 @@ export function PortraitActionCard({
             <Button
               variant="secondary"
               size={buttonsLayout === 'row' ? 'sm' : 'default'}
-              className={`backdrop-blur-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 border border-yellow-600/30 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-medium hover:scale-105 ${
+              className={`backdrop-blur-xl bg-orange-500 hover:bg-orange-600 text-white border border-orange-600/30 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-medium hover:scale-105 ${
                 buttonsLayout === 'row' 
                   ? 'flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1 sm:gap-1.5 rounded-full px-3 sm:px-4' 
                   : 'w-full h-10 sm:h-11 text-sm sm:text-base gap-2 sm:gap-2.5 rounded-full px-4 sm:px-6'
@@ -180,13 +195,17 @@ export function PortraitActionCard({
         {/* Failed state overlay */}
         {status === 'failed' && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <a
-              href="/"
-              className="bg-white/95 hover:bg-white text-gray-900 px-6 py-3 rounded-full font-semibold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 hover:scale-105 transition-all duration-300 backdrop-blur-xl border border-white/20"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              type="button"
+              className="bg-white/95 hover:bg-white text-gray-900 px-6 py-3 rounded-full font-semibold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 hover:scale-105 transition-all duration-300 backdrop-blur-xl border border-white/20 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                router.push('/')
+              }}
             >
               Try again
-            </a>
+            </button>
           </div>
         )}
       </a>

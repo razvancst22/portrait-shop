@@ -130,7 +130,7 @@ export function PreviewPackageModal({
             const option = ART_PRINT_OPTIONS.find((o) => o.dimensions === e.target.value)
             if (option) setArtPrintOption(option)
           }}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2"
         >
           {ART_PRINT_OPTIONS.map((opt) => (
             <option key={opt.dimensions} value={opt.dimensions}>
@@ -145,21 +145,21 @@ export function PreviewPackageModal({
       </div>
       <ul className="space-y-2 text-sm text-foreground">
         <li className="flex gap-2">
-          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+          <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
           <span>Museum quality print</span>
         </li>
         <li className="flex gap-2">
-          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+          <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
           <span>Last over 100 years</span>
         </li>
         <li className="flex gap-2">
-          <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+          <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
           <span>Free shipping worldwide</span>
         </li>
       </ul>
       <Link
         href={`/checkout?generationId=${encodeURIComponent(generationId)}&print=${encodeURIComponent(artPrintOption.dimensions)}`}
-        className={getButtonClassName('default', 'lg', 'w-full rounded-xl')}
+        className={getButtonClassName('default', 'lg', 'w-full rounded-xl gap-2 font-semibold bg-orange-600 hover:bg-orange-700')}
       >
         {isPurchased ? 'Order Print' : 'Get Art Print Pack'}
       </Link>

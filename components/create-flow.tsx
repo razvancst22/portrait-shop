@@ -16,6 +16,11 @@ import { AddCreditsModal } from '@/components/add-credits-modal'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { StyleCardGrid } from '@/components/style-card-grid'
 import { CategoryDropdown } from '@/components/category-dropdown'
+import { GallerySection } from '@/components/gallery-section'
+import {
+  getGalleryImagesForPage,
+  type GalleryImage,
+} from '@/lib/gallery-images'
 import { compressImageForUpload } from '@/lib/image/compress-upload'
 
 type Step = 'upload' | 'post-upload' | 'generating'
@@ -39,13 +44,29 @@ const GENERATING_MESSAGES = [
 
 type CreateFlowProps = {
   category: SubjectTypeId
+  /** When true, category dropdown switches flow inline instead of navigating. Use on main page to support all portrait types. */
+  allowInlineCategorySwitch?: boolean
+  /** When false, the gallery is not rendered. Default true. */
+  showGallery?: boolean
+  /** Optional override: use these images instead of page-specific gallery. Same CircularGallery style. */
+  galleryImages?: GalleryImage[]
 }
 
-export function CreateFlow({ category }: CreateFlowProps) {
+export function CreateFlow({
+  category: initialCategory,
+  allowInlineCategorySwitch = false,
+  showGallery = true,
+  galleryImages,
+}: CreateFlowProps) {
   const router = useRouter()
+  const galleryItems =
+    galleryImages ??
+    getGalleryImagesForPage(initialCategory, !!allowInlineCategorySwitch)
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const copy = CREATE_FLOW_COPY[category]
+  const [category, setCategory] = useState<SubjectTypeId>(initialCategory)
+  const effectiveCategory = allowInlineCategorySwitch ? category : initialCategory
+  const copy = CREATE_FLOW_COPY[effectiveCategory]
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -69,9 +90,30 @@ export function CreateFlow({ category }: CreateFlowProps) {
   const [user, setUser] = useState<{ id: string } | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const isMultiPhoto = category === 'family' || category === 'couple'
-  const minPhotos = category === 'couple' ? MIN_PHOTOS_COUPLE : MIN_PHOTOS_FAMILY
-  const maxPhotos = category === 'couple' ? MIN_PHOTOS_COUPLE : MAX_PHOTOS_FAMILY
+  useEffect(() => {
+    if (!allowInlineCategorySwitch) setCategory(initialCategory)
+  }, [allowInlineCategorySwitch, initialCategory])
+
+  const isMultiPhoto = effectiveCategory === 'family' || effectiveCategory === 'couple'
+
+  // When switching between single-photo and multi-photo inline, reset upload state
+  const prevMultiPhotoRef = useRef(isMultiPhoto)
+  useEffect(() => {
+    if (!allowInlineCategorySwitch) return
+    if (prevMultiPhotoRef.current !== isMultiPhoto) {
+      prevMultiPhotoRef.current = isMultiPhoto
+      setStep('upload')
+      setFile(null)
+      setPreviewUrl((p) => { if (p?.startsWith('blob:')) URL.revokeObjectURL(p); return null })
+      setUploadedImageUrl(null)
+      setMultiFiles([])
+      setMultiPreviewUrls((prev) => { prev.forEach((u) => u.startsWith('blob:') && URL.revokeObjectURL(u)); return [] })
+      setUploadedImageUrls([])
+      setSelectedStyle(null)
+    }
+  }, [allowInlineCategorySwitch, isMultiPhoto])
+  const minPhotos = effectiveCategory === 'couple' ? MIN_PHOTOS_COUPLE : MIN_PHOTOS_FAMILY
+  const maxPhotos = effectiveCategory === 'couple' ? MIN_PHOTOS_COUPLE : MAX_PHOTOS_FAMILY
 
   // If we landed here with ?imageUrl=... (e.g. from home page), go straight to post-upload
   useEffect(() => {
@@ -236,6 +278,10 @@ export function CreateFlow({ category }: CreateFlowProps) {
 
   useCreditsUpdateListener(fetchCredits)
 
+  const onStyleSelect = useCallback((styleId: string) => {
+    setSelectedStyle(styleId)
+  }, [])
+
   const startGeneration = useCallback(async () => {
     if (!selectedStyle) return
     let resolvedImageUrl: string | null = uploadedImageUrl
@@ -315,15 +361,15 @@ export function CreateFlow({ category }: CreateFlowProps) {
     try {
       const body: Record<string, unknown> = {
         artStyle: selectedStyle,
-        subjectType: category,
+        subjectType: effectiveCategory,
       }
       if (resolvedImageUrls.length >= 2) {
         body.imageUrls = resolvedImageUrls
       } else {
         body.imageUrl = resolvedImageUrl
       }
-      if (category === 'dog') body.petType = 'dog'
-      if (category === 'cat') body.petType = 'cat'
+      if (effectiveCategory === 'dog') body.petType = 'dog'
+      if (effectiveCategory === 'cat') body.petType = 'cat'
 
       const genRes = await fetch('/api/generate', {
         method: 'POST',
@@ -356,7 +402,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
   }, [
     file,
     selectedStyle,
-    category,
+    effectiveCategory,
     fetchCredits,
     uploadedImageUrl,
     uploadedImageUrls,
@@ -425,7 +471,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
         ? `${tokenBalance} free portrait${tokenBalance !== 1 ? 's' : ''} remaining · No sign-in required`
         : 'Free portraits · No sign-in required',
       isMultiPhoto
-        ? category === 'couple'
+        ? effectiveCategory === 'couple'
           ? `Add 2 photos · JPEG, PNG or WebP, max ${MAX_MB}MB each`
           : `Add ${minPhotos}-${maxPhotos} photos · JPEG, PNG or WebP, max ${MAX_MB}MB each`
         : `Click or drag here · JPEG, PNG or WebP, max ${MAX_MB}MB`,
@@ -433,12 +479,14 @@ export function CreateFlow({ category }: CreateFlowProps) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16 md:py-24">
         <main className="max-w-3xl text-center w-full">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 -mt-2 transition-colors"
-          >
-            ← Back to home
-          </Link>
+          {!allowInlineCategorySwitch && (
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 -mt-2 transition-colors"
+            >
+              ← Back to home
+            </Link>
+          )}
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-3 animate-fade-in-up">
             {copy.headline}
           </h1>
@@ -488,7 +536,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
               <p className="text-sm text-muted-foreground">
                 {multiFiles.length} of {maxPhotos} photo{maxPhotos > 1 ? 's' : ''}.
                 {multiFiles.length < minPhotos &&
-                  ` Add ${category === 'couple' ? '2' : `at least ${minPhotos}`} to continue.`}
+                  ` Add ${effectiveCategory === 'couple' ? '2' : `at least ${minPhotos}`} to continue.`}
               </p>
             </div>
           ) : (
@@ -520,7 +568,11 @@ export function CreateFlow({ category }: CreateFlowProps) {
               className="animate-fade-in animate-fade-in-delay-2"
               onAddCredits={tokenBalance === 0 ? () => setShowAddCreditsModal(true) : undefined}
               styleSelector={
-                <CategoryDropdown currentCategory={category} disabled={tokenBalance === 0} />
+                <CategoryDropdown
+                  currentCategory={effectiveCategory}
+                  disabled={tokenBalance === 0}
+                  onCategorySelect={allowInlineCategorySwitch ? setCategory : undefined}
+                />
               }
             />
           )}
@@ -537,6 +589,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
             onCreditsAdded={fetchCredits}
           />
         </main>
+        {showGallery && <GallerySection items={galleryItems} />}
       </div>
     )
   }
@@ -579,7 +632,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
           )}
           <StyleCardGrid
             selectedStyle={selectedStyle ?? undefined}
-            onStyleSelect={setSelectedStyle}
+            onStyleSelect={onStyleSelect}
             disabled={false}
             className="mb-4"
           />
@@ -613,6 +666,7 @@ export function CreateFlow({ category }: CreateFlowProps) {
             onCreditsAdded={fetchCredits}
           />
         </main>
+        {showGallery && <GallerySection items={galleryItems} />}
       </div>
     )
   }

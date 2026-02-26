@@ -47,8 +47,8 @@ export function PortraitUpgradeCards() {
         </CardFooter>
       </Card>
 
-      {/* Art Print Pack – same styling as Get your Portrait */}
-      <Card className="group flex flex-col h-full overflow-hidden transition-all duration-200 hover:ring-2 hover:ring-primary hover:shadow-lg">
+      {/* Art Print Pack – orange theme to match Order Print buttons site-wide */}
+      <Card className="group flex flex-col h-full overflow-hidden transition-all duration-200 border-orange-500/20 hover:ring-2 hover:ring-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10">
         <CardHeader className="text-center pb-2">
           <CardTitle className="font-heading text-xl md:text-2xl">Art Print Pack</CardTitle>
         </CardHeader>
@@ -64,7 +64,7 @@ export function PortraitUpgradeCards() {
                 const option = ART_PRINT_OPTIONS.find((o) => o.dimensions === e.target.value)
                 if (option) setArtPrintOption(option)
               }}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-background"
             >
               {ART_PRINT_OPTIONS.map((opt) => (
                 <option key={opt.dimensions} value={opt.dimensions}>
@@ -79,15 +79,15 @@ export function PortraitUpgradeCards() {
           </div>
           <ul className="space-y-2.5 text-sm text-foreground">
             <li className="flex gap-2">
-              <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+              <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
               <span>Museum quality print</span>
             </li>
             <li className="flex gap-2">
-              <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+              <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
               <span>Last over 100 years</span>
             </li>
             <li className="flex gap-2">
-              <Check className="size-4 text-primary shrink-0 mt-0.5" aria-hidden />
+              <Check className="size-4 text-orange-500 shrink-0 mt-0.5" aria-hidden />
               <span>Free shipping worldwide</span>
             </li>
           </ul>
@@ -95,7 +95,7 @@ export function PortraitUpgradeCards() {
         <CardFooter className="pt-4">
           <Link
             href={`/create?print=${encodeURIComponent(artPrintOption.dimensions)}`}
-            className={`${getButtonClassName('default', 'lg', 'w-full')} group-hover:shadow-lg group-hover:shadow-primary/25`}
+            className={`${getButtonClassName('default', 'lg', 'w-full')} bg-orange-600 hover:bg-orange-700 group-hover:shadow-lg group-hover:shadow-orange-500/25`}
           >
             Get Art Print Pack
           </Link>

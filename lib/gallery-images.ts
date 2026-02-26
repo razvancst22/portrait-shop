@@ -125,3 +125,27 @@ export const GALLERY_IMAGES_LEGACY: { image: string; text: string }[] = GALLERY_
   image: img.fallback,
   text: img.text
 }));
+
+/** Page keys for gallery selection. 'home' = main page; others = category pages. */
+export type GalleryPageKey = 'home' | 'pet' | 'dog' | 'cat' | 'family' | 'children' | 'couple' | 'self'
+
+/** Different photos per page, same CircularGallery style. Add or reorder images per page as needed. */
+export const GALLERY_IMAGES_BY_PAGE: Record<GalleryPageKey, GalleryImage[]> = {
+  home: [GALLERY_IMAGES[0], GALLERY_IMAGES[1], GALLERY_IMAGES[2], GALLERY_IMAGES[3]],
+  pet: [GALLERY_IMAGES[0], GALLERY_IMAGES[1], GALLERY_IMAGES[2], GALLERY_IMAGES[3]],
+  dog: [GALLERY_IMAGES[1], GALLERY_IMAGES[2], GALLERY_IMAGES[3], GALLERY_IMAGES[0]],
+  cat: [GALLERY_IMAGES[2], GALLERY_IMAGES[3], GALLERY_IMAGES[0], GALLERY_IMAGES[1]],
+  family: [GALLERY_IMAGES[3], GALLERY_IMAGES[0], GALLERY_IMAGES[1], GALLERY_IMAGES[2]],
+  children: [GALLERY_IMAGES[0], GALLERY_IMAGES[2], GALLERY_IMAGES[1], GALLERY_IMAGES[3]],
+  couple: [GALLERY_IMAGES[1], GALLERY_IMAGES[3], GALLERY_IMAGES[0], GALLERY_IMAGES[2]],
+  self: [GALLERY_IMAGES[2], GALLERY_IMAGES[0], GALLERY_IMAGES[3], GALLERY_IMAGES[1]],
+}
+
+/** Returns gallery images for a page. Pass isHomePage=true for main page, or category for category pages. */
+export function getGalleryImagesForPage(
+  category: string,
+  isHomePage: boolean
+): GalleryImage[] {
+  const key: GalleryPageKey = isHomePage ? 'home' : (category as GalleryPageKey)
+  return GALLERY_IMAGES_BY_PAGE[key] ?? GALLERY_IMAGES
+}

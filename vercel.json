@@ -8,5 +8,11 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-unpurchased",
+      "schedule": "0 3 * * *"
+    }
   ]
 }

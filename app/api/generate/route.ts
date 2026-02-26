@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
-  const { imageUrl, imageUrls, artStyle, subjectType, petType, idempotencyKey: bodyKey } = parsed.data
+  const { imageUrl, imageUrls, artStyle, subjectType, petType, colorPalette, idempotencyKey: bodyKey } = parsed.data
   const idempotencyKey = bodyKey ?? request.headers.get('idempotency-key')?.trim()?.slice(0, 255) ?? null
   const dbSubjectType =
     subjectType === 'pet' && petType ? `pet_${petType}` : subjectType
@@ -243,7 +243,8 @@ export async function POST(request: NextRequest) {
       artStyle as ArtStyleId,
       subjectType,
       petType,
-      referenceUrls.length >= 2 ? referenceUrls.length : undefined
+      referenceUrls.length >= 2 ? referenceUrls.length : undefined,
+      colorPalette
     )
 
     const insertPayload: Record<string, unknown> = {

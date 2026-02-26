@@ -1,10 +1,10 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Download, Loader2 } from 'lucide-react'
 import { PreviewUpgradeOptions } from '@/components/preview/preview-upgrade-options'
 import { CountdownOfferBanner } from '@/components/preview/countdown-offer-banner'
 import { ToastContainer, showToast } from '@/components/ui/toast'
@@ -29,26 +29,36 @@ type StatusResponse = {
   isPurchased?: boolean
 }
 
+const DISPLAY_WIDTH = 1200
+
 export default function PreviewPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const generationId = params.generationId as string
-  const [status, setStatus] = useState<string>('generating')
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // Optimistic state when navigating from grid with ?completed=1&purchased=0|1
+  const optimisticCompleted = searchParams.get('completed') === '1'
+  const optimisticPurchased = searchParams.get('purchased') === '1'
+
+  const [status, setStatus] = useState<string | null>(optimisticCompleted ? 'completed' : null)
   const [displayProgress, setDisplayProgress] = useState(0)
   const [statusMessageIndex, setStatusMessageIndex] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [price, setPrice] = useState<number>(GET_YOUR_PORTRAIT_PRICE_USD)
   const [discountActive, setDiscountActive] = useState<boolean>(false)
   const [discountExpiresAt, setDiscountExpiresAt] = useState<number | undefined>()
-  const [isPurchased, setIsPurchased] = useState<boolean>(false)
+  const [isPurchased, setIsPurchased] = useState<boolean>(optimisticCompleted ? optimisticPurchased : false)
   const [isDownloading, setIsDownloading] = useState<boolean>(false)
 
   const displayedPrice = discountActive ? GET_YOUR_PORTRAIT_DISCOUNT_PRICE_USD : price
-  
-  // Use final image for purchased items, preview for unpurchased
-  const displayImageUrl = isPurchased && status === 'completed' 
-    ? `/api/generate/${generationId}/final` 
-    : previewUrl
+
+  // Derive image URL from id - no wait for API; image can start loading immediately
+  const displayImageUrl = useMemo(() => {
+    if (status !== 'completed') return null
+    return isPurchased
+      ? `/api/generate/${generationId}/final?w=${DISPLAY_WIDTH}`
+      : `/api/generate/${generationId}/preview?w=${DISPLAY_WIDTH}`
+  }, [status, isPurchased, generationId])
 
   const pollStatus = useCallback(async () => {
     const res = await fetch(`/api/generate/${generationId}/status`)
@@ -59,16 +69,15 @@ export default function PreviewPage() {
     }
     const data: StatusResponse = await res.json()
     setStatus(data.status)
-    if (data.previewUrl) setPreviewUrl(data.previewUrl)
+    if (data.isPurchased != null) setIsPurchased(data.isPurchased)
     if (data.progress != null) setDisplayProgress(data.progress)
     if (data.errorMessage) setErrorMessage(data.errorMessage)
-    if (data.isPurchased != null) setIsPurchased(data.isPurchased)
   }, [generationId])
 
   useEffect(() => {
     pollStatus()
     if (status === 'completed' || status === 'failed') return
-    const interval = setInterval(pollStatus, 2000)
+    const interval = setInterval(pollStatus, 1500)
     return () => clearInterval(interval)
   }, [pollStatus, status])
 
@@ -208,26 +217,68 @@ export default function PreviewPage() {
               <img
                 src={displayImageUrl ?? ''}
                 alt={isPurchased ? "Your portrait" : "Your portrait preview"}
-                className="block w-full h-auto pointer-events-none"
+                className="block w-full h-auto pointer-events-none object-contain"
                 draggable={false}
+                decoding="async"
+                fetchPriority="high"
               />
             </div>
           </div>
 
-          {/* Upgrade options: Portrait (4K) + Print */}
-          <div className="mt-6">
-            <p className="text-sm font-medium text-muted-foreground mb-3">
-              Choose how you&apos;d like to enjoy your portrait
-            </p>
-            <PreviewUpgradeOptions
-              generationId={generationId}
-              isPurchased={isPurchased}
-              getYourPortraitPrice={displayedPrice}
-              discountActive={discountActive}
-              onDownload={handleDownload}
-              isDownloading={isDownloading}
-            />
-          </div>
+          {isPurchased ? (
+            /* Purchased: Download button under photo + Order Print pricing card */
+            <>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className={getButtonClassName('default', 'lg', 'rounded-xl gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700')}
+                >
+                  {isDownloading ? (
+                    <>
+                      <div className="size-5 animate-spin rounded-full border-2 border-background border-t-transparent shrink-0" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="size-5 shrink-0" />
+                      Download
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="mt-6">
+                <p className="text-sm font-medium text-muted-foreground mb-3">
+                  Order a museum-quality print
+                </p>
+                <PreviewUpgradeOptions
+                  generationId={generationId}
+                  isPurchased={true}
+                  getYourPortraitPrice={displayedPrice}
+                  discountActive={discountActive}
+                  onDownload={handleDownload}
+                  isDownloading={isDownloading}
+                  showOnlyPrintCard
+                />
+              </div>
+            </>
+          ) : (
+            /* Unpurchased: full upgrade options */
+            <div className="mt-6">
+              <p className="text-sm font-medium text-muted-foreground mb-3">
+                Choose how you&apos;d like to enjoy your portrait
+              </p>
+              <PreviewUpgradeOptions
+                generationId={generationId}
+                isPurchased={isPurchased}
+                getYourPortraitPrice={displayedPrice}
+                discountActive={discountActive}
+                onDownload={handleDownload}
+                isDownloading={isDownloading}
+              />
+            </div>
+          )}
           <ToastContainer />
         </div>
       </div>
@@ -238,6 +289,17 @@ export default function PreviewPage() {
   const circumference = 2 * Math.PI * 24
   const strokeDashoffset = circumference - (showProgress / 100) * circumference
 
+  // Unknown status (initial load, no optimistic params): minimal loading state
+  if (status === null) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+        <Loader2 className="size-10 animate-spin text-primary mb-4" aria-hidden />
+        <p className="text-muted-foreground">Loading portrait…</p>
+      </div>
+    )
+  }
+
+  // Actually generating: full Creating UI
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <span className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary animate-pulse">

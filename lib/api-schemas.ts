@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ART_STYLE_IDS } from '@/lib/prompts/artStyles'
+import { ART_STYLE_IDS, getPalettesForStyle, type ArtStyleId } from '@/lib/prompts/artStyles'
 
 const SUBJECT_TYPE_IDS = ['pet', 'dog', 'cat', 'family', 'children', 'couple', 'self'] as const
 const PET_TYPE_IDS = ['dog', 'cat'] as const
@@ -108,6 +108,8 @@ export const generateBodySchema = z
     }),
     subjectType: z.enum(SUBJECT_TYPE_IDS).optional().default('pet'),
     petType: z.enum(PET_TYPE_IDS).optional(),
+    /** Optional color palette variant (e.g. renaissance_classic, renaissance_royal). Same fixed elements, different colors. */
+    colorPalette: z.string().min(1).optional(),
   })
   .refine(
     (data) => {
@@ -136,6 +138,17 @@ export const generateBodySchema = z
       return true
     },
     { message: 'Couple requires 2 photos. Family requires 2-6 photos.', path: ['imageUrls'] }
+  )
+  .refine(
+    (data) => {
+      if (!data.colorPalette) return true
+      const palettes = getPalettesForStyle(data.artStyle as ArtStyleId)
+      return palettes.includes(data.colorPalette)
+    },
+    {
+      message: 'colorPalette must be a valid palette for the selected art style. Check /api/styles for colorPalettes per style.',
+      path: ['colorPalette'],
+    }
   )
 
 export type GenerateBody = z.infer<typeof generateBodySchema>

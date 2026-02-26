@@ -16,6 +16,8 @@ type PreviewUpgradeOptionsProps = {
   discountActive?: boolean
   onDownload?: () => void
   isDownloading?: boolean
+  /** When true, only show the Print pricing card (for purchased portrait flow) */
+  showOnlyPrintCard?: boolean
 }
 
 /**
@@ -30,6 +32,7 @@ export function PreviewUpgradeOptions({
   discountActive = false,
   onDownload,
   isDownloading = false,
+  showOnlyPrintCard = false,
 }: PreviewUpgradeOptionsProps) {
   const [artPrintOption, setArtPrintOption] = useState<(typeof ART_PRINT_OPTIONS)[number]>(
     ART_PRINT_OPTIONS[0]
@@ -42,8 +45,9 @@ export function PreviewUpgradeOptions({
   const checkoutPrintUrl = `/checkout?generationId=${encodeURIComponent(generationId)}&print=${encodeURIComponent(artPrintOption.dimensions)}`
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className={cn('grid gap-4', showOnlyPrintCard ? 'max-w-md mx-auto sm:grid-cols-1' : 'sm:grid-cols-2')}>
       {/* Upgrade to Portrait */}
+      {!showOnlyPrintCard && (
       <div
         className={cn(
           'group relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300',
@@ -118,18 +122,19 @@ export function PreviewUpgradeOptions({
           </div>
         </div>
       </div>
+      )}
 
       {/* Upgrade to Print */}
       <div
         className={cn(
           'group relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300',
-          'bg-gradient-to-br from-amber-500/10 via-background to-background',
-          'border-amber-500/30 hover:border-amber-500/60 hover:shadow-lg hover:shadow-amber-500/10'
+          'bg-gradient-to-br from-orange-500/10 via-background to-background',
+          'border-orange-500/30 hover:border-orange-500/60 hover:shadow-lg hover:shadow-orange-500/10'
         )}
       >
         <div className="flex flex-1 flex-col p-5 sm:p-6">
           <div className="mb-3 flex items-center gap-2">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400">
               <Printer className="size-5" />
             </div>
             <h3 className="font-heading text-lg font-semibold text-foreground">
@@ -147,7 +152,7 @@ export function PreviewUpgradeOptions({
                 const option = ART_PRINT_OPTIONS.find((o) => o.dimensions === e.target.value)
                 if (option) setArtPrintOption(option)
               }}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2"
             >
               {ART_PRINT_OPTIONS.map((opt) => (
                 <option key={opt.dimensions} value={opt.dimensions}>
@@ -162,22 +167,22 @@ export function PreviewUpgradeOptions({
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
-              <Check className="size-4 shrink-0 text-amber-500" aria-hidden />
+              <Check className="size-4 shrink-0 text-orange-500" aria-hidden />
               <span>Museum quality print</span>
             </li>
             <li className="flex items-center gap-2">
-              <Check className="size-4 shrink-0 text-amber-500" aria-hidden />
+              <Check className="size-4 shrink-0 text-orange-500" aria-hidden />
               <span>Lasts over 100 years</span>
             </li>
             <li className="flex items-center gap-2">
-              <Check className="size-4 shrink-0 text-amber-500" aria-hidden />
+              <Check className="size-4 shrink-0 text-orange-500" aria-hidden />
               <span>Free shipping worldwide</span>
             </li>
           </ul>
           <div className="mt-auto pt-5">
             <Link
               href={checkoutPrintUrl}
-              className={getButtonClassName('default', 'lg', 'w-full rounded-xl gap-2 font-semibold bg-amber-600 hover:bg-amber-700')}
+              className={getButtonClassName('default', 'lg', 'w-full rounded-xl gap-2 font-semibold bg-orange-600 hover:bg-orange-700')}
             >
               <Printer className="size-5 shrink-0" />
               {isPurchased ? 'Order Print' : 'Get Art Print Pack'}

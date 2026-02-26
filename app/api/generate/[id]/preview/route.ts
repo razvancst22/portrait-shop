@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import sharp from 'sharp'
 import { createClient } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { BUCKET_UPLOADS } from '@/lib/constants'
 import { GUEST_ID_COOKIE } from '@/lib/tokens/constants'
 
+const THUMBNAIL_WIDTH = 400
+const THUMBNAIL_QUALITY = 80
+
 /**
  * GET /api/generate/[id]/preview – stream the watermarked preview image.
- * Never exposes the storage URL. Uses no-store so the image isn't cached for reuse.
- * Caller should only use this URL to display the preview (no download).
+ * Query param ?w=400 returns a thumbnail for grid display (smaller, cached).
+ * Without ?w, returns full preview. Never exposes the storage URL.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const url = new URL(request.url)
+  const widthParam = url.searchParams.get('w')
+  const wantThumbnail = widthParam !== null
+  const thumbWidth = wantThumbnail ? Math.min(1200, Math.max(100, parseInt(widthParam || String(THUMBNAIL_WIDTH), 10) || THUMBNAIL_WIDTH)) : null
+
   const supabase = createClient()
 
   const { data: gen, error } = await supabase
@@ -43,12 +52,26 @@ export async function GET(
     return NextResponse.json({ error: 'Preview not available' }, { status: 404 })
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
-  return new NextResponse(buffer, {
+  let body: Uint8Array
+  if (thumbWidth) {
+    const raw = Buffer.from(await file.arrayBuffer())
+    const resized = await sharp(raw)
+      .resize(thumbWidth, null, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: THUMBNAIL_QUALITY })
+      .toBuffer()
+    body = new Uint8Array(resized)
+  } else {
+    body = new Uint8Array(await file.arrayBuffer())
+  }
+
+  const cacheControl = thumbWidth
+    ? 'public, max-age=86400, immutable'
+    : 'public, max-age=3600'
+
+  return new NextResponse(body as BodyInit, {
     headers: {
       'Content-Type': 'image/jpeg',
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Pragma': 'no-cache',
+      'Cache-Control': cacheControl,
     },
   })
 }

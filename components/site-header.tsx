@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, Smile, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette, Sparkles } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, PawPrint, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddCreditsModal } from '@/components/add-credits-modal'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
@@ -17,6 +17,16 @@ import { useCreditsUpdateListener } from '@/lib/credits-events'
 import type { User } from '@supabase/supabase-js'
 
 const FOCUSABLE = 'a[href], button:not([disabled])'
+
+const CREATE_ICONS = {
+  pet: PawPrint,
+  dog: PawPrint,
+  cat: PawPrint,
+  family: Users,
+  children: Baby,
+  couple: Heart,
+  self: UserIcon,
+} as const
 
 export function SiteHeader() {
   const router = useRouter()
@@ -247,66 +257,25 @@ export function SiteHeader() {
                   
                   {createExpanded && (
                     <div className="ml-8 mt-1 space-y-1">
-                      <Link
-                        href="/dog-portraits"
-                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          closeDrawer()
-                          router.push('/dog-portraits')
-                        }}
-                      >
-                        <Heart className="size-4" />
-                        <span>Pet Portraits</span>
-                      </Link>
-                      <Link
-                        href="/family-portraits"
-                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          closeDrawer()
-                          router.push('/family-portraits')
-                        }}
-                      >
-                        <Users className="size-4" />
-                        <span>Family Portraits</span>
-                      </Link>
-                      <Link
-                        href="/children-portraits"
-                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          closeDrawer()
-                          router.push('/children-portraits')
-                        }}
-                      >
-                        <Baby className="size-4" />
-                        <span>Children's Portraits</span>
-                      </Link>
-                      <Link
-                        href="/couple-portraits"
-                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          closeDrawer()
-                          router.push('/couple-portraits')
-                        }}
-                      >
-                        <Heart className="size-4" />
-                        <span>Couple Portraits</span>
-                      </Link>
-                      <Link
-                        href="/self-portrait"
-                        className="flex items-center gap-3 p-2 rounded-md text-white font-medium hover:bg-white/15 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          closeDrawer()
-                          router.push('/self-portrait')
-                        }}
-                      >
-                        <UserIcon className="size-4" />
-                        <span>Self-Portraits</span>
-                      </Link>
+                      {SUBJECT_TYPE_IDS.map((id) => {
+                        const route = CATEGORY_ROUTES[id]
+                        const Icon = CREATE_ICONS[id]
+                        return (
+                          <Link
+                            key={id}
+                            href={route.path}
+                            className="flex items-center gap-3 p-2 rounded-md text-foreground font-medium hover:bg-muted/50 transition-colors"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              closeDrawer()
+                              router.push(route.path)
+                            }}
+                          >
+                            <Icon className="size-4" />
+                            <span>{route.title}</span>
+                          </Link>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

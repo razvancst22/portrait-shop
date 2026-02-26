@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ART_STYLE_PROMPTS, ART_STYLE_IDS } from '@/lib/prompts/artStyles'
+import { ART_STYLE_PROMPTS, ART_STYLE_IDS, getPalettesForStyle } from '@/lib/prompts/artStyles'
 import { isAllowedSubjectType } from '@/lib/prompts/artStyles'
 
 export type StyleListItem = {
@@ -14,6 +14,8 @@ export type StyleListItem = {
     secondary: string  // Complementary color
     background: string // Background tone
   }
+  /** Available color palette IDs (e.g. renaissance_classic, renaissance_royal). Pass colorPalette to /api/generate to vary element colors. */
+  colorPalettes: string[]
 }
 
 /**
@@ -38,6 +40,7 @@ export async function GET(request: NextRequest) {
       description: s.description,
       exampleImageUrl,
       colors: s.colors,
+      colorPalettes: getPalettesForStyle(id),
     }
   })
   return NextResponse.json(styles)

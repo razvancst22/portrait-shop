@@ -15,6 +15,8 @@ interface CategoryDropdownProps {
   currentCategory: SubjectTypeId
   disabled?: boolean
   className?: string
+  /** When set, selecting a category calls this instead of navigating. Use for main page to switch flow inline. */
+  onCategorySelect?: (category: SubjectTypeId) => void
 }
 
 function useMounted() {
@@ -27,6 +29,7 @@ export function CategoryDropdown({
   currentCategory,
   disabled = false,
   className,
+  onCategorySelect,
 }: CategoryDropdownProps) {
   const router = useRouter()
   const mounted = useMounted()
@@ -34,6 +37,11 @@ export function CategoryDropdown({
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   const handleSelect = (id: SubjectTypeId) => {
+    if (onCategorySelect) {
+      onCategorySelect(id)
+      setIsOpen(false)
+      return
+    }
     const path = CATEGORY_ROUTES[id]?.path
     if (path) router.push(path)
     setIsOpen(false)

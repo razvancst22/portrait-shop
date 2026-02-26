@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { HeroSection } from '@/components/home/hero-section'
 import { MyPortraitsSection } from '@/components/home/my-portraits-section'
-import { UploadSection } from '@/components/home/upload-section'
-import CircularGallery from '@/components/CircularGallery'
-import { GALLERY_IMAGES, getOptimalImageUrl } from '@/lib/gallery-images'
+import { CreateFlow } from '@/components/create-flow'
+import { GallerySection } from '@/components/gallery-section'
+import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
   title: 'Classic Portraits for Pets, Family, Couples & More | Portret',
@@ -22,25 +22,13 @@ export default function HomePage() {
       <main className="max-w-3xl w-full text-center">
         <div className="relative z-10">
           <HeroSection />
-          {/* Upload option must always remain on the main page */}
-          <UploadSection />
+          {/* Create flow for all portrait types – pet, dog, cat, family, couple, children, self */}
+          <CreateFlow category="pet" allowInlineCategorySwitch showGallery={false} />
           {/* My portraits: hidden until user has creations; cards invite to purchase */}
           <MyPortraitsSection />
         </div>
-        {/* Portrait gallery */}
-        <section
-          className="relative left-1/2 w-screen -translate-x-1/2 mt-16 z-10 px-4 md:px-6 box-border"
-          style={{ height: '440px' }}
-          aria-label="Portrait gallery"
-        >
-          <CircularGallery
-            items={GALLERY_IMAGES.map((g) => ({ image: getOptimalImageUrl(g) }))}
-            bend={0}
-            borderRadius={0.05}
-            scrollEase={0.08}
-            intervalMs={3000}
-          />
-        </section>
+        {/* Portrait gallery – home images, same style as category pages */}
+        <GallerySection items={getGalleryImagesForPage('pet', true)} />
       </main>
     </div>
   )

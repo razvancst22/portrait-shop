@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { Button } from '@/components/primitives/button'
+
+const fetcher = (url: string) =>
+  fetch(url, { credentials: 'include' }).then((r) => r.json()).then((d) => d.generations ?? [])
 
 type MyGenerationItem = {
   id: string
@@ -29,30 +33,20 @@ function styleDisplayName(artStyle: string): string {
  * Refetches when auth state changes (e.g. logout) so portraits update immediately.
  */
 export function MyPortraitsSection() {
-  const [generations, setGenerations] = useState<MyGenerationItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: generations = [], isLoading: loading, mutate } = useSWR<MyGenerationItem[]>(
+    '/api/my-generations',
+    fetcher,
+    { revalidateOnFocus: false }
+  )
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
-
-  const fetchGenerations = useCallback(() => {
-    setLoading(true)
-    fetch('/api/my-generations', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((d) => setGenerations(d.generations ?? []))
-      .catch(() => setGenerations([]))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    fetchGenerations()
-  }, [fetchGenerations])
 
   useEffect(() => {
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchGenerations()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      mutate()
     })
     return () => subscription.unsubscribe()
-  }, [fetchGenerations])
+  }, [mutate])
 
   if (loading || generations.length === 0) {
     return null

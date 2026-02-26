@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
@@ -10,6 +11,9 @@ import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/pr
 import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { Palette } from 'lucide-react'
+
+const fetcher = (url: string) =>
+  fetch(url, { credentials: 'include' }).then((r) => r.json()).then((d) => d.generations ?? [])
 
 export type MyGenerationItem = {
   id: string
@@ -43,30 +47,20 @@ export function MyPortraitsContent({
   variant = 'page',
   className = '',
 }: MyPortraitsContentProps) {
-  const [generations, setGenerations] = useState<MyGenerationItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: generations = [], isLoading: loading, mutate } = useSWR<MyGenerationItem[]>(
+    '/api/my-generations',
+    fetcher,
+    { revalidateOnFocus: false }
+  )
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
-
-  const fetchGenerations = useCallback(() => {
-    setLoading(true)
-    fetch('/api/my-generations', { credentials: 'include', cache: 'no-store' })
-      .then((r) => r.json())
-      .then((d) => setGenerations(d.generations ?? []))
-      .catch(() => setGenerations([]))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    fetchGenerations()
-  }, [fetchGenerations])
 
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchGenerations()
+      mutate()
     })
     return () => subscription.unsubscribe()
-  }, [fetchGenerations])
+  }, [mutate])
 
   const unpurchased = generations.filter((g) => !g.is_purchased)
   const purchased = generations.filter((g) => g.is_purchased)

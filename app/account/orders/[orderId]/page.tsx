@@ -163,11 +163,11 @@ export default function OrderDetailPage() {
               >
                 {item.generationId ? (
                   <Link
-                    href={`/preview/${item.generationId}`}
+                    href={`/preview/${item.generationId}?completed=1&purchased=1`}
                     className="block w-20 aspect-[4/5] shrink-0 rounded-lg overflow-hidden bg-muted"
                   >
                     <img
-                      src={`/api/generate/${item.generationId}/preview`}
+                      src={`/api/generate/${item.generationId}/preview?w=200`}
                       alt=""
                       className="size-full object-contain object-center"
                     />
