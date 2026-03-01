@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Your preview – Portret',
-  description: 'Your pet portrait preview is ready. Purchase your full digital bundle to get high-res and wallpaper formats.',
+  title: "Portrait Preview",
+  description:
+    "Your portrait preview is ready. Purchase full digital bundle.",
 }
 
 export default function PreviewLayout({

@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Dog Portraits – Create Renaissance & Victorian Art From Your Dog Photo',
+  title: "Custom Dog Portraits – Personalized Artwork",
   description:
-    'Transform your dog photo into a museum-worthy Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • High-resolution download • Perfect for gifts & keepsakes.',
+    "Custom dog portraits. Personalized artwork. Free preview. Order framed print or download.",
   openGraph: {
-    title: 'AI Dog Portraits – Create Renaissance & Victorian Art From Your Dog Photo',
+    title: "Custom Dog Portraits – Personalized Artwork",
     description:
-      'Transform your dog photo into a museum-worthy Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • High-resolution download.',
-    url: '/dog-portraits',
+      "Custom dog portraits. Personalized artwork. Free preview. Order framed print or download.",
+    url: "/dog-portraits",
   },
 }
 

@@ -158,7 +158,7 @@ export function MyPortraitsContent({
       {sectionHeader('Generated Artworks')}
       {renderGrid(generated, false)}
     </>
-  ) : viewMode === 'purchased' ? (
+  ) : viewMode === 'purchased' && purchased.length > 0 ? (
     <>
       {backToAll}
       {sectionHeader('Purchased Artworks')}

@@ -7,6 +7,7 @@ import { Download, ArrowLeft, Package, ExternalLink, Sparkles, Receipt, Truck, R
 import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { PageContainer } from '@/components/layout/page-container'
+import { SUPPORT_EMAIL } from '@/lib/site-config'
 
 type OrderDetail = {
   order: {
@@ -194,7 +195,7 @@ export default function OrderDetailPage() {
             <Step done={order.status !== 'pending_payment'} label="Paid" />
             <Step
               done={isShipped || order.status === 'delivered'}
-              active={order.status === 'paid' && !isShipped && order.status !== 'delivered'}
+              active={order.status === 'paid' && !isShipped}
               label={hasPhysicalItems ? 'Processing' : 'Preparing'}
             />
             <Step
@@ -323,13 +324,13 @@ export default function OrderDetailPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm">
-              <Link
-                href={`/contact?refund=1&order=${encodeURIComponent(order.orderNumber)}`}
+              <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=Refund%20request%20${encodeURIComponent(order.orderNumber)}&body=Order%3A%20${encodeURIComponent(order.orderNumber)}%0A%0APlease%20explain%20your%20reason%20for%20the%20refund%20request%3A`}
                 className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
               >
                 <RotateCcw className="size-4" />
                 Request refund
-              </Link>
+              </a>
               <Link
                 href="/refunds"
                 className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"

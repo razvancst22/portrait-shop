@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Thank you – Portret',
-  description: 'Your payment was successful. You will receive an email with your download link once your bundle is ready.',
+  title: "Thank You",
+  description:
+    "Order confirmed. Download link coming by email.",
 }
 
 export default function OrderSuccessLayout({

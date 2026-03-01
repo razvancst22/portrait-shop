@@ -19,7 +19,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/privacy`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
     { url: `${BASE_URL}/refunds`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
     { url: `${BASE_URL}/commercial`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
-    { url: `${BASE_URL}/contact`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.5 },
   ]
 
   return [...staticUrls, ...categoryUrls]

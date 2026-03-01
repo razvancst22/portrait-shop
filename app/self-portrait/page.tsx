@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Self Portraits – Become Art in Renaissance & Victorian Style',
+  title: "Custom Self Portraits – Personalized Artwork",
   description:
-    'Transform your photo into a museum-worthy Renaissance, Baroque, or Victorian self-portrait. See your preview in minutes • Stand out on social media.',
+    "Custom self portraits. Personalized artwork. Free preview. Order framed print or download.",
   openGraph: {
-    title: 'AI Self Portraits – Become Art in Renaissance & Victorian Style',
+    title: "Custom Self Portraits – Personalized Artwork",
     description:
-      'Transform your photo into a museum-worthy Renaissance, Baroque, or Victorian self-portrait. See your preview in minutes.',
-    url: '/self-portrait',
+      "Custom self portraits. Personalized artwork. Free preview. Order framed print or download.",
+    url: "/self-portrait",
   },
 }
 

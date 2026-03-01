@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Commercial License – Use Your Portrait for Business & Marketing',
-  description: 'Learn about commercial licensing options for Portret digital portraits. Use your classic art portrait for business, marketing, and merchandise.',
+  title: "Commercial License",
+  description:
+    "License your custom portrait artwork for business, marketing, merchandise.",
 }
 
 export default function CommercialPage() {
@@ -46,7 +47,7 @@ export default function CommercialPage() {
           <h2 className="text-foreground font-semibold mt-6 mb-2">3. Commercial Use Requires Permission</h2>
           <p>
             If you wish to use your Portret portrait for any commercial purpose, you must obtain our prior
-            written permission. Contact us via the Contact page with: your order number, a short description of the
+            written permission. Email us at support@portraitz.shop with: your order number, a short description of the
             intended use (e.g. “print on mugs to sell in my shop”), and the scope (e.g. territory, duration). We may
             grant a commercial license subject to terms and possibly an additional fee.
           </p>
@@ -74,7 +75,7 @@ export default function CommercialPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">6. Contact</h2>
           <p>
-            For commercial use requests or questions, use the Contact page.
+            For commercial use requests or questions, email us at support@portraitz.shop.
           </p>
         </section>
       </div>

@@ -40,8 +40,8 @@ export function SiteFooter() {
           <Link href="/commercial" className="hover:text-primary transition-colors duration-200">
             Commercial use
           </Link>
-          <Link href="/contact" className="hover:text-primary transition-colors duration-200">
-            Contact
+          <Link href="/support" className="hover:text-primary transition-colors duration-200">
+            Get Support
           </Link>
         </nav>
         <Separator className="my-6" />

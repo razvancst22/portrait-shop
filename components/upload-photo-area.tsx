@@ -240,6 +240,11 @@ export function UploadPhotoArea({
         </span>
         {children}
       </div>
+
+      {/* Footer: Free preview message */}
+      <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-white/10 dark:border-white/5 text-center">
+        Free Preview · No credit card required
+      </p>
     </>
   )
 

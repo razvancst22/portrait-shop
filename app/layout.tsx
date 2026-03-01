@@ -29,8 +29,10 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "portraitz.shop – AI Pet Portraits",
-  description: "Turn your pet into a classic portrait. Choose a style and upload a photo.",
+  metadataBase: new URL("https://portraitz.shop"),
+  title: "Custom Pet Portraits – Personalized Artwork",
+  description:
+    "Custom pet portraits. Dog, cat, family, couple. Personalized artwork. Free preview. Order print or download.",
 };
 
 export default function RootLayout({

@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Sparkles, Download, Package, Plus, Search, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Sparkles, Download, Package, Plus, ArrowLeft, ChevronRight, LogOut, ShoppingBag, HelpCircle } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
-import { Skeleton } from '@/components/primitives/skeleton'
 import { MyPortraitsContent } from '@/components/my-portraits-content'
 import { AddCreditsModal } from '@/components/add-credits-modal'
-import { OrderLookupModal } from '@/components/order-lookup-modal'
 import { ToastContainer } from '@/components/ui/toast'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 type BalanceBreakdown = {
@@ -20,22 +20,12 @@ type BalanceBreakdown = {
   packTypes: string[]
 }
 
-type MyOrderItem = {
-  id: string
-  order_number: string
-  created_at: string
-  status: string
-  total_usd: number
-  downloadUrl?: string
-}
-
 export function AccountDashboard() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [balance, setBalance] = useState<BalanceBreakdown | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(true)
-  const [loadingOrders, setLoadingOrders] = useState(true)
-  const [orders, setOrders] = useState<MyOrderItem[]>([])
   const [addCreditsModalOpen, setAddCreditsModalOpen] = useState(false)
-  const [orderLookupModalOpen, setOrderLookupModalOpen] = useState(false)
 
   const loadBalance = useCallback(() => {
     setLoadingBalance(true)
@@ -54,21 +44,9 @@ export function AccountDashboard() {
       .finally(() => setLoadingBalance(false))
   }, [])
 
-  const loadOrders = useCallback(() => {
-    setLoadingOrders(true)
-    fetch('/api/my-orders', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((d) => setOrders(d.orders ?? []))
-      .catch(() => setOrders([]))
-      .finally(() => setLoadingOrders(false))
-  }, [])
-
-  const { user } = useAuth()
-
   useEffect(() => {
     loadBalance()
-    loadOrders()
-  }, [loadBalance, loadOrders])
+  }, [loadBalance])
 
   useEffect(() => {
     loadBalance()
@@ -76,11 +54,19 @@ export function AccountDashboard() {
 
   useCreditsUpdateListener(loadBalance)
 
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await fetch('/api/auth/clear-guest-cookies', { method: 'POST', credentials: 'include' })
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
+
   const totalCredits = balance?.totalCredits ?? 0
   const packDownloads = balance?.packDownloadsRemaining ?? 0
 
   return (
-    <div className="w-full max-w-3xl mx-auto text-left space-y-8">
+    <div className="w-full max-w-3xl mx-auto text-left space-y-6">
       <Link
         href="/"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3"
@@ -88,6 +74,24 @@ export function AccountDashboard() {
         <ArrowLeft className="size-4" />
         Back to home
       </Link>
+
+      {/* Profile strip - email only, no avatar */}
+      {user?.email && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Signed in as <span className="font-medium text-foreground">{user.email}</span>
+          </p>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
@@ -107,13 +111,33 @@ export function AccountDashboard() {
         </button>
       </div>
 
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/account/orders"
+          className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <ShoppingBag className="size-4" />
+          Order History
+          <ChevronRight className="size-4" />
+        </Link>
+        <Link
+          href="/support"
+          className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <HelpCircle className="size-4" />
+          Get Help
+        </Link>
+      </div>
+
       {/* Credits cards - glassmorphism */}
       <div className="grid grid-cols-2 gap-4">
         {/* Portrait Generations */}
         <div
           className={cn(
             'glass-liquid glass-liquid-soft glass-liquid-hover p-6 rounded-2xl',
-            'border border-border/50'
+            'border border-border/50',
+            totalCredits > 0 && 'ring-1 ring-primary/20'
           )}
         >
           <div className="flex items-center justify-between">
@@ -131,19 +155,6 @@ export function AccountDashboard() {
               </div>
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {loadingBalance
-              ? '…'
-              : !balance
-                ? '—'
-                : balance.freeGenerationsRemaining > 0 && balance.packGenerationsRemaining > 0
-                  ? `${balance.freeGenerationsRemaining} free + ${balance.packGenerationsRemaining} from packs`
-                  : balance.packGenerationsRemaining > 0
-                    ? 'From Digital Packs'
-                    : balance.freeGenerationsRemaining > 0
-                      ? 'Free tier'
-                      : 'Add credits to create more'}
-          </p>
         </div>
 
         {/* Portrait Downloads */}
@@ -168,101 +179,55 @@ export function AccountDashboard() {
               </div>
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            High‑res downloads from Digital Packs
-          </p>
         </div>
       </div>
 
-      {/* My Portraits – shared with /my-portraits page */}
-      <div
-        className={cn(
-          'glass-liquid glass-liquid-soft glass-liquid-hover p-6 rounded-2xl',
-          'border border-border/50'
-        )}
-      >
-        <MyPortraitsContent variant="embedded" />
-      </div>
-
-      {/* Order History */}
-      <div
-        className={cn(
-          'glass-liquid glass-liquid-soft glass-liquid-hover p-6 rounded-2xl',
-          'border border-border/50'
-        )}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-            <Package className="size-5" />
-            Order History
-          </h2>
+      {/* Low credits callout */}
+      {!loadingBalance && balance && totalCredits > 0 && totalCredits <= 2 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          Running low — add credits to keep creating.
           <button
             type="button"
-            onClick={() => setOrderLookupModalOpen(true)}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0"
+            onClick={() => setAddCreditsModalOpen(true)}
+            className="ml-2 font-medium underline hover:no-underline"
           >
-            <Search className="size-4" />
-            Order lookup
+            Add credits
           </button>
         </div>
-        {loadingOrders ? (
-          <div className="space-y-3">
-            <div className="h-14 rounded-xl bg-muted/30 animate-pulse" />
-            <div className="h-14 rounded-xl bg-muted/30 animate-pulse" />
+      )}
+
+      {/* My Portraits – only Generated Artworks and Purchased Artworks categories */}
+      <MyPortraitsContent variant="embedded" />
+
+      {/* Order History link card */}
+      <Link
+        href="/account/orders"
+        className={cn(
+          'glass-liquid glass-liquid-soft glass-liquid-hover flex items-center justify-between gap-4 p-6 rounded-2xl',
+          'border border-border/50 transition-transform hover:-translate-y-0.5'
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-primary/20 text-primary">
+            <Package className="size-6" />
           </div>
-        ) : orders.length === 0 ? (
-          <div className="space-y-3">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-foreground">
+              Order History
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Orders placed while logged in, or with the same email, will appear here.
+              View your orders and download your portraits.
             </p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-border/60 bg-background/50 p-4"
-              >
-                <div>
-                  <p className="font-medium text-foreground">{order.order_number}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(order.created_at).toLocaleDateString()} · $
-                    {order.total_usd.toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <Link
-                    href={`/account/orders/${order.id}`}
-                    className="inline-flex items-center text-sm font-medium text-primary hover:underline"
-                  >
-                    View details
-                  </Link>
-                  {order.downloadUrl && (
-                    <Link
-                      href={order.downloadUrl}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      <Download className="size-4" />
-                      Download
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+      </Link>
 
       <AddCreditsModal
         open={addCreditsModalOpen}
         onClose={() => setAddCreditsModalOpen(false)}
         isLoggedIn={true}
         onCreditsAdded={loadBalance}
-      />
-      <OrderLookupModal
-        open={orderLookupModalOpen}
-        onClose={() => setOrderLookupModalOpen(false)}
-        onSuccess={loadOrders}
       />
       <ToastContainer />
     </div>

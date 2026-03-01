@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Children Portraits – Little Prince & Princess Renaissance Art',
+  title: "Custom Children Portraits – Personalized Artwork",
   description:
-    'Transform your child photo into a beautiful Renaissance or Victorian portrait. See your preview instantly • Perfect keepsake for parents & grandparents.',
+    "Custom children portraits. Personalized artwork. Perfect keepsake. Free preview. Print or download.",
   openGraph: {
-    title: 'AI Children Portraits – Little Prince & Princess Renaissance Art',
+    title: "Custom Children Portraits – Personalized Artwork",
     description:
-      'Transform your child photo into a beautiful Renaissance or Victorian portrait. See your preview instantly • Perfect keepsake.',
-    url: '/children-portraits',
+      "Custom children portraits. Personalized artwork. Perfect keepsake. Free preview. Print or download.",
+    url: "/children-portraits",
   },
 }
 

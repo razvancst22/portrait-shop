@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Refund Policy – Portret',
-  description: 'Refund policy for digital goods at Portret',
+  title: "Refund Policy",
+  description: "Refund policy for digital portrait purchases.",
 }
 
 export default function RefundsPage() {
@@ -52,7 +52,7 @@ export default function RefundsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">3. How to Request a Refund</h2>
           <p>
-            Contact us via the Contact page with your order number and the email address used for the purchase. Explain
+            Email us at support@portraitz.shop with your order number and the email address used for the purchase. Explain
             the reason for your request. We will respond within a reasonable time and, if we approve a refund, process
             it to the original payment method. Refunds may take several business days to appear depending on your
             bank or card issuer.
@@ -79,7 +79,7 @@ export default function RefundsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">6. Contact</h2>
           <p>
-            For refund requests or questions, use the Contact page.
+            For refund requests or questions, email us at support@portraitz.shop.
           </p>
         </section>
       </div>

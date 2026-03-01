@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { AuthForm } from '@/components/auth/auth-form'
 
 export const metadata: Metadata = {
-  title: 'Sign In – Create More Classic Art Portraits',
-  description: 'Sign in to access unlimited portrait generations, manage your artwork, and get exclusive discounts. Start creating more Renaissance, Baroque, and Victorian masterpieces.',
+  title: "Sign In",
+  description:
+    "Sign in to create more custom portraits and manage your artwork.",
 }
 
 export default async function LoginPage({

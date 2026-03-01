@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Terms of Service – Portret',
-  description: 'Terms of Service for Portret',
+  title: "Terms of Service",
+  description: "Terms of service for Portraitz custom portrait shop.",
 }
 
 export default function TermsPage() {
@@ -98,7 +98,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-foreground font-semibold mt-6 mb-2">9. Contact</h2>
           <p>
-            For questions about these Terms, use the Contact page or the support contact provided there.
+            For questions about these Terms, email us at support@portraitz.shop.
           </p>
         </section>
       </div>

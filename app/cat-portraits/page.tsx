@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Cat Portraits – Create Royal Renaissance & Victorian Cat Art',
+  title: "Custom Cat Portraits – Personalized Artwork",
   description:
-    'Turn your cat into a royal Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • Museum-quality results • The perfect gift for cat lovers.',
+    "Custom cat portraits. Personalized artwork. Free preview. Order framed print or download.",
   openGraph: {
-    title: 'AI Cat Portraits – Create Royal Renaissance & Victorian Cat Art',
+    title: "Custom Cat Portraits – Personalized Artwork",
     description:
-      'Turn your cat into a royal Renaissance, Baroque, or Victorian masterpiece in minutes. Free preview • Museum-quality results.',
-    url: '/cat-portraits',
+      "Custom cat portraits. Personalized artwork. Free preview. Order framed print or download.",
+    url: "/cat-portraits",
   },
 }
 

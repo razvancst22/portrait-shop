@@ -4,8 +4,9 @@ import { verifyDownloadToken } from '@/lib/email/delivery'
 import { DownloadPageClient } from './client-page'
 
 export const metadata: Metadata = {
-  title: 'Download your 4K portrait – Portret',
-  description: 'Download your 4K PNG portrait. Lost your link? Use order lookup to get a new one.',
+  title: "Download Portrait",
+  description:
+    "Download your 4K portrait. Lost link? Use order lookup.",
 }
 
 const ASSET_LABELS: Record<string, string> = {

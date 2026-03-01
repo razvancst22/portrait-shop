@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Family Portraits – Heirloom Renaissance & Victorian Group Art',
+  title: "Custom Family Portraits – Personalized Artwork",
   description:
-    'Create a timeless family heirloom from your photo in Renaissance, Baroque, or Victorian style. Free preview • Perfect for generations • One fixed price.',
+    "Custom family portraits. Personalized artwork. Timeless keepsake. Free preview. Print or download.",
   openGraph: {
-    title: 'AI Family Portraits – Heirloom Renaissance & Victorian Group Art',
+    title: "Custom Family Portraits – Personalized Artwork",
     description:
-      'Create a timeless family heirloom from your photo in Renaissance, Baroque, or Victorian style. Free preview • One fixed price.',
-    url: '/family-portraits',
+      "Custom family portraits. Personalized artwork. Timeless keepsake. Free preview. Print or download.",
+    url: "/family-portraits",
   },
 }
 

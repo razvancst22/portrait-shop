@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
-  title: 'Privacy Policy – Portret',
-  description: 'Privacy Policy for Portret',
+  title: "Privacy Policy",
+  description: "Privacy policy for Portraitz. How we handle your data.",
 }
 
 export default function PrivacyPage() {
@@ -85,8 +85,7 @@ export default function PrivacyPage() {
           <h2 className="text-foreground font-semibold mt-6 mb-2">7. Your Rights</h2>
           <p>
             Depending on where you live, you may have rights to access, correct, delete, or port your personal data, or
-            to object to or restrict certain processing. To exercise these rights or ask questions, contact us via the
-            Contact page. You may also have the right to lodge a complaint with a supervisory authority.
+            to object to or restrict certain processing. To exercise these rights or ask questions, contact us via email at support@portraitz.shop. You may also have the right to lodge a complaint with a supervisory authority.
           </p>
         </section>
 
@@ -111,7 +110,7 @@ export default function PrivacyPage() {
           <h2 className="text-foreground font-semibold mt-6 mb-2">10. Changes and Contact</h2>
           <p>
             We may update this Privacy Policy from time to time. The “Last updated” date will change. Continued use
-            after changes constitutes acceptance. For privacy-related questions or requests, use the Contact page.
+            after changes constitutes acceptance. For privacy-related questions or requests, email us at support@portraitz.shop.
           </p>
         </section>
       </div>

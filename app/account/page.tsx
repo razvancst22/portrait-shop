@@ -5,8 +5,9 @@ import { AccountDashboard } from '@/components/account/account-dashboard'
 import { PageContainer } from '@/components/layout/page-container'
 
 export const metadata: Metadata = {
-  title: 'My Account – Manage Your Classic Art Portrait Orders',
-  description: 'View your portrait generations, manage your plan, access downloads, and track order history. Everything you need in one place.',
+  title: "My Account",
+  description:
+    "Manage portrait orders. View generations, downloads, order history.",
 }
 
 export default async function AccountPage() {

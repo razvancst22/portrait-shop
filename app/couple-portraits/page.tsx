@@ -7,14 +7,14 @@ import { CategoryPageHeader } from '@/components/category-page-header'
 import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
-  title: 'AI Couple Portraits – Romantic Renaissance & Victorian Double Portraits',
+  title: "Custom Couple Portraits – Personalized Artwork",
   description:
-    'Capture your love forever with a stunning Renaissance or Baroque double portrait. Upload your photo, get a free preview • Perfect anniversary & wedding gifts.',
+    "Custom couple portraits. Personalized artwork. Perfect gift. Free preview. Print or download.",
   openGraph: {
-    title: 'AI Couple Portraits – Romantic Renaissance & Victorian Double Portraits',
+    title: "Custom Couple Portraits – Personalized Artwork",
     description:
-      'Capture your love forever with a stunning Renaissance or Baroque double portrait. Upload your photo, get a free preview.',
-    url: '/couple-portraits',
+      "Custom couple portraits. Personalized artwork. Perfect gift. Free preview. Print or download.",
+    url: "/couple-portraits",
   },
 }
 

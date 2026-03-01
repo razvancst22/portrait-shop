@@ -4,8 +4,9 @@ import { PricingPlanCards } from '@/components/pricing/pricing-plan-cards'
 import { PortraitUpgradeCards } from '@/components/pricing/portrait-upgrade-cards'
 
 export const metadata: Metadata = {
-  title: 'Pricing – Create Unlimited Classic Art Portraits From Your Photos',
-  description: 'Create stunning Renaissance, Baroque, and Victorian portraits from your photos. Free preview available • One price for everything • High-resolution downloads.',
+  title: "Custom Portrait Pricing – One Price, Free Preview",
+  description:
+    "Custom portrait pricing. Dog, cat, family portraits. Free preview. One price. High-res downloads.",
 }
 
 const COMPARE_FEATURES = [

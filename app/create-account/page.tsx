@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { AuthForm } from '@/components/auth/auth-form'
 
 export const metadata: Metadata = {
-  title: 'Create Account – Pet Portrait Shop',
-  description: 'Create an account to buy Digital Packs, save your portraits, and access high-res downloads.',
+  title: "Create Account",
+  description:
+    "Create an account to save portraits, buy digital packs, access high-res downloads.",
 }
 
 export default async function CreateAccountPage({

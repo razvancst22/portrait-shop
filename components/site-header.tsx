@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/primitives/button'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, PawPrint, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette, Sparkles } from 'lucide-react'
+import { Menu, ChevronDown, ChevronRight, Heart, Users, Baby, PawPrint, User as UserIcon, Clock, DollarSign, Settings, LogOut, Palette, Sparkles, Info, MessageCircle, FileText, Shield, CreditCard, FileCode, FileStack } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddCreditsModal } from '@/components/add-credits-modal'
 import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
@@ -35,6 +35,7 @@ export function SiteHeader() {
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
   const [credits, setCredits] = useState<number | null>(null)
   const [createExpanded, setCreateExpanded] = useState(true)
+  const [policiesExpanded, setPoliciesExpanded] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
@@ -152,6 +153,41 @@ export function SiteHeader() {
                     <Logo href="" className="transition-opacity hover:opacity-80" height={32} />
                   </Link>
                 </div>
+                {/* Email, Sign Out – between logo and Add Credits */}
+                <div className="space-y-2">
+                  <p
+                    className="text-sm text-foreground font-medium break-all text-center"
+                    title={user?.email ?? undefined}
+                  >
+                    {user?.email ?? SITE_NAME}
+                  </p>
+                  {user ? (
+                    <button
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                      )}
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="size-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeDrawer()
+                        router.push('/login')
+                      }}
+                    >
+                      <UserIcon className="size-4" />
+                      <span>Sign In</span>
+                    </Link>
+                  )}
+                </div>
                 {credits !== null && credits > 0 && (
                   <button
                     type="button"
@@ -263,40 +299,110 @@ export function SiteHeader() {
                   <span>Pricing</span>
                 </Link>
 
-                {/* Email, Sign Out – below Pricing, always visible */}
-                <div className="mt-4 pt-4 border-t border-border space-y-2 shrink-0">
-                  <p
-                    className="text-sm text-foreground font-medium break-all"
-                    title={user?.email ?? undefined}
-                  >
-                    {user?.email ?? SITE_NAME}
+                {/* Legal & Support Section */}
+                <div className="pt-2 border-t border-border">
+                  <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Legal & Support
                   </p>
-                  {user ? (
+                  <Link
+                    href="/about"
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/about')
+                    }}
+                  >
+                    <Info className="size-5" />
+                    <span>About</span>
+                  </Link>
+                  <Link
+                    href="/support"
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground'
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      closeDrawer()
+                      router.push('/support')
+                    }}
+                  >
+                    <MessageCircle className="size-5" />
+                    <span>Get Support</span>
+                  </Link>
+                  <div>
                     <button
                       className={cn(
-                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                        'w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors',
+                        'text-left font-medium text-foreground'
                       )}
-                      onClick={handleSignOut}
+                      onClick={() => setPoliciesExpanded(!policiesExpanded)}
                     >
-                      <LogOut className="size-4" />
-                      <span>Sign Out</span>
+                      <div className="flex items-center gap-3">
+                        <FileStack className="size-5" />
+                        <span>Policies</span>
+                      </div>
+                      {policiesExpanded ? (
+                        <ChevronDown className="size-4" />
+                      ) : (
+                        <ChevronRight className="size-4" />
+                      )}
                     </button>
-                  ) : (
-                    <Link
-                      href="/login"
-                      className={cn(
-                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
-                      )}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        closeDrawer()
-                        router.push('/login')
-                      }}
-                    >
-                      <UserIcon className="size-4" />
-                      <span>Sign In</span>
-                    </Link>
-                  )}
+                    {policiesExpanded && (
+                      <div className="ml-8 mt-1 space-y-1">
+                        <Link
+                          href="/terms"
+                          className="flex items-center gap-3 p-2 rounded-md text-foreground font-medium hover:bg-muted/50 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            closeDrawer()
+                            router.push('/terms')
+                          }}
+                        >
+                          <FileText className="size-4" />
+                          <span>Terms of Service</span>
+                        </Link>
+                        <Link
+                          href="/privacy"
+                          className="flex items-center gap-3 p-2 rounded-md text-foreground font-medium hover:bg-muted/50 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            closeDrawer()
+                            router.push('/privacy')
+                          }}
+                        >
+                          <Shield className="size-4" />
+                          <span>Privacy Policy</span>
+                        </Link>
+                        <Link
+                          href="/refunds"
+                          className="flex items-center gap-3 p-2 rounded-md text-foreground font-medium hover:bg-muted/50 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            closeDrawer()
+                            router.push('/refunds')
+                          }}
+                        >
+                          <CreditCard className="size-4" />
+                          <span>Refund Policy</span>
+                        </Link>
+                        <Link
+                          href="/commercial"
+                          className="flex items-center gap-3 p-2 rounded-md text-foreground font-medium hover:bg-muted/50 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            closeDrawer()
+                            router.push('/commercial')
+                          }}
+                        >
+                          <FileCode className="size-4" />
+                          <span>Commercial License</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               </div>

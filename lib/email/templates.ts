@@ -2,7 +2,7 @@
  * Branded email templates for Brevo. Shared layout with logo, fonts, footer.
  */
 
-import { SITE_NAME, SITE_DOMAIN } from '@/lib/site-config'
+import { SITE_NAME, SITE_DOMAIN, SUPPORT_EMAIL } from '@/lib/site-config'
 
 const PRIMARY_COLOR = '#22c55e' // green-500, adjust to match brand
 const TEXT_COLOR = '#374151'
@@ -53,7 +53,7 @@ export function emailLayout(content: string): string {
             <td style="padding-top:24px;font-size:12px;color:${MUTED_COLOR};text-align:center;line-height:1.5;">
               — ${SITE_NAME}<br/>
               ${COMPANY_ADDRESS.replace(/\n/g, '<br/>')}<br/><br/>
-              <a href="mailto:support@portraitz.shop" style="color:${PRIMARY_COLOR};text-decoration:none;">support@portraitz.shop</a><br/>
+              <a href="mailto:${SUPPORT_EMAIL}" style="color:${PRIMARY_COLOR};text-decoration:none;">${SUPPORT_EMAIL}</a><br/>
               <a href="${getBaseUrl()}/refunds" style="color:${PRIMARY_COLOR};text-decoration:none;">Refund policy</a>
             </td>
           </tr>
