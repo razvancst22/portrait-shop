@@ -166,7 +166,7 @@ export default function OrderDetailPage() {
       <div className="w-full max-w-2xl text-left space-y-6">
         <Link
           href="/account"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3"
         >
           <ArrowLeft className="size-4" />
           Back to account

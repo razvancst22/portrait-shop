@@ -21,7 +21,7 @@ export default async function ContactPage({
     <PageContainer maxWidth="md" padding="md">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3"
       >
         <ArrowLeft className="size-4" />
         Back

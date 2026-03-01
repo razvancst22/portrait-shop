@@ -10,7 +10,7 @@ import { PortraitActionCard } from '@/components/preview/portrait-action-card'
 import { PreviewPackageModal, type PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { Button } from '@/components/primitives/button'
 import { Skeleton } from '@/components/primitives/skeleton'
-import { Palette } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 const fetcher = (url: string) =>
   fetch(url, { credentials: 'include' }).then((r) => r.json()).then((d) => d.generations ?? [])
@@ -29,21 +29,28 @@ function styleDisplayName(artStyle: string): string {
   return ART_STYLE_PROMPTS[id]?.name ?? artStyle
 }
 
+export type ViewMode = 'all' | 'generated' | 'purchased'
+
 export type MyPortraitsContentProps = {
-  /** Show "Create new portrait" link in header */
-  showCreateLink?: boolean
   /** Layout: 'page' = standalone page with full width; 'embedded' = inside card (account) */
   variant?: 'page' | 'embedded'
   /** Optional className for the container */
   className?: string
 }
 
+/** Full grid for "See all" view */
+const gridClasses = 'grid grid-cols-2 sm:grid-cols-3 gap-4 items-start'
+
+/** Single row (horizontal scroll) for default preview - same card sizing */
+const scrollRowClasses =
+  'flex gap-4 overflow-x-auto overflow-y-hidden pb-2 snap-x snap-mandatory scrollbar-hide'
+const scrollCardClasses = 'flex-shrink-0 w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.5rem)] snap-center'
+
 /**
  * Shared My Portraits grid component. Used in /my-portraits page and account dashboard.
- * Fetches generations, shows unpurchased first, then purchased section.
+ * Fetches generations, shows Generated Artworks (preview) and Purchased Artworks in separate sections.
  */
 export function MyPortraitsContent({
-  showCreateLink = true,
   variant = 'page',
   className = '',
 }: MyPortraitsContentProps) {
@@ -54,27 +61,14 @@ export function MyPortraitsContent({
     { revalidateOnFocus: false }
   )
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('all')
 
   useEffect(() => {
     mutate()
   }, [mutate, user])
 
-  const unpurchased = generations.filter((g) => !g.is_purchased)
+  const generated = generations.filter((g) => !g.is_purchased)
   const purchased = generations.filter((g) => g.is_purchased)
-
-  const header = (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-      <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-        <Palette className="size-5" />
-        My Portraits
-      </h2>
-      {showCreateLink && (
-        <Link href="/" className="text-sm font-medium text-primary hover:underline">
-          Create new portrait →
-        </Link>
-      )}
-    </div>
-  )
 
   const emptyState = (
     <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center">
@@ -85,75 +79,110 @@ export function MyPortraitsContent({
     </div>
   )
 
-  const grid = (
-    <>
-      {unpurchased.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-          {unpurchased.map((gen) => (
-            <PortraitActionCard
-              key={gen.id}
-              generationId={gen.id}
-              imageUrl={gen.preview_image_url}
-              imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-              status={gen.status}
-              isPurchased={false}
-              buttonsLayout="row"
-              onOpenPackageModal={(v) => setPackageModal({ generationId: gen.id, variant: v })}
-              onDelete={async (id) => {
-                const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
-                if (!res.ok) throw new Error('Delete failed')
-                mutate()
-              }}
-            />
-          ))}
-        </div>
+  const sectionHeader = (title: string, onSeeAll?: () => void) => (
+    <div className="flex items-center justify-between gap-4 mb-4">
+      <h3 className="font-heading text-base font-semibold text-foreground">{title}</h3>
+      {onSeeAll != null && (
+        <button
+          type="button"
+          onClick={onSeeAll}
+          className="text-sm font-medium text-primary hover:underline shrink-0"
+        >
+          See all
+        </button>
       )}
-      {purchased.length > 0 && (
-        <div className={unpurchased.length > 0 ? 'mt-8' : ''}>
-          <h3 className="font-heading text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-            <span className="flex size-2 rounded-full bg-emerald-500" aria-hidden />
-            Purchased
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-            {purchased.map((gen) => (
-              <PortraitActionCard
-                key={gen.id}
-                generationId={gen.id}
-                imageUrl={gen.preview_image_url}
-                imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
-                status={gen.status}
-                isPurchased={true}
-                buttonsLayout="row"
-                className="ring-2 ring-emerald-500 ring-offset-2 ring-offset-background"
-                onOpenPackageModal={(v) => setPackageModal({ generationId: gen.id, variant: v })}
-                onDelete={async (id) => {
-                  const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
-                  if (!res.ok) throw new Error('Delete failed')
-                  mutate()
-                }}
-              />
-            ))}
-          </div>
+    </div>
+  )
+
+  const backToAll = (
+    <button
+      type="button"
+      onClick={() => setViewMode('all')}
+      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+    >
+      <ArrowLeft className="size-4" />
+      View all
+    </button>
+  )
+
+  const renderCard = (gen: MyGenerationItem, isPurchased: boolean) => (
+    <PortraitActionCard
+      key={gen.id}
+      generationId={gen.id}
+      imageUrl={gen.preview_image_url}
+      imageAlt={`Portrait in ${styleDisplayName(gen.art_style)} style`}
+      status={gen.status}
+      isPurchased={isPurchased}
+      buttonsLayout="row"
+      className=""
+      onOpenPackageModal={(v) => setPackageModal({ generationId: gen.id, variant: v })}
+      onDelete={async (id) => {
+        const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
+        if (!res.ok) throw new Error('Delete failed')
+        mutate()
+      }}
+    />
+  )
+
+  /** Single row - for default preview */
+  const renderScrollRow = (items: MyGenerationItem[], isPurchased: boolean) => (
+    <div
+      className={scrollRowClasses}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+      aria-label={isPurchased ? 'Purchased artworks' : 'Generated artworks'}
+    >
+      {items.map((gen) => (
+        <div key={gen.id} className={scrollCardClasses}>
+          {renderCard(gen, isPurchased)}
         </div>
-      )}
-    </>
+      ))}
+    </div>
+  )
+
+  /** Full grid - for "See all" view */
+  const renderGrid = (items: MyGenerationItem[], isPurchased: boolean) => (
+    <div className={gridClasses}>{items.map((gen) => renderCard(gen, isPurchased))}</div>
   )
 
   const content = loading ? (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
+    <div className={gridClasses}>
       {[1, 2, 3].map((i) => (
         <Skeleton key={i} className="rounded-xl aspect-[4/5]" />
       ))}
     </div>
   ) : generations.length === 0 ? (
     emptyState
+  ) : viewMode === 'generated' ? (
+    <>
+      {backToAll}
+      {sectionHeader('Generated Artworks')}
+      {renderGrid(generated, false)}
+    </>
+  ) : viewMode === 'purchased' ? (
+    <>
+      {backToAll}
+      {sectionHeader('Purchased Artworks')}
+      {renderGrid(purchased, true)}
+    </>
   ) : (
-    grid
+    <>
+      {generated.length > 0 && (
+        <div className="mb-8">
+          {sectionHeader('Generated Artworks', () => setViewMode('generated'))}
+          {renderScrollRow(generated, false)}
+        </div>
+      )}
+      {purchased.length > 0 && (
+        <div>
+          {sectionHeader('Purchased Artworks', () => setViewMode('purchased'))}
+          {renderScrollRow(purchased, true)}
+        </div>
+      )}
+    </>
   )
 
   return (
     <div className={className}>
-      {header}
       {content}
       <PreviewPackageModal
         open={packageModal !== null}

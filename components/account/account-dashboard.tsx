@@ -83,7 +83,7 @@ export function AccountDashboard() {
     <div className="w-full max-w-3xl mx-auto text-left space-y-8">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3"
       >
         <ArrowLeft className="size-4" />
         Back to home
@@ -181,7 +181,7 @@ export function AccountDashboard() {
           'border border-border/50'
         )}
       >
-        <MyPortraitsContent variant="embedded" showCreateLink={true} />
+        <MyPortraitsContent variant="embedded" />
       </div>
 
       {/* Order History */}

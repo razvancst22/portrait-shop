@@ -2,9 +2,9 @@ import { Skeleton } from '@/components/primitives/skeleton'
 
 export default function OrderLookupLoading() {
   return (
-    <div className="py-8 px-4">
+    <div className="pt-4 md:pt-6 pb-8 px-4">
       <div className="container max-w-md mx-auto">
-        <Skeleton className="mb-6 h-8 w-28 rounded-full" />
+        <Skeleton className="mb-3 h-8 w-28 rounded-full" />
         <Skeleton className="mb-2 h-8 w-64" />
         <Skeleton className="mb-6 h-5 w-full" />
         <div className="space-y-4">

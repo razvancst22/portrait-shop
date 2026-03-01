@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { CreateFlow } from '@/components/create-flow'
+import { MyPortraitsSection } from '@/components/home/my-portraits-section'
 import { GallerySection } from '@/components/gallery-section'
 import { CategoryJsonLd } from '@/components/category-json-ld'
 import { CategoryPageHeader } from '@/components/category-page-header'
@@ -25,6 +26,7 @@ export default function SelfPortraitPage() {
         <main className="max-w-3xl w-full text-center">
           <CategoryPageHeader category="self" />
           <CreateFlow category="self" />
+          <MyPortraitsSection />
           <GallerySection items={getGalleryImagesForPage('self', false)} />
         </main>
       </div>

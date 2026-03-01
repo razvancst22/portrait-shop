@@ -169,11 +169,11 @@ export default function PreviewPage() {
       )
     }
     return (
-      <div className="py-8 md:py-12 px-4">
+      <div className="pt-4 md:pt-6 pb-8 md:pb-12 px-4">
         <div className="container max-w-2xl mx-auto animate-fade-in">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3"
           >
             <ArrowLeft className="size-4" />
             Back to home
