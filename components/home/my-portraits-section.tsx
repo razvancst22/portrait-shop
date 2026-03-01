@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
@@ -33,6 +33,7 @@ function styleDisplayName(artStyle: string): string {
  * Refetches when auth state changes (e.g. logout) so portraits update immediately.
  */
 export function MyPortraitsSection() {
+  const { user } = useAuth()
   const { data: generations = [], isLoading: loading, mutate } = useSWR<MyGenerationItem[]>(
     '/api/my-generations',
     fetcher,
@@ -41,12 +42,8 @@ export function MyPortraitsSection() {
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      mutate()
-    })
-    return () => subscription.unsubscribe()
-  }, [mutate])
+    mutate()
+  }, [mutate, user])
 
   if (loading || generations.length === 0) {
     return null
@@ -79,6 +76,11 @@ export function MyPortraitsSection() {
             isPurchased={gen.is_purchased}
             buttonsLayout="row"
             onOpenPackageModal={(variant) => setPackageModal({ generationId: gen.id, variant })}
+            onDelete={async (id) => {
+              const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
+              if (!res.ok) throw new Error('Delete failed')
+              mutate()
+            }}
           />
         ))}
       </div>

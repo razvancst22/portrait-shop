@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { Button, getButtonClassName } from '@/components/primitives/button'
 import { cn } from '@/lib/utils'
@@ -73,7 +74,7 @@ export function CreateFlow({
   const [tokenBalance, setTokenBalance] = useState<number | null>(null)
   const [insufficientCredits, setInsufficientCredits] = useState(false)
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
-  const [user, setUser] = useState<{ id: string } | null>(null)
+  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const generatingRef = useRef(false)
@@ -248,14 +249,8 @@ export function CreateFlow({
   }, [step, fetchCredits])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u ?? null))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
-      fetchCredits()
-    })
-    return () => subscription.unsubscribe()
-  }, [fetchCredits])
+    fetchCredits()
+  }, [fetchCredits, user])
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -500,6 +495,7 @@ export function CreateFlow({
                       alt={`Person ${i + 1}`}
                       fill
                       className="object-cover"
+                      loading="lazy"
                       unoptimized
                     />
                     <button
@@ -607,7 +603,7 @@ export function CreateFlow({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-sm mx-auto mb-6">
               {multiPreviewUrls.map((url, i) => (
                 <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-muted/50 border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.12)]">
-                  <Image src={url} alt={`${copy.previewAlt} ${i + 1}`} fill className="object-cover object-center" unoptimized />
+                  <Image src={url} alt={`${copy.previewAlt} ${i + 1}`} fill className="object-cover object-center" loading="lazy" unoptimized />
                   <span className="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/50 text-white text-xs">
                     {i + 1}
                   </span>
@@ -616,7 +612,7 @@ export function CreateFlow({
             </div>
           ) : (
             <div className="relative aspect-[4/5] w-full max-w-[220px] mx-auto rounded-2xl overflow-hidden bg-muted/50 border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.12)] mb-6">
-              <Image src={previewUrl!} alt={copy.previewAlt} fill className="object-cover object-center" unoptimized />
+              <Image src={previewUrl!} alt={copy.previewAlt} fill className="object-cover object-center" loading="lazy" unoptimized />
             </div>
           )}
           {step === 'generating' ? (

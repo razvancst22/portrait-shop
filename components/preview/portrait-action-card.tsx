@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/primitives/button'
-import { Check, Download, Printer } from 'lucide-react'
+import { Check, Download, Printer, Trash2 } from 'lucide-react'
 import type { PreviewPackageVariant } from '@/components/preview/preview-package-modal'
 import { showToast } from '@/components/ui/toast'
 
@@ -13,6 +14,8 @@ type PortraitActionCardProps = {
   imageAlt: string
   status: string
   onOpenPackageModal: (variant: PreviewPackageVariant) => void
+  /** When provided, shows a delete button (trash icon) for all completed portraits. Called on confirm. */
+  onDelete?: (generationId: string) => void | Promise<void>
   /** When true, use final image instead of watermarked preview (only when useThumbnail=false) */
   isPurchased?: boolean
   /** When true (default), use preview thumbnail for grid display; when false, use full final for purchased */
@@ -39,6 +42,7 @@ export function PortraitActionCard({
   imageAlt,
   status,
   onOpenPackageModal,
+  onDelete,
   isPurchased = false,
   useThumbnail = true,
   buttonsLayout = 'stack',
@@ -46,8 +50,24 @@ export function PortraitActionCard({
 }: PortraitActionCardProps) {
   const router = useRouter()
   const [isDownloading, setIsDownloading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const completed = status === 'completed'
+  const showDeleteButton = completed && !!onDelete
   const showButtons = completed
+
+  useEffect(() => {
+    if (!showDeleteConfirm) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isDeleting) setShowDeleteConfirm(false)
+    }
+    document.addEventListener('keydown', handleEscape)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = ''
+    }
+  }, [showDeleteConfirm, isDeleting])
   
   // Grid (useThumbnail): use final (no watermark) for purchased, preview (watermarked) for unpurchased
   // Detail (useThumbnail=false): same logic
@@ -94,8 +114,25 @@ export function PortraitActionCard({
                 Preview
               </span>
             )}
-            {/* Enhanced gradient overlay on hover for button readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+            {/* Enhanced gradient overlay on hover for button readability - pointer-events-none so buttons remain clickable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none" />
+            {/* Delete button - top-left, visible on hover like Download/Print */}
+            {showDeleteButton && (
+              <button
+                type="button"
+                className="absolute top-2 left-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowDeleteConfirm(true)
+                }}
+                disabled={isDeleting}
+                title="Delete artwork"
+                aria-label="Delete artwork"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            )}
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white text-sm p-4 bg-gradient-to-br from-muted/60 to-muted/40 backdrop-blur-sm">
@@ -209,6 +246,65 @@ export function PortraitActionCard({
           </div>
         )}
       </a>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+          >
+            <div
+              className="rounded-2xl bg-background border border-border shadow-2xl p-6 max-w-sm w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="delete-dialog-title" className="font-heading text-lg font-semibold text-foreground mb-2">
+                Delete this artwork?
+              </h2>
+              <p className="text-muted-foreground text-sm mb-6">
+                This action cannot be undone. The artwork will be permanently removed from your gallery.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    setIsDeleting(true)
+                    try {
+                      await onDelete?.(generationId)
+                      setShowDeleteConfirm(false)
+                      showToast.success('Artwork deleted')
+                    } catch {
+                      showToast.error('Failed to delete. Please try again.')
+                    } finally {
+                      setIsDeleting(false)
+                    }
+                  }}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Deleting...
+                    </span>
+                  ) : (
+                    'Delete'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </article>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { MyPortraitsContent } from '@/components/my-portraits-content'
 import { ToastContainer } from '@/components/ui/toast'
@@ -28,6 +29,13 @@ export default function MyPortraitsPage() {
   return (
     <div className="px-4 py-8 md:py-12">
       <main className="w-full max-w-3xl mx-auto text-left">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="size-4" />
+          Back to home
+        </Link>
         <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
           My Portraits
         </h1>
@@ -47,12 +55,6 @@ export default function MyPortraitsPage() {
         <MyPortraitsContent variant="page" showCreateLink={true} />
 
         <ToastContainer />
-
-        <p className="mt-8 text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-            ← Back to home
-          </Link>
-        </p>
       </main>
     </div>
   )

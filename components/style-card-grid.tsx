@@ -68,6 +68,7 @@ export function StyleCardGrid({
                   fill
                   className="object-cover object-center size-full"
                   sizes="(max-width: 640px) 50vw, 25vw"
+                  loading="lazy"
                   unoptimized
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />

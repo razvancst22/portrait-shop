@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Sparkles, Download, Package, Plus, Search } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Sparkles, Download, Package, Plus, Search, ArrowLeft } from 'lucide-react'
+import { useAuth } from '@/providers/auth-provider'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { Skeleton } from '@/components/primitives/skeleton'
 import { MyPortraitsContent } from '@/components/my-portraits-content'
@@ -63,18 +63,16 @@ export function AccountDashboard() {
       .finally(() => setLoadingOrders(false))
   }, [])
 
+  const { user } = useAuth()
+
   useEffect(() => {
     loadBalance()
     loadOrders()
   }, [loadBalance, loadOrders])
 
   useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      loadBalance()
-    })
-    return () => subscription.unsubscribe()
-  }, [loadBalance])
+    loadBalance()
+  }, [loadBalance, user])
 
   useCreditsUpdateListener(loadBalance)
 
@@ -83,6 +81,13 @@ export function AccountDashboard() {
 
   return (
     <div className="w-full max-w-3xl mx-auto text-left space-y-8">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ArrowLeft className="size-4" />
+        Back to home
+      </Link>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-2">
@@ -260,12 +265,6 @@ export function AccountDashboard() {
         onSuccess={loadOrders}
       />
       <ToastContainer />
-
-      <p className="text-center">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Back to home
-        </Link>
-      </p>
     </div>
   )
 }

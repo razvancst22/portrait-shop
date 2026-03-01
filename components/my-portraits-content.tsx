@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
 import { ART_STYLE_PROMPTS } from '@/lib/prompts/artStyles'
 import type { ArtStyleId } from '@/lib/prompts/artStyles'
 import { PortraitActionCard } from '@/components/preview/portrait-action-card'
@@ -47,6 +47,7 @@ export function MyPortraitsContent({
   variant = 'page',
   className = '',
 }: MyPortraitsContentProps) {
+  const { user } = useAuth()
   const { data: generations = [], isLoading: loading, mutate } = useSWR<MyGenerationItem[]>(
     '/api/my-generations',
     fetcher,
@@ -55,12 +56,8 @@ export function MyPortraitsContent({
   const [packageModal, setPackageModal] = useState<{ generationId: string; variant: PreviewPackageVariant } | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      mutate()
-    })
-    return () => subscription.unsubscribe()
-  }, [mutate])
+    mutate()
+  }, [mutate, user])
 
   const unpurchased = generations.filter((g) => !g.is_purchased)
   const purchased = generations.filter((g) => g.is_purchased)
@@ -102,6 +99,11 @@ export function MyPortraitsContent({
               isPurchased={false}
               buttonsLayout="row"
               onOpenPackageModal={(v) => setPackageModal({ generationId: gen.id, variant: v })}
+              onDelete={async (id) => {
+                const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
+                if (!res.ok) throw new Error('Delete failed')
+                mutate()
+              }}
             />
           ))}
         </div>
@@ -124,6 +126,11 @@ export function MyPortraitsContent({
                 buttonsLayout="row"
                 className="ring-2 ring-emerald-500 ring-offset-2 ring-offset-background"
                 onOpenPackageModal={(v) => setPackageModal({ generationId: gen.id, variant: v })}
+                onDelete={async (id) => {
+                  const res = await fetch(`/api/generate/${id}`, { method: 'DELETE', credentials: 'include' })
+                  if (!res.ok) throw new Error('Delete failed')
+                  mutate()
+                }}
               />
             ))}
           </div>

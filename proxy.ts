@@ -54,6 +54,7 @@ export const config = {
     '/api/generate/:path*',
     '/api/checkout',
     '/api/order-lookup',
-    '/:path*',
+    // Exclude static assets to reduce auth requests (no session needed for these)
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|eot|css|js)$).*)',
   ],
 }

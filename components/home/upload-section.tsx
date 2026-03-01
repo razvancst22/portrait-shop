@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { AddCreditsModal } from '@/components/add-credits-modal'
@@ -49,7 +49,7 @@ export function UploadSection() {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
-  const [user, setUser] = useState<{ id: string } | null>(null)
+  const { user } = useAuth()
 
   const handleChangePhoto = useCallback(() => {
     setUploadedImageUrl(null)
@@ -117,14 +117,8 @@ export function UploadSection() {
   }, [fetchCredits])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u ?? null))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
-      fetchCredits()
-    })
-    return () => subscription.unsubscribe()
-  }, [fetchCredits])
+    fetchCredits()
+  }, [fetchCredits, user])
 
   useEffect(() => {
     const handleVisibility = () => {

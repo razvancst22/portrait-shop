@@ -13,8 +13,8 @@ import { CATEGORY_ROUTES, SUBJECT_TYPE_IDS } from '@/lib/prompts/artStyles'
 import { SITE_NAME } from '@/lib/site-config'
 import { Logo } from '@/components/logo'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
 import { useCreditsUpdateListener } from '@/lib/credits-events'
-import type { User } from '@supabase/supabase-js'
 
 const FOCUSABLE = 'a[href], button:not([disabled])'
 
@@ -30,7 +30,7 @@ const CREATE_ICONS = {
 
 export function SiteHeader() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
   const [credits, setCredits] = useState<number | null>(null)
@@ -48,18 +48,8 @@ export function SiteHeader() {
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      fetchCredits()
-    })
-    return () => subscription.unsubscribe()
-  }, [fetchCredits])
-
-  useEffect(() => {
     fetchCredits()
-  }, [fetchCredits])
+  }, [fetchCredits, user])
 
   useCreditsUpdateListener(fetchCredits)
 
@@ -139,57 +129,34 @@ export function SiteHeader() {
             <div
               ref={panelRef}
               className={cn(
-                'fixed inset-y-0 left-0 z-[101] w-[280px] max-w-[85vw] flex flex-col gap-4 border-r border-border bg-background p-6 pt-8 shadow-xl',
+                'fixed inset-y-0 left-0 z-[101] w-[280px] max-w-[85vw] flex flex-col border-r border-border bg-background shadow-xl',
                 'animate-in slide-in-from-left duration-300'
               )}
               role="dialog"
               aria-modal="true"
               aria-label="Menu"
             >
-              <div className="">
-                <Link
-                  href="/"
-                  className="font-heading text-lg font-semibold text-foreground truncate max-w-[180px] block"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    closeDrawer()
-                    router.push('/')
-                  }}
-                  title={user?.email ?? SITE_NAME}
-                >
-                  {user?.email ?? SITE_NAME}
-                </Link>
-                {user ? (
-                  <button
-                    className={cn(
-                      'flex items-center justify-center gap-2 mt-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
-                    )}
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="size-4" />
-                    <span>Sign Out</span>
-                  </button>
-                ) : (
+              <div className="flex flex-col gap-4 p-6 pt-8 flex-1 min-h-0 overflow-y-auto">
+              {/* Logo at top */}
+              <div className="flex flex-col gap-3 pb-4 border-b border-border shrink-0">
+                <div className="flex justify-center">
                   <Link
-                    href="/login"
-                    className={cn(
-                      'flex items-center justify-center gap-2 mt-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
-                    )}
+                    href="/"
                     onClick={(e) => {
                       e.preventDefault()
                       closeDrawer()
-                      router.push('/login')
+                      router.push('/')
                     }}
+                    className="inline-flex"
                   >
-                    <UserIcon className="size-4" />
-                    <span>Sign In</span>
+                    <Logo href="" className="transition-opacity hover:opacity-80" height={32} />
                   </Link>
-                )}
+                </div>
                 {credits !== null && credits > 0 && (
                   <button
                     type="button"
                     className={cn(
-                      'glass-green mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm',
+                      'glass-green flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm',
                       'shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200'
                     )}
                     onClick={openAddCredits}
@@ -200,7 +167,7 @@ export function SiteHeader() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 shrink-0">
                 {/* Account (when logged in) */}
                 {user && (
                   <Link
@@ -296,6 +263,42 @@ export function SiteHeader() {
                   <span>Pricing</span>
                 </Link>
 
+                {/* Email, Sign Out – below Pricing, always visible */}
+                <div className="mt-4 pt-4 border-t border-border space-y-2 shrink-0">
+                  <p
+                    className="text-sm text-foreground font-medium break-all"
+                    title={user?.email ?? undefined}
+                  >
+                    {user?.email ?? SITE_NAME}
+                  </p>
+                  {user ? (
+                    <button
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                      )}
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="size-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors text-foreground font-medium w-full border border-border'
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeDrawer()
+                        router.push('/login')
+                      }}
+                    >
+                      <UserIcon className="size-4" />
+                      <span>Sign In</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
               </div>
 
             </div>

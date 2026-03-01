@@ -59,6 +59,7 @@ export function ResponsiveGallery({ items, intervalMs = 3000 }: ResponsiveGaller
               fill
               className="object-cover object-center"
               sizes="50vw"
+              loading="lazy"
             />
           </div>
         </div>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Button, getButtonClassName } from '@/components/primitives/button'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/primitives/button'
 import { Input } from '@/components/primitives/input'
 import { Label } from '@/components/primitives/label'
 import { PageContainer } from '@/components/layout/page-container'
@@ -37,8 +38,12 @@ export default function OrderLookupPage() {
 
   return (
     <PageContainer maxWidth="sm" padding="md" className="animate-fade-in">
-        <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
-          ← Back to home
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="size-4" />
+          Back to home
         </Link>
         <h1 className="font-heading text-2xl font-semibold text-foreground mb-2">Get a new download link</h1>
         <p className="text-muted-foreground mb-6">
@@ -84,12 +89,6 @@ export default function OrderLookupPage() {
             </Button>
           </form>
         )}
-
-        <p className="mt-8 text-sm text-muted-foreground">
-          <Link href="/" className="text-foreground underline hover:no-underline">
-            Back to home
-          </Link>
-        </p>
     </PageContainer>
   )
 }

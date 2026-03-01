@@ -193,6 +193,7 @@ export function StylesModal({
                         fill
                         className="object-cover object-center size-full"
                         sizes="(max-width: 640px) 50vw, 33vw"
+                        loading="lazy"
                         unoptimized
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'

@@ -119,8 +119,12 @@ export default function OrderDetailPage() {
     return (
       <PageContainer maxWidth="lg" padding="lg" className="flex flex-col items-center">
         <p className="text-muted-foreground">Invalid order.</p>
-        <Link href="/account" className="mt-4 text-primary hover:underline">
-          ← Back to account
+        <Link
+          href="/account"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back to account
         </Link>
       </PageContainer>
     )
@@ -142,8 +146,12 @@ export default function OrderDetailPage() {
     return (
       <PageContainer maxWidth="lg" padding="lg" className="flex flex-col items-center">
         <p className="text-muted-foreground">{error ?? 'Order not found.'}</p>
-        <Link href="/account" className="mt-4 text-primary hover:underline">
-          ← Back to account
+        <Link
+          href="/account"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back to account
         </Link>
       </PageContainer>
     )
@@ -158,7 +166,7 @@ export default function OrderDetailPage() {
       <div className="w-full max-w-2xl text-left space-y-6">
         <Link
           href="/account"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="size-4" />
           Back to account

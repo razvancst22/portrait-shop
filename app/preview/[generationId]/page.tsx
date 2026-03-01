@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getButtonClassName } from '@/components/primitives/button'
-import { Check, Download, Loader2 } from 'lucide-react'
+import { Check, Download, Loader2, ArrowLeft } from 'lucide-react'
 import { PreviewUpgradeOptions } from '@/components/preview/preview-upgrade-options'
 import { CountdownOfferBanner } from '@/components/preview/countdown-offer-banner'
 import { ToastContainer, showToast } from '@/components/ui/toast'
@@ -171,8 +171,12 @@ export default function PreviewPage() {
     return (
       <div className="py-8 md:py-12 px-4">
         <div className="container max-w-2xl mx-auto animate-fade-in">
-          <Link href="/" className={getButtonClassName('ghost', 'sm', 'mb-6 rounded-full -ml-2')}>
-            ← Back
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
+            <ArrowLeft className="size-4" />
+            Back to home
           </Link>
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium mb-4 ${
