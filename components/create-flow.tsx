@@ -16,11 +16,6 @@ import { AddCreditsModal } from '@/components/add-credits-modal'
 import { UploadPhotoArea } from '@/components/upload-photo-area'
 import { StyleCardGrid } from '@/components/style-card-grid'
 import { CategoryDropdown } from '@/components/category-dropdown'
-import { GallerySection } from '@/components/gallery-section'
-import {
-  getGalleryImagesForPage,
-  type GalleryImage,
-} from '@/lib/gallery-images'
 import { compressImageForUpload } from '@/lib/image/compress-upload'
 
 type Step = 'upload' | 'post-upload' | 'generating'
@@ -46,22 +41,13 @@ type CreateFlowProps = {
   category: SubjectTypeId
   /** When true, category dropdown switches flow inline instead of navigating. Use on main page to support all portrait types. */
   allowInlineCategorySwitch?: boolean
-  /** When false, the gallery is not rendered. Default true. */
-  showGallery?: boolean
-  /** Optional override: use these images instead of page-specific gallery. Same CircularGallery style. */
-  galleryImages?: GalleryImage[]
 }
 
 export function CreateFlow({
   category: initialCategory,
   allowInlineCategorySwitch = false,
-  showGallery = true,
-  galleryImages,
 }: CreateFlowProps) {
   const router = useRouter()
-  const galleryItems =
-    galleryImages ??
-    getGalleryImagesForPage(initialCategory, !!allowInlineCategorySwitch)
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [category, setCategory] = useState<SubjectTypeId>(initialCategory)
@@ -88,7 +74,10 @@ export function CreateFlow({
   const [insufficientCredits, setInsufficientCredits] = useState(false)
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
   const [user, setUser] = useState<{ id: string } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const generatingRef = useRef(false)
+  const generatingContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!allowInlineCategorySwitch) setCategory(initialCategory)
@@ -284,6 +273,9 @@ export function CreateFlow({
 
   const startGeneration = useCallback(async () => {
     if (!selectedStyle) return
+    if (generatingRef.current) return
+    generatingRef.current = true
+    setIsSubmitting(true)
     let resolvedImageUrl: string | null = uploadedImageUrl
     let resolvedImageUrls: string[] = uploadedImageUrls.length > 0 ? uploadedImageUrls : []
 
@@ -313,6 +305,8 @@ export function CreateFlow({
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Something went wrong')
           setStep('post-upload')
+          setIsSubmitting(false)
+          generatingRef.current = false
           return
         }
       }
@@ -347,6 +341,8 @@ export function CreateFlow({
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Something went wrong')
         setStep('post-upload')
+        setIsSubmitting(false)
+        generatingRef.current = false
         return
       }
     }
@@ -370,6 +366,7 @@ export function CreateFlow({
       }
       if (effectiveCategory === 'dog') body.petType = 'dog'
       if (effectiveCategory === 'cat') body.petType = 'cat'
+      body.idempotencyKey = `create-${crypto.randomUUID()}`
 
       const genRes = await fetch('/api/generate', {
         method: 'POST',
@@ -389,6 +386,8 @@ export function CreateFlow({
           setError(err.error || `Generation failed: ${genRes.status}`)
         }
         setStep('post-upload')
+        setIsSubmitting(false)
+        generatingRef.current = false
         if (genRes.status === 403) fetchCredits()
         return
       }
@@ -398,6 +397,10 @@ export function CreateFlow({
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setStep('post-upload')
+      setIsSubmitting(false)
+    } finally {
+      setIsSubmitting(false)
+      generatingRef.current = false
     }
   }, [
     file,
@@ -477,19 +480,8 @@ export function CreateFlow({
         : `Click or drag here · JPEG, PNG or WebP, max ${MAX_MB}MB`,
     ]
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-16 md:py-24">
+      <div className="flex flex-col items-center justify-center px-4 py-6 md:py-8">
         <main className="max-w-3xl text-center w-full">
-          {!allowInlineCategorySwitch && (
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 -mt-2 transition-colors"
-            >
-              ← Back to home
-            </Link>
-          )}
-          <h1 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-3 animate-fade-in-up">
-            {copy.headline}
-          </h1>
           <input
             type="file"
             accept={ACCEPT}
@@ -589,14 +581,14 @@ export function CreateFlow({
             onCreditsAdded={fetchCredits}
           />
         </main>
-        {showGallery && <GallerySection items={galleryItems} />}
       </div>
     )
   }
 
-  if (step === 'post-upload' && (previewUrl || multiPreviewUrls.length >= minPhotos)) {
+  if ((step === 'post-upload' || step === 'generating') && (previewUrl || multiPreviewUrls.length >= minPhotos)) {
+    const showProgress = genStatus === 'completed' ? progress : Math.round(displayProgress)
     return (
-      <div className="flex flex-col items-center px-4 py-8 md:py-12">
+      <div ref={generatingContainerRef} className="flex flex-col items-center px-4 py-8 md:py-12">
         <main className="max-w-3xl w-full text-center">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
@@ -611,9 +603,6 @@ export function CreateFlow({
               Change photo{isMultiPhoto ? 's' : ''}
             </Button>
           </div>
-          <p className="text-sm font-medium text-foreground mb-3 text-center">
-            Choose a style, then create your artwork.
-          </p>
           {isMultiPhoto ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-sm mx-auto mb-6">
               {multiPreviewUrls.map((url, i) => (
@@ -630,31 +619,97 @@ export function CreateFlow({
               <Image src={previewUrl!} alt={copy.previewAlt} fill className="object-cover object-center" unoptimized />
             </div>
           )}
-          <StyleCardGrid
-            selectedStyle={selectedStyle ?? undefined}
-            onStyleSelect={onStyleSelect}
-            disabled={false}
-            className="mb-4"
-          />
-          <Button
-            onClick={startGeneration}
-            disabled={!selectedStyle}
-            className="w-full rounded-full"
-            size="lg"
-          >
-            {copy.ctaButton}
-          </Button>
-          {error && (
-            <p className="mt-3 text-sm text-destructive text-center" role="alert">
-              {error}
-            </p>
-          )}
-          {insufficientCredits && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              <Link href="/pricing" className="text-primary font-medium underline">Buy Portrait Generations</Link>
-              {' · '}
-              <Link href="/login" className="text-primary font-medium underline">Sign in</Link>
-            </p>
+          {step === 'generating' ? (
+            <div className="w-full max-w-md mx-auto space-y-6 py-4">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2
+                  className={cn('size-12 text-primary', genStatus === 'generating' && 'animate-spin')}
+                  aria-hidden
+                />
+                <h2 className="font-heading text-xl font-semibold text-foreground">{copy.generatingTitle}</h2>
+                <p
+                  key={statusMessageIndex}
+                  className="text-sm text-muted-foreground min-h-[1.5rem] animate-fade-in"
+                >
+                  {genStatus === 'generating'
+                    ? GENERATING_MESSAGES[statusMessageIndex]
+                    : genStatus === 'failed'
+                      ? 'Something went wrong.'
+                      : 'Done!'}
+                </p>
+              </div>
+              <div className="w-full space-y-2">
+                <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
+                    style={{ width: `${showProgress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground tabular-nums">{showProgress}%</p>
+              </div>
+              {genStatus === 'failed' && error && (
+                <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-2 text-sm">{error}</div>
+              )}
+              {genStatus === 'failed' && (
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button onClick={() => { setError(null); setStep('post-upload'); }} variant="outline" className="rounded-full">
+                    Try again
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setError(null)
+                      setStep('upload')
+                      setFile(null)
+                      if (previewUrl) URL.revokeObjectURL(previewUrl)
+                      setPreviewUrl(null)
+                      setMultiFiles([])
+                      multiPreviewUrls.forEach((u) => u.startsWith('blob:') && URL.revokeObjectURL(u))
+                      setMultiPreviewUrls([])
+                      setUploadedImageUrls([])
+                    }}
+                    variant="ghost"
+                    className="rounded-full"
+                  >
+                    Start over
+                  </Button>
+                  <Link href="/" className={cn(getButtonClassName('ghost', 'default', 'rounded-full'), 'inline-flex')}>
+                    Back to home
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-foreground mb-3 text-center">
+                Choose a style, then create your artwork.
+              </p>
+              <StyleCardGrid
+                selectedStyle={selectedStyle ?? undefined}
+                onStyleSelect={onStyleSelect}
+                disabled={false}
+                className="mb-4"
+              />
+              <Button
+                onClick={startGeneration}
+                disabled={!selectedStyle || isSubmitting}
+                className="w-full rounded-full"
+                size="lg"
+              >
+                {copy.ctaButton}
+              </Button>
+              {error && (
+                <p className="mt-3 text-sm text-destructive text-center" role="alert">
+                  {error}
+                </p>
+              )}
+              {insufficientCredits && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  <Link href="/pricing" className="text-primary font-medium underline">Buy Portrait Generations</Link>
+                  {' · '}
+                  <Link href="/login" className="text-primary font-medium underline">Sign in</Link>
+                </p>
+              )}
+            </>
           )}
           <AddCreditsModal
             open={showAddCreditsModal}
@@ -666,73 +721,6 @@ export function CreateFlow({
             onCreditsAdded={fetchCredits}
           />
         </main>
-        {showGallery && <GallerySection items={galleryItems} />}
-      </div>
-    )
-  }
-
-  if (step === 'generating') {
-    const showProgress = genStatus === 'completed' ? progress : Math.round(displayProgress)
-    return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-8 bg-generating">
-        <div className="w-full max-w-md text-center space-y-8 animate-fade-in animate-fade-in-delay-1">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2
-              className={cn('size-12 text-primary', genStatus === 'generating' && 'animate-spin')}
-              aria-hidden
-            />
-            <h1 className="font-heading text-xl font-semibold text-foreground">{copy.generatingTitle}</h1>
-            <p
-              key={statusMessageIndex}
-              className="text-sm text-muted-foreground min-h-[1.5rem] animate-fade-in"
-            >
-              {genStatus === 'generating'
-                ? GENERATING_MESSAGES[statusMessageIndex]
-                : genStatus === 'failed'
-                  ? 'Something went wrong.'
-                  : 'Done!'}
-            </p>
-          </div>
-          <div className="w-full space-y-2">
-            <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${showProgress}%` }}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground tabular-nums">{showProgress}%</p>
-          </div>
-          {genStatus === 'failed' && error && (
-            <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-2 text-sm">{error}</div>
-          )}
-          {genStatus === 'failed' && (
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button onClick={() => { setError(null); setStep('post-upload'); }} variant="outline" className="rounded-full">
-                Try again
-              </Button>
-              <Button
-                onClick={() => {
-                  setError(null)
-                  setStep('upload')
-                  setFile(null)
-                  if (previewUrl) URL.revokeObjectURL(previewUrl)
-                  setPreviewUrl(null)
-                  setMultiFiles([])
-                  multiPreviewUrls.forEach((u) => u.startsWith('blob:') && URL.revokeObjectURL(u))
-                  setMultiPreviewUrls([])
-                  setUploadedImageUrls([])
-                }}
-                variant="ghost"
-                className="rounded-full"
-              >
-                Start over
-              </Button>
-              <Link href="/" className={cn(getButtonClassName('ghost', 'default', 'rounded-full'), 'inline-flex')}>
-                Back to home
-              </Link>
-            </div>
-          )}
-        </div>
       </div>
     )
   }

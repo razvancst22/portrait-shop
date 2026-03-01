@@ -215,7 +215,7 @@ export function SiteHeader() {
                     }}
                   >
                     <Settings className="size-5" />
-                    <span>Account</span>
+                    <span>My Account</span>
                   </Link>
                 )}
 
@@ -232,7 +232,7 @@ export function SiteHeader() {
                   }}
                 >
                   <Clock className="size-5" />
-                  <span>Portraits</span>
+                  <span>My Portraits</span>
                 </Link>
 
                 {/* Create Section (Expandable) */}
@@ -321,7 +321,7 @@ export function SiteHeader() {
             </Button>
           </div>
           <div className="flex flex-1 items-center justify-center">
-            <Logo href="/" className="transition-opacity hover:opacity-80" height={36} />
+            <Logo href="/" className="transition-opacity hover:opacity-80" height={28} />
           </div>
           <div className="flex flex-1 items-center justify-end gap-2">
             {credits === 0 && (

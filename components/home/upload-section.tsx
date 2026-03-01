@@ -40,6 +40,7 @@ export function UploadSection() {
   const pathname = usePathname()
   const currentCategory = getCategoryFromPathname(pathname ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const generatingRef = useRef(false)
   const [tokens, setTokens] = useState<number | null>(null)
   const [showAddCreditsModal, setShowAddCreditsModal] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -66,6 +67,8 @@ export function UploadSection() {
 
   const handleCreateArtwork = useCallback(async () => {
     if (!uploadedImageUrl || !selectedStyle) return
+    if (generatingRef.current) return
+    generatingRef.current = true
     setGenerating(true)
     setGenerateError(null)
     try {
@@ -76,6 +79,7 @@ export function UploadSection() {
           imageUrl: uploadedImageUrl,
           artStyle: selectedStyle,
           subjectType: currentCategory,
+          idempotencyKey: `create-${crypto.randomUUID()}`,
         }),
         credentials: 'include',
       })
@@ -97,6 +101,7 @@ export function UploadSection() {
       setGenerateError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setGenerating(false)
+      generatingRef.current = false
     }
   }, [uploadedImageUrl, selectedStyle, currentCategory, router])
 

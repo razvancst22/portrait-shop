@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { CreateFlow } from '@/components/create-flow'
+import { GallerySection } from '@/components/gallery-section'
 import { CategoryJsonLd } from '@/components/category-json-ld'
+import { CategoryPageHeader } from '@/components/category-page-header'
+import { getGalleryImagesForPage } from '@/lib/gallery-images'
 
 export const metadata: Metadata = {
   title: 'AI Self Portraits – Become Art in Renaissance & Victorian Style',
@@ -18,7 +21,13 @@ export default function SelfPortraitPage() {
   return (
     <>
       <CategoryJsonLd category="self" />
-      <CreateFlow category="self" />
+      <div className="flex flex-col items-center px-4 pt-6 md:pt-10 pb-8 md:pb-12">
+        <main className="max-w-3xl w-full text-center">
+          <CategoryPageHeader category="self" />
+          <CreateFlow category="self" />
+          <GallerySection items={getGalleryImagesForPage('self', false)} />
+        </main>
+      </div>
     </>
   )
 }

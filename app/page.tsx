@@ -18,12 +18,12 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center px-4 pt-6 md:pt-10 pb-16 md:pb-24">
+    <div className="flex flex-col items-center px-4 pt-6 md:pt-10 pb-8 md:pb-12">
       <main className="max-w-3xl w-full text-center">
         <div className="relative z-10">
           <HeroSection />
           {/* Create flow for all portrait types – pet, dog, cat, family, couple, children, self */}
-          <CreateFlow category="pet" allowInlineCategorySwitch showGallery={false} />
+          <CreateFlow category="pet" />
           {/* My portraits: hidden until user has creations; cards invite to purchase */}
           <MyPortraitsSection />
         </div>

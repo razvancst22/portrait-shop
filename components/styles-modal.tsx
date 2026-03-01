@@ -86,6 +86,7 @@ export function StylesModal({
             imageUrl,
             artStyle: styleId,
             subjectType: category,
+            idempotencyKey: `create-${crypto.randomUUID()}`,
           }),
           credentials: 'include',
         })

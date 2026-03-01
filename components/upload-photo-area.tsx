@@ -227,8 +227,10 @@ export function UploadPhotoArea({
             +
           </span>
         </div>
-        <span className="font-semibold text-foreground text-lg">
-          {uploadTitle}
+        <span className="font-semibold text-foreground text-lg block">
+          {uploadTitle.split('\n').map((line, i) => (
+            <span key={i} className="block">{line}</span>
+          ))}
         </span>
         <span
           key={displaySubtitle}

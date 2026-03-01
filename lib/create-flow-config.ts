@@ -60,7 +60,7 @@ export const CREATE_FLOW_COPY: Record<SubjectTypeId, CreateFlowCopy> = {
   couple: {
     headline: 'Capture Your Love in Timeless Art',
     subhead: 'Upload 2 photos and we\'ll create a romantic Renaissance or Victorian double portrait. Free preview • One price for everything.',
-    uploadLabel: 'Add 2 photos (one of each person)',
+    uploadLabel: 'Add 2 photos\n(one of each person)',
     uploadDropLabel: 'Drop your photos here',
     previewTitle: 'Lovely photo!',
     previewSubhead: 'Select a style to immortalize your love story as a classic masterpiece.',
@@ -71,7 +71,7 @@ export const CREATE_FLOW_COPY: Record<SubjectTypeId, CreateFlowCopy> = {
   family: {
     headline: 'Create an Heirloom Family Portrait',
     subhead: 'Upload 2-6 photos (one per person) and we\'ll create a stunning Renaissance or Victorian group portrait. Perfect for gifts • Free preview included.',
-    uploadLabel: 'Add 2-6 photos (one per family member)',
+    uploadLabel: 'Add 2-6 photos\n(one per family member)',
     uploadDropLabel: 'Drop your photos here',
     previewTitle: 'Wonderful photo!',
     previewSubhead: 'Choose an art style to turn this moment into a family treasure for generations.',
