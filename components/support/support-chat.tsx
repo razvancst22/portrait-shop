@@ -50,6 +50,10 @@ export function SupportChat() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (res.status === 401 || err?.code === 'SIGN_IN_REQUIRED') {
+          window.location.href = '/login?redirect=/support'
+          return
+        }
         throw new Error(err.error || 'Failed to get response')
       }
 

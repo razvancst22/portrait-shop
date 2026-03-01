@@ -1,11 +1,20 @@
 import { NextRequest } from 'next/server'
 import OpenAI from 'openai'
 import { SUPPORT_SYSTEM_PROMPT } from '@/lib/support/prompt'
+import { getOptionalUser } from '@/lib/supabase/auth-server'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getOptionalUser()
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Sign in required', code: 'SIGN_IN_REQUIRED' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       return new Response(
