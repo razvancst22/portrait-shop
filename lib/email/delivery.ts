@@ -1,11 +1,16 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import { SITE_NAME } from '@/lib/site-config'
+import { sendBrevoEmail } from '@/lib/email/brevo'
+import {
+  deliveryReadyContent,
+  orderConfirmationContent,
+  shippedContent,
+} from '@/lib/email/templates'
 
 const TOKEN_EXPIRY_DAYS = 7
 
 function getDownloadTokenSecret(): string {
-  const secret = process.env.DOWNLOAD_TOKEN_SECRET || process.env.RESEND_API_KEY
+  const secret = process.env.DOWNLOAD_TOKEN_SECRET || process.env.BREVO_API_KEY || process.env.RESEND_API_KEY
   if (process.env.NODE_ENV === 'production' && !secret) {
     throw new Error('DOWNLOAD_TOKEN_SECRET is required in production')
   }
@@ -63,14 +68,25 @@ export function verifyDownloadToken(token: string): { orderId: string } | null {
   return { orderId: payload.orderId }
 }
 
+function extractFirstName(email: string, customerName?: string | null): string {
+  if (customerName?.trim()) {
+    const first = customerName.trim().split(/\s+/)[0]
+    if (first) return first
+  }
+  const local = (email.split('@')[0] ?? '').trim()
+  if (!local) return ''
+  const part = local.includes('.') ? local.split('.')[0] ?? local : local
+  return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+}
+
 /**
- * Send delivery email with order number and download link. If RESEND_API_KEY is not set, logs and resolves (no throw).
+ * Send delivery email with download link. Uses Brevo. If BREVO_API_KEY not set, skips (no throw).
  */
 export async function sendDeliveryEmail(orderId: string): Promise<void> {
   const supabase = createClient()
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('order_number, customer_email')
+    .select('order_number, customer_email, customer_name')
     .eq('id', orderId)
     .single()
 
@@ -79,36 +95,134 @@ export async function sendDeliveryEmail(orderId: string): Promise<void> {
     return
   }
 
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('BREVO_API_KEY not set; skipping delivery email for order', order.order_number)
+    return
+  }
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const token = createDownloadToken(orderId)
   const downloadUrl = `${baseUrl}/download?token=${encodeURIComponent(token)}`
 
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY not set; skipping delivery email for order', order.order_number)
+  try {
+    const html = deliveryReadyContent({
+      firstName: extractFirstName(order.customer_email, order.customer_name),
+      orderNumber: order.order_number,
+      downloadUrl,
+      expiryDays: TOKEN_EXPIRY_DAYS,
+    })
+    await sendBrevoEmail({
+      to: order.customer_email,
+      subject: `Your portrait is ready – Order ${order.order_number}`,
+      htmlContent: html,
+      tags: ['order', 'delivery'],
+    })
+  } catch (e) {
+    console.error('sendDeliveryEmail: failed', orderId, e)
+  }
+}
+
+/**
+ * Send order confirmation email (payment received). Option A: keep Stripe receipt + add this branded email.
+ */
+export async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
+  const supabase = createClient()
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('order_number, customer_email, customer_name, total_usd')
+    .eq('id', orderId)
+    .single()
+
+  if (orderError || !order) {
+    console.error('sendOrderConfirmationEmail: order not found', orderId, orderError)
+    return
+  }
+
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('product_type, quantity, unit_price_usd')
+    .eq('order_id', orderId)
+
+  const PRODUCT_LABELS: Record<string, string> = {
+    get_your_portrait: 'Get your Portrait',
+    art_print: 'Art Print Pack',
+    digital_pack_starter: 'Starter Pack',
+    digital_pack_creator: 'Creator Pack',
+    digital_pack_artist: 'Artist Pack',
+  }
+  const itemsSummary =
+    (items ?? [])
+      .map(
+        (i) =>
+          `${PRODUCT_LABELS[i.product_type] ?? i.product_type.replace(/_/g, ' ')} × ${i.quantity} — $${Number(i.unit_price_usd).toFixed(2)}`
+      )
+      .join('<br/>') || 'Digital portrait'
+
+  const hasPhysical = (items ?? []).some((i) => i.product_type === 'art_print')
+
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('BREVO_API_KEY not set; skipping order confirmation for', order.order_number)
     return
   }
 
   try {
-    const { Resend } = await import('resend')
-    const resend = new Resend(apiKey)
-    const from = process.env.RESEND_FROM_EMAIL || 'Pet Portrait <onboarding@resend.dev>'
-    const { error } = await resend.emails.send({
-      from,
-      to: order.customer_email,
-      subject: `Your portrait is ready – Order ${order.order_number}`,
-      html: `
-        <p>Thank you for your order!</p>
-        <p>Your digital portrait bundle is ready. Order number: <strong>${order.order_number}</strong>.</p>
-        <p><a href="${downloadUrl}">Download your portrait bundle</a></p>
-        <p>This link expires in ${TOKEN_EXPIRY_DAYS} days. If you need a new link, use our <a href="${baseUrl}/order-lookup">order lookup</a> page.</p>
-        <p>— ${SITE_NAME}</p>
-      `,
+    const html = orderConfirmationContent({
+      firstName: extractFirstName(order.customer_email, order.customer_name),
+      orderNumber: order.order_number,
+      totalUsd: Number(order.total_usd).toFixed(2),
+      isPhysical: hasPhysical,
+      itemsSummary,
     })
-    if (error) {
-      console.error('sendDeliveryEmail: Resend error', orderId, error)
-    }
+    await sendBrevoEmail({
+      to: order.customer_email,
+      subject: `Order confirmed – ${order.order_number}`,
+      htmlContent: html,
+      tags: ['order', 'confirmation'],
+    })
   } catch (e) {
-    console.error('sendDeliveryEmail: failed', orderId, e)
+    console.error('sendOrderConfirmationEmail: failed', orderId, e)
+  }
+}
+
+/**
+ * Send shipped email (physical order – tracking). Called from Printful webhook.
+ */
+export async function sendShippedEmail(
+  orderId: string,
+  trackingUrl: string | null,
+  trackingNumber: string | null
+): Promise<void> {
+  const supabase = createClient()
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('order_number, customer_email, customer_name')
+    .eq('id', orderId)
+    .single()
+
+  if (orderError || !order) {
+    console.error('sendShippedEmail: order not found', orderId, orderError)
+    return
+  }
+
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('BREVO_API_KEY not set; skipping shipped email for', order.order_number)
+    return
+  }
+
+  try {
+    const html = shippedContent({
+      firstName: extractFirstName(order.customer_email, order.customer_name),
+      orderNumber: order.order_number,
+      trackingUrl,
+      trackingNumber,
+    })
+    await sendBrevoEmail({
+      to: order.customer_email,
+      subject: `Your order has shipped – ${order.order_number}`,
+      htmlContent: html,
+      tags: ['order', 'shipped'],
+    })
+  } catch (e) {
+    console.error('sendShippedEmail: failed', orderId, e)
   }
 }

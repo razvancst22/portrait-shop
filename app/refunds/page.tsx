@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getButtonClassName } from '@/components/primitives/button'
+import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
   title: 'Refund Policy – Portret',
@@ -9,6 +9,13 @@ export const metadata = {
 export default function RefundsPage() {
   return (
     <div className="container max-w-2xl mx-auto px-4 py-12">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ArrowLeft className="size-4" />
+        Back
+      </Link>
       <h1 className="font-heading text-2xl font-semibold text-foreground mb-4">
         Refund Policy
       </h1>
@@ -75,12 +82,6 @@ export default function RefundsPage() {
             For refund requests or questions, use the Contact page.
           </p>
         </section>
-      </div>
-
-      <div className="mt-10">
-        <Link href="/" className={getButtonClassName('outline', 'sm', 'rounded-full')}>
-          Back to home
-        </Link>
       </div>
     </div>
   )

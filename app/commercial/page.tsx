@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getButtonClassName } from '@/components/primitives/button'
+import { ArrowLeft } from 'lucide-react'
 
 export const metadata = {
   title: 'Commercial License – Use Your Portrait for Business & Marketing',
@@ -9,6 +9,13 @@ export const metadata = {
 export default function CommercialPage() {
   return (
     <div className="container max-w-2xl mx-auto px-4 py-12">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ArrowLeft className="size-4" />
+        Back
+      </Link>
       <h1 className="font-heading text-2xl font-semibold text-foreground mb-4">
         Commercial Use
       </h1>
@@ -70,12 +77,6 @@ export default function CommercialPage() {
             For commercial use requests or questions, use the Contact page.
           </p>
         </section>
-      </div>
-
-      <div className="mt-10">
-        <Link href="/" className={getButtonClassName('outline', 'sm', 'rounded-full')}>
-          Back to home
-        </Link>
       </div>
     </div>
   )

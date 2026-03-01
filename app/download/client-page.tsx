@@ -108,6 +108,8 @@ export function DownloadPageClient({ data }: DownloadPageProps) {
                   alt="Your portrait"
                   className="w-full h-full object-cover"
                   draggable={false}
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             ) : (

@@ -9,7 +9,8 @@ export type MyOrderItem = {
   created_at: string
   status: string
   total_usd: number
-  downloadUrl: string
+  /** Only present when status is 'delivered' and order has deliverables */
+  downloadUrl?: string
 }
 
 type OrderRow = {
@@ -93,14 +94,17 @@ export async function GET() {
 
 function mapToOrders(rows: OrderRow[]): MyOrderItem[] {
   return rows.map((o) => {
-    const token = createDownloadToken(o.id)
-    return {
+    const base = {
       id: o.id,
       order_number: o.order_number,
       created_at: o.created_at,
       status: o.status,
       total_usd: Number(o.total_usd) || 0,
-      downloadUrl: `/download?token=${encodeURIComponent(token)}`,
     }
+    if (o.status === 'delivered') {
+      const token = createDownloadToken(o.id)
+      return { ...base, downloadUrl: `/download?token=${encodeURIComponent(token)}` }
+    }
+    return base
   })
 }

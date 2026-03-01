@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { generateAndStoreBundle } from '@/lib/bundle/createBundle'
-import { sendDeliveryEmail } from '@/lib/email/delivery'
+import { sendDeliveryEmail, sendOrderConfirmationEmail } from '@/lib/email/delivery'
 import { serverErrorResponse } from '@/lib/api-error'
 import { createPackPurchase } from '@/lib/pack-credits'
 import { processPrintfulFulfillment } from '@/lib/fulfillment/process-printful-order'
@@ -92,6 +92,13 @@ export async function POST(request: NextRequest) {
 
   if (updateError) {
     return serverErrorResponse(updateError, `Webhook: update order ${orderId}`)
+  }
+
+  // Order confirmation email (branded) – Option A: keep Stripe receipt + add this
+  try {
+    await sendOrderConfirmationEmail(orderId)
+  } catch (e) {
+    console.error('Webhook: sendOrderConfirmationEmail failed', orderId, e)
   }
 
   // Digital Pack: create pack purchase to grant credits

@@ -75,8 +75,9 @@ export async function GET(
     body = new Uint8Array(await file.arrayBuffer())
   }
 
+  // Longer cache = fewer Supabase egress hits. Display-sized images cached 7 days.
   const cacheControl = displayWidth
-    ? 'private, max-age=3600'
+    ? 'private, max-age=604800'
     : 'private, max-age=0'
 
   return new NextResponse(body as BodyInit, {

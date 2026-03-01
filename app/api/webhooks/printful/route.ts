@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendShippedEmail } from '@/lib/email/delivery'
 
 /**
  * POST /api/webhooks/printful – Printful fulfillment callbacks.
@@ -34,8 +35,13 @@ export async function POST(request: NextRequest) {
     }
 
     let fulfillmentStatus: string
+    let trackingNumber: string | null = null
+    let trackingUrl: string | null = null
+
     if (type === 'package_shipped') {
       fulfillmentStatus = 'shipped'
+      trackingNumber = body.data?.shipment?.tracking_number ?? null
+      trackingUrl = body.data?.shipment?.tracking_url ?? null
     } else if (type === 'order_canceled' || type === 'order_failed') {
       fulfillmentStatus = 'cancelled'
     } else if (type === 'order_updated') {
@@ -53,12 +59,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
+    const updatePayload: Record<string, unknown> = {
+      fulfillment_status: fulfillmentStatus,
+      updated_at: new Date().toISOString(),
+    }
+    if (trackingNumber != null) updatePayload.tracking_number = trackingNumber
+    if (trackingUrl != null) updatePayload.tracking_url = trackingUrl
+
     const { data, error } = await supabase
       .from('orders')
-      .update({
-        fulfillment_status: fulfillmentStatus,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', externalId)
       .select('id, order_number')
       .maybeSingle()
@@ -72,6 +82,13 @@ export async function POST(request: NextRequest) {
       console.log(
         `Printful webhook: order ${data.order_number} (${data.id}) → ${fulfillmentStatus}`
       )
+      if (fulfillmentStatus === 'shipped') {
+        try {
+          await sendShippedEmail(data.id, trackingUrl, trackingNumber)
+        } catch (e) {
+          console.error('Printful webhook: sendShippedEmail failed', data.id, e)
+        }
+      }
     }
 
     return NextResponse.json({ received: true })

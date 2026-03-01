@@ -64,9 +64,10 @@ export async function GET(
     body = new Uint8Array(await file.arrayBuffer())
   }
 
+  // Longer cache = fewer Supabase egress hits. Thumbnails are immutable; full preview cached 7 days.
   const cacheControl = thumbWidth
-    ? 'public, max-age=86400, immutable'
-    : 'public, max-age=3600'
+    ? 'public, max-age=604800, immutable'
+    : 'public, max-age=604800'
 
   return new NextResponse(body as BodyInit, {
     headers: {

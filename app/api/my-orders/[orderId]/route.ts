@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getOptionalUser } from '@/lib/supabase/auth-server'
 import { createDownloadToken } from '@/lib/email/delivery'
+import { stripe } from '@/lib/stripe'
 
 type GenerationEmbed = {
   preview_image_url: string | null
@@ -27,6 +28,10 @@ type OrderRow = {
   total_usd: number
   customer_email: string | null
   user_id?: string | null
+  stripe_checkout_session_id?: string | null
+  fulfillment_status?: string | null
+  tracking_number?: string | null
+  tracking_url?: string | null
 }
 
 /**
@@ -48,7 +53,7 @@ export async function GET(
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, order_number, created_at, status, total_usd, customer_email, user_id')
+    .select('id, order_number, created_at, status, total_usd, customer_email, user_id, stripe_checkout_session_id, fulfillment_status, tracking_number, tracking_url')
     .eq('id', orderId)
     .single()
 
@@ -89,6 +94,25 @@ export async function GET(
     downloadUrl = `/download?token=${encodeURIComponent(token)}`
   }
 
+  let receiptUrl: string | null = null
+  const sessionId = orderRow.stripe_checkout_session_id
+  if (sessionId && process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder') {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['payment_intent.latest_charge'],
+      })
+      const pi = session.payment_intent
+      if (pi && typeof pi === 'object' && pi.latest_charge) {
+        const charge = pi.latest_charge
+        if (typeof charge === 'object' && charge.receipt_url) {
+          receiptUrl = charge.receipt_url
+        }
+      }
+    } catch {
+      // Receipt URL is optional; fail silently
+    }
+  }
+
   const lineItems = (items ?? []).map((item: OrderItemRow) => {
     const raw = item.generations
     const gen = Array.isArray(raw) ? raw[0] ?? null : raw ?? null
@@ -112,8 +136,12 @@ export async function GET(
       createdAt: orderRow.created_at,
       status: orderRow.status,
       totalUsd: Number(orderRow.total_usd) || 0,
+      fulfillmentStatus: orderRow.fulfillment_status ?? null,
+      trackingNumber: orderRow.tracking_number ?? null,
+      trackingUrl: orderRow.tracking_url ?? null,
     },
     items: lineItems,
     downloadUrl,
+    receiptUrl,
   })
 }

@@ -26,7 +26,7 @@ type MyOrderItem = {
   created_at: string
   status: string
   total_usd: number
-  downloadUrl: string
+  downloadUrl?: string
 }
 
 export function AccountDashboard() {
@@ -232,13 +232,15 @@ export function AccountDashboard() {
                   >
                     View details
                   </Link>
-                  <Link
-                    href={order.downloadUrl}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    <Download className="size-4" />
-                    Download
-                  </Link>
+                  {order.downloadUrl && (
+                    <Link
+                      href={order.downloadUrl}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      <Download className="size-4" />
+                      Download
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
